@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:video_list/pages/page_controller.dart';
 import '../../resources/export.dart';
 import 'package:provider/provider.dart';
 import 'choiceness/choiceness_page.dart';
@@ -36,15 +37,15 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   ];
 
   List<Widget> _pageList = const [
-    ChoicenessPage(),
-    TmpPage("爱看"),
-    TmpPage("视频1"),
-    TmpPage("视频2"),
-    TmpPage("视频3"),
-    TmpPage("视频4"),
-    TmpPage("视频5"),
-    TmpPage("视频6"),
-    TmpPage("视频7"),
+    ChoicenessPage(PageIndex.main_page, 0),
+    TmpPage(PageIndex.main_page, 1, "爱看"),
+    TmpPage(PageIndex.main_page, 2, "视频1"),
+    TmpPage(PageIndex.main_page, 3,"视频2"),
+    TmpPage(PageIndex.main_page, 4,"视频3"),
+    TmpPage(PageIndex.main_page, 5,"视频4"),
+    TmpPage(PageIndex.main_page, 6,"视频5"),
+    TmpPage(PageIndex.main_page, 7,"视频6"),
+    TmpPage(PageIndex.main_page, 8,"视频7"),
   ];
 
   @override
@@ -56,13 +57,36 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     _pageController = PageController();
 
     _tabController.addListener(() {
-      //_tabTxtAnimationController.reset();
       if (_tabController.indexIsChanging && !_isPageAnimation) {
         _pageController.jumpToPage(_tabController.index);
       }
       _isPageAnimation = false;
     });
 
+    _pageController.addListener(() {
+     // print("page:${_pageController.page}  offset:${ _pageController.offset}  _tabController:${_tabController.index}");
+     if (_pageController.page == _tabController.index) {
+       print("page:${_pageController.page}  offset:${ _pageController.offset}  _tabController:${_tabController.index}");
+       Provider.of<PageChangeNotifier>(context, listen: false).tabIndex = _tabController.index;
+     }
+
+    });
+
+  }
+
+  @override
+  void updateKeepAlive() {
+
+    super.updateKeepAlive();
+
+    print("...updateKeepAlive");
+  }
+
+  @override
+  void deactivate() {
+    // TODO: implement deactivate
+    super.deactivate();
+    print("...deactivate");
   }
 
   @override
