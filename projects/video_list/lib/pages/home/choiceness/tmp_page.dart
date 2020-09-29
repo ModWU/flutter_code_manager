@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:video_list/pages/page_controller.dart';
 
-class TmpPage extends TabBasePage {
+class TmpPage extends BaseTabPage {
 
   const TmpPage(PageIndex pageIndex, int tabIndex, this.data) : super(pageIndex, tabIndex);
 

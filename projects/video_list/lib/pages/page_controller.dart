@@ -46,11 +46,17 @@ extension PageIndexExtension on PageIndex {
   static get contents => _contentWidgets;
 }
 
-abstract class TabBasePage extends StatefulWidget {
+abstract class BaseTabPage extends StatefulWidget {
   final PageIndex pageIndex;
   final int tabIndex;
-  const TabBasePage(this.pageIndex, this.tabIndex);
+  const BaseTabPage(this.pageIndex, this.tabIndex);
 }
+
+/*class BackgroundToForegroundNotifier with ChangeNotifier {
+  void notifyAll() {
+    notifyListeners();
+  }
+}*/
 
 class PageChangeNotifier with ChangeNotifier {
   PageIndex _pageIndex;

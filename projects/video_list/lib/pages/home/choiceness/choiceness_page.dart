@@ -5,7 +5,7 @@ import 'package:video_list/resources/res/dimens.dart';
 import 'choiceness_body_header.dart';
 import 'choiceness_page_bar.dart';
 
-class ChoicenessPage extends TabBasePage {
+class ChoicenessPage extends BaseTabPage {
 
   const ChoicenessPage(PageIndex pageIndex, int tabIndex) : super(pageIndex, tabIndex);
 
@@ -45,9 +45,9 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     HeaderImage headerImage3 = HeaderImage('http://via.placeholder.com/288x188', imageDesc: '京东方苦咖啡到了' * 6);
     HeaderImage headerImage4 = HeaderImage('http://via.placeholder.com/288x188', imageDesc: '【甜蜜暴击】林可然爱上霸道总裁！');
     _headerImages.add(headerImage1);
-    _headerImages.add(headerImage2);
-    _headerImages.add(headerImage3);
-    _headerImages.add(headerImage4);
+   _headerImages.add(headerImage2);
+   _headerImages.add(headerImage3);
+   _headerImages.add(headerImage4);
 
   }
 
@@ -76,6 +76,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
   @override
   Widget build(BuildContext context) {
+    print("choiceness build page");
     return Scaffold(
       appBar: PreferredSize(
         //preferredSize: Size(20, 20),

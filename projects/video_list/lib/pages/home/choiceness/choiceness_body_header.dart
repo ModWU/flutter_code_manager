@@ -4,10 +4,9 @@ import 'package:flutter_swiper/flutter_swiper.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/resources/res/dimens.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import '../../page_controller.dart';
 
-class ChoicenessHeader extends TabBasePage {
+class ChoicenessHeader extends BaseTabPage {
   const ChoicenessHeader(PageIndex pageIndex, int tabIndex, this.headerImages)
       : super(pageIndex, tabIndex);
 
@@ -17,26 +16,57 @@ class ChoicenessHeader extends TabBasePage {
   final List<HeaderImage> headerImages;
 }
 
-class _ChoicenessHeaderState extends State<ChoicenessHeader> {
+class _ChoicenessHeaderState extends State<ChoicenessHeader> with WidgetsBindingObserver {
   _BottomTextNotifier _bottomTextNotifier;
 
   bool _autoPlay = true;
+  int _index = 0;
+
 
   Widget _swiperBuilder(BuildContext context, int index) {
     return Container(
       width: Dimens.design_screen_width.w,
       // margin: EdgeInsets.symmetric(horizontal: 50),
-      child: (Image.network(
+      child: Image.network(
         widget.headerImages[index]
             .imageUrl, //"http://via.placeholder.com/288x188",
         fit: BoxFit.fill,
-      )),
+      ),
     );
+  }
+
+  /* Image.network(
+  widget.headerImages[index]
+      .imageUrl, //"http://via.placeholder.com/288x188",
+  fit: BoxFit.fill,
+  )*/
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused) {
+      print("_ChoicenessHeaderState didChangeAppLifecycleState -> 进入后台");
+
+    }
+    if (state == AppLifecycleState.resumed) {
+      print("_ChoicenessHeaderState didChangeAppLifecycleState -> 进入前台");
+
+    }
+
+    if (state == AppLifecycleState.inactive) {
+      print("_ChoicenessHeaderState didChangeAppLifecycleState -> 可见，不能响应用户操作");
+    }
+
+    if (state == AppLifecycleState.detached) {
+      print("_ChoicenessHeaderState didChangeAppLifecycleState -> 虽然还在运行，但已经没有任何存在的界面");
+    }
+
   }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _bottomTextNotifier = _BottomTextNotifier();
     if (widget.headerImages.length > 0)
       _bottomTextNotifier._text = widget.headerImages[0].imageDesc;
@@ -49,13 +79,33 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader> {
     if (widget != oldWidget) {
       //_imageDescNotifier.text = widget.headerImages[0].imageDesc;
     }
-
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  Widget _buildSwiper(bool autoPlay) {
+    return Swiper(
+      itemBuilder: _swiperBuilder,
+      itemCount: widget.headerImages.length,
+      pagination: null,
+      control: null, //new SwiperControl(),
+      scrollDirection: Axis.horizontal,
+      autoplay: autoPlay,
+      duration: 500,
+      index: _index,
+      viewportFraction: 0.94,
+      scale: 0.986,
+      autoplayDelay: 5000,
+      onTap: (index) => print('点击了第$index个'),
+      onIndexChanged: (index) {
+        _index = index;
+        _bottomTextNotifier.text = widget.headerImages[index].imageDesc;
+      },
+    );
   }
 
   @override
@@ -74,33 +124,18 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader> {
               child: Selector<PageChangeNotifier, bool>(
                   builder: (BuildContext context, bool autoPlay, Widget child) {
                 print("---------autoPlay change: $autoPlay");
-                return Swiper(
-                  itemBuilder: _swiperBuilder,
-                  itemCount: widget.headerImages.length,
-                  pagination: null,
-                  control: null, //new SwiperControl(),
-                  scrollDirection: Axis.horizontal,
-                  autoplay: autoPlay,
-                  duration: 500,
-                  viewportFraction: 0.94,
-                  scale: 0.986,
-                  autoplayDelay: 5000,
-                  onTap: (index) => print('点击了第$index个'),
-                  onIndexChanged: (index) {
-                    _bottomTextNotifier.text =
-                        widget.headerImages[index].imageDesc;
-                  },
-                );
+                return _buildSwiper(autoPlay);
               }, selector: (BuildContext context,
                       PageChangeNotifier pageChangeNotifier) {
-                if (_autoPlay &&
-                    (pageChangeNotifier.pageIndex != PageIndex.main_page ||
-                        pageChangeNotifier.tabIndex != widget.tabIndex)) {
-                  _autoPlay = false;
-                } else if (!_autoPlay &&
+                print("---------autoPlay before => _autoPlay: ${_autoPlay}");
+                if (!_autoPlay &&
                     (pageChangeNotifier.pageIndex == PageIndex.main_page &&
                         pageChangeNotifier.tabIndex == widget.tabIndex)) {
                   _autoPlay = true;
+                } else if (_autoPlay &&
+                    (pageChangeNotifier.pageIndex != PageIndex.main_page ||
+                        pageChangeNotifier.tabIndex != widget.tabIndex)) {
+                  _autoPlay = false;
                 }
 
                 return _autoPlay;

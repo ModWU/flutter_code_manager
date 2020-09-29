@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:video_list/pages/page_controller.dart';
 import '../../resources/export.dart';
@@ -51,7 +52,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    print("MainPage -> initState()");
+    print("_MainPageState -> initState()");
 
     _tabController = TabController(length: _dataList.length, vsync: this);
     _pageController = PageController();
@@ -63,35 +64,20 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
       _isPageAnimation = false;
     });
 
-    _pageController.addListener(() {
+    /*_pageController.addListener(() {
      // print("page:${_pageController.page}  offset:${ _pageController.offset}  _tabController:${_tabController.index}");
      if (_pageController.page == _tabController.index) {
-       print("page:${_pageController.page}  offset:${ _pageController.offset}  _tabController:${_tabController.index}");
+       print("_MainPageState page:${_pageController.page}  offset:${ _pageController.offset}  _tabController:${_tabController.index}");
        Provider.of<PageChangeNotifier>(context, listen: false).tabIndex = _tabController.index;
      }
 
-    });
+    });*/
 
-  }
-
-  @override
-  void updateKeepAlive() {
-
-    super.updateKeepAlive();
-
-    print("...updateKeepAlive");
-  }
-
-  @override
-  void deactivate() {
-    // TODO: implement deactivate
-    super.deactivate();
-    print("...deactivate");
   }
 
   @override
   void dispose() {
-    print("MainPage -> dispose()");
+    print("_MainPageState -> dispose()");
     _tabController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -115,8 +101,10 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           controller: _pageController,
           physics: const BouncingScrollPhysics(),
           onPageChanged: (index) {
+            print("_MainPageState onPageChanged: ${index}");
             _isPageAnimation = true;
             _tabController.animateTo(index);
+            Provider.of<PageChangeNotifier>(context, listen: false).tabIndex = _tabController.index;
           },
         ),
       ),
