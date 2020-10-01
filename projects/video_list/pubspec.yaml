@@ -53,6 +53,11 @@ flutter:
     - assets/flutter-mark-square-64.png
     - assets/Butterfly-209.mp4
     - assets/bumble_bee_captions.srt
+    - images/head1.jpg
+    - images/head2.jpeg
+    - images/head3.jpg
+    - images/head4.jpeg
+    - images/head5.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

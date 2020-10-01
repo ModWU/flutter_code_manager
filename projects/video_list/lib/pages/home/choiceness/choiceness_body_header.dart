@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swiper/flutter_swiper.dart';
 import 'package:provider/provider.dart';
+import 'package:video_list/models/choiceness_model.dart';
 import 'package:video_list/resources/res/dimens.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../page_controller.dart';
@@ -13,7 +14,7 @@ class ChoicenessHeader extends BaseTabPage {
   @override
   State<StatefulWidget> createState() => _ChoicenessHeaderState();
 
-  final List<HeaderImage> headerImages;
+  final List<ChoicenessHeaderItem> headerImages;
 }
 
 class _ChoicenessHeaderState extends State<ChoicenessHeader> with WidgetsBindingObserver {
@@ -24,15 +25,34 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader> with WidgetsBinding
 
 
   Widget _swiperBuilder(BuildContext context, int index) {
-    return Container(
-      width: Dimens.design_screen_width.w,
-      // margin: EdgeInsets.symmetric(horizontal: 50),
-      child: Image.network(
+
+    if (!widget.headerImages[index].isAdvert) {
+      return Container(
+        width: Dimens.design_screen_width.w,
+        // margin: EdgeInsets.symmetric(horizontal: 50),
+        child: Image.asset(widget.headerImages[index]
+            .imgUrl,
+          fit: BoxFit.cover,
+        ),/*Image.network(
         widget.headerImages[index]
-            .imageUrl, //"http://via.placeholder.com/288x188",
+            .imgUrl, //"http://via.placeholder.com/288x188",
         fit: BoxFit.fill,
-      ),
-    );
+      ),*/
+      );
+    } else {
+      return Container(
+        width: Dimens.design_screen_width.w,
+        alignment: Alignment.center,
+        // margin: EdgeInsets.symmetric(horizontal: 50),
+        child: Text("我是广告", style: TextStyle(fontSize: 24),),/*Image.network(
+        widget.headerImages[index]
+            .imgUrl, //"http://via.placeholder.com/288x188",
+        fit: BoxFit.fill,
+      ),*/
+      );
+    }
+
+
   }
 
   /* Image.network(
@@ -69,7 +89,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader> with WidgetsBinding
     WidgetsBinding.instance.addObserver(this);
     _bottomTextNotifier = _BottomTextNotifier();
     if (widget.headerImages.length > 0)
-      _bottomTextNotifier._text = widget.headerImages[0].imageDesc;
+      _bottomTextNotifier._text = widget.headerImages[0].introduce;
     print("_ChoicenessHeaderState initState-->${widget.headerImages}");
   }
 
@@ -103,7 +123,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader> with WidgetsBinding
       onTap: (index) => print('点击了第$index个'),
       onIndexChanged: (index) {
         _index = index;
-        _bottomTextNotifier.text = widget.headerImages[index].imageDesc;
+        _bottomTextNotifier.text = widget.headerImages[index].introduce;
       },
     );
   }
@@ -167,18 +187,6 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader> with WidgetsBinding
         ),
       ),
     );
-  }
-}
-
-class HeaderImage {
-  final String imageUrl;
-  final String imageDesc;
-
-  const HeaderImage(this.imageUrl, {this.imageDesc = ''});
-
-  @override
-  String toString() {
-    return "HeaderImage {imageUrl: imageUrl, imageDesc: imageDesc}";
   }
 }
 
