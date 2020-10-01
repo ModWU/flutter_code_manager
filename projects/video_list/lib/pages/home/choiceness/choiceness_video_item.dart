@@ -21,7 +21,7 @@ class VideoItemWidget extends BaseTabPage {
   State<StatefulWidget> createState() => _VideoItemWidgetState();
 }
 
-class _VideoItemWidgetState extends State<VideoItemWidget> {
+class _VideoItemWidgetState extends State<VideoItemWidget> with AutomaticKeepAliveClientMixin {
   double _itemVerticalSpacing = 3.0.w, _itemHorizontalSpacing = 6.0.w;
   double _itemVerticalSize = (Dimens.design_screen_width.w - 3.0.w) / 2.0,
       _itemHorizontalSize = (Dimens.design_screen_width.w - 6.0.w) / 2.5;
@@ -414,4 +414,7 @@ class _VideoItemWidgetState extends State<VideoItemWidget> {
 
     return null;
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

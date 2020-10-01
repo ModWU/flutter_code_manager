@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:video_list/pages/page_controller.dart';
 import '../../resources/export.dart';
 import 'package:provider/provider.dart';
+import '../page_utils.dart';
 import 'choiceness/choiceness_page.dart';
 import 'choiceness/tmp_page.dart';
 import 'home_page_bar.dart';
@@ -104,7 +105,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
             print("_MainPageState onPageChanged: ${index}");
             _isPageAnimation = true;
             _tabController.animateTo(index);
-            Provider.of<PageChangeNotifier>(context, listen: false).tabIndex = _tabController.index;
+            notifyChangePage(context, tabIndex: index);
           },
         ),
       ),

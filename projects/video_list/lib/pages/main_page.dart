@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/pages/page_controller.dart';
+import 'package:video_list/pages/page_utils.dart';
 import '../resources/export.dart';
 
 class HeartBeatApp extends StatelessWidget {
@@ -56,6 +57,8 @@ class HeartBeatApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => PageChangeNotifier()),
+        ChangeNotifierProvider(create: (context) => PageChangeAndScrollNotifier()),
+        ChangeNotifierProvider(create: (context) => PageScrollNotifier()),
         /*ChangeNotifierProvider(
             create: (context) => BackgroundToForegroundNotifier()),*/
       ],
@@ -119,16 +122,15 @@ class _HeartBeatState extends State<_HeartBeatPage>
         bottomNavigationBar: BottomNavigationBar(
           // 底部导航
           items: PageIndexExtension.bottoms,
-          currentIndex: pageChangeNotifier.pageIndex.index,
+          currentIndex: pageChangeNotifier.currentPageIndex.index,
           fixedColor: Colors.black,
           unselectedItemColor: Colors.black,
           onTap: (index) {
-            Provider.of<PageChangeNotifier>(context, listen: false).pageIndex =
-                PageIndex.values[index];
+            notifyChangePage(context, pageIndex: PageIndex.values[index]);
           },
         ),
         body: IndexedStack(
-          index: pageChangeNotifier.pageIndex.index,
+          index: pageChangeNotifier.currentPageIndex.index,
           children: PageIndexExtension.contents,
         ),
       );

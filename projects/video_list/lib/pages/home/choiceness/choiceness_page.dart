@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:video_list/controllers/choiceness_controller.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/models/choiceness_model.dart';
 import 'package:video_list/pages/page_controller.dart';
+import 'package:video_list/pages/page_utils.dart';
 import 'package:video_list/resources/res/dimens.dart';
 import 'choiceness_body_header.dart';
 import 'choiceness_page_bar.dart';
@@ -42,7 +44,6 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   }
 
   void _initResources() {
-
     List list = ChoicenessController().getChoicenessData();
 
     _headerImages = list.whereType<ChoicenessHeaderItem>().toList();
@@ -95,20 +96,38 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       body: Container(
         child: RefreshIndicator(
           onRefresh: _refresh,
-          child: ListView.builder(
-              itemCount: _videoItems.length + 1,
-              //itemExtent: 50.0, //强制高度为50.0
+          child: Builder(
+            builder: (context) {
+              return NotificationListener(
+                onNotification: (ScrollNotification note) {
+                  //print(note.metrics.pixels.toInt());  // 滚动位置。
+                  // print("scroll: ${note.metrics.pixels}");
+                  /*if (note.metrics.axis == Axis.vertical) {
+                      print(
+                          "axis: ${note.metrics.axis == Axis.horizontal ? "水平" : "垂直"}, extentAfter:${note.metrics.extentAfter}, extentBefore:${note.metrics.extentBefore}, extentInside:${note.metrics.extentInside}, pixels:${note.metrics.pixels}, viewportDimension:${note.metrics.viewportDimension}, minScrollExtent:${note.metrics.minScrollExtent}, maxScrollExtent:${note.metrics.minScrollExtent}");
 
-              physics: const BouncingScrollPhysics(),
-              itemBuilder: (BuildContext context, int index) {
-                if (index == 0)
-                  return ChoicenessHeader(widget.pageIndex, widget.tabIndex, _headerImages);
+                      print(
+                          "差值：${note.metrics.extentBefore - note.metrics.extentAfter}");
+                    }*/
+                  notifyScrollPage(context, widget.pageIndex, widget.tabIndex, note.metrics);
+                  return false;
+                },
+                child: ListView.builder(
+                    itemCount: _videoItems.length + 1,
+                    //itemExtent: 50.0, //强制高度为50.0
 
-                return VideoItemWidget(PageIndex.main_page, widget.tabIndex, index, _videoItems[index - 1]);
+                    physics: const BouncingScrollPhysics(),
+                    itemBuilder: (BuildContext context, int index) {
+                      if (index == 0)
+                        return ChoicenessHeader(
+                            widget.pageIndex, widget.tabIndex, _headerImages);
 
-              }), /*Column(
-
-          ),*/
+                      return VideoItemWidget(PageIndex.main_page,
+                          widget.tabIndex, index, _videoItems[index - 1]);
+                    }),
+              );
+            },
+          ),
         ),
       ), //ChoicenessHeader(widget.pageIndex, widget.tabIndex, _headerImages),
     );
@@ -117,4 +136,3 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   @override
   bool get wantKeepAlive => true;
 }
-

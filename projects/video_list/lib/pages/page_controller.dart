@@ -58,28 +58,100 @@ abstract class BaseTabPage extends StatefulWidget {
   }
 }*/
 
-class PageChangeNotifier with ChangeNotifier {
-  PageIndex _pageIndex;
-  int _tabIndex;
+mixin PageScrollMiXin on ChangeNotifier {
+  Map<String, ScrollMetrics> _saveVerticalPositions;
+  Map<String, ScrollMetrics> _saveHorizontalPositions;
 
-  PageChangeNotifier(
-      {PageIndex pageIndex = PageIndex.main_page, int tabIndex = 0})
-      : _pageIndex = pageIndex,
-        _tabIndex = tabIndex;
+  void _putMetrics(PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
+    _saveVerticalPositions ??= {};
+    _saveHorizontalPositions ??= {};
 
-  set pageIndex(PageIndex pageIndex) {
-    if (pageIndex == _pageIndex) return;
-    _pageIndex = pageIndex;
+    String actId = "${pageIndex.index}_$tabIndex";
+
+    if (metrics.axis == Axis.vertical)
+      _saveVerticalPositions[actId] = metrics;
+    else if (metrics.axis == Axis.horizontal)
+      _saveHorizontalPositions[actId] = metrics;
+  }
+
+  /*void scrollByVertical(
+      PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
+    if (metrics.axis == Axis.vertical) {
+      _putMetrics(pageIndex, tabIndex, metrics);
+      notifyListeners();
+    }
+  }
+
+  void scrollByHorizontal(
+      PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
+    if (metrics.axis == Axis.horizontal) {
+      _putMetrics(pageIndex, tabIndex, metrics);
+      notifyListeners();
+    }
+  }*/
+
+  void scroll(PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
+    _putMetrics(pageIndex, tabIndex, metrics);
     notifyListeners();
   }
 
-  set tabIndex(int tabIndex) {
-    if (tabIndex == _tabIndex) return;
-    _tabIndex = tabIndex;
+  ScrollMetrics getMetrics(Axis axis, PageIndex pageIndex, int tabIndex) {
+    return axis == Axis.horizontal
+        ? (_saveHorizontalPositions == null
+            ? null
+            : _saveHorizontalPositions["${pageIndex.index}_$tabIndex"])
+        : (_saveVerticalPositions == null
+            ? null
+            : _saveVerticalPositions["${pageIndex.index}_$tabIndex"]);
+  }
+}
+
+mixin PageChangeMiXin on ChangeNotifier {
+  Map<PageIndex, int> _saveIndex = {PageIndex.main_page: 0};
+  PageIndex _currentPageIndex = PageIndex.main_page;
+
+  void _putTabIndex(PageIndex pageIndex, int tabIndex) {
+    _saveIndex[pageIndex] = tabIndex;
+  }
+
+  int getTabIndex(PageIndex pageIndex) {
+    return _saveIndex[pageIndex];
+  }
+
+  void changeIndex({PageIndex pageIndex, int tabIndex}) {
+    tabIndex ??= _saveIndex[pageIndex] ?? 0;
+
+    pageIndex ??= _currentPageIndex;
+
+    if (pageIndex == _currentPageIndex && _saveIndex[pageIndex] == tabIndex)
+      return;
+
+    _currentPageIndex = pageIndex;
+    _putTabIndex(pageIndex, tabIndex);
     notifyListeners();
   }
 
-  int get tabIndex => _tabIndex;
+  PageIndex get currentPageIndex => _currentPageIndex;
+  int get currentTabIndex => _saveIndex[_currentPageIndex];
+}
 
-  PageIndex get pageIndex => _pageIndex;
+class PageScrollNotifier with ChangeNotifier, PageScrollMiXin {}
+
+class PageChangeNotifier with ChangeNotifier, PageChangeMiXin {}
+
+class PageChangeAndScrollNotifier
+    with ChangeNotifier, PageChangeMiXin, PageScrollMiXin {
+  bool _isPageChange;
+
+  void changeIndex({PageIndex pageIndex, int tabIndex}) {
+    _isPageChange = true;
+    super.changeIndex(pageIndex: pageIndex, tabIndex: tabIndex);
+  }
+
+  void scroll(PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
+    _isPageChange = false;
+    super.scroll(pageIndex, tabIndex, metrics);
+  }
+
+  bool get isPageChange => _isPageChange;
 }
