@@ -9,13 +9,11 @@ import 'package:flutter_screenutil/screenutil.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'dart:ui' as ui show PlaceholderAlignment;
 
-class VideoItemWidget extends BaseTabPage {
+class VideoItemWidget extends StatefulWidget {
   final ItemMiXin items;
   final int index;
 
-  const VideoItemWidget(
-      PageIndex pageIndex, int tabIndex, this.index, this.items)
-      : super(pageIndex, tabIndex);
+  VideoItemWidget(this.index, this.items);
 
   @override
   State<StatefulWidget> createState() => _VideoItemWidgetState();

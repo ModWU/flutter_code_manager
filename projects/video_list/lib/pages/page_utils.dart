@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:flutter_screenutil/size_extension.dart';
-import 'package:video_list/pages/page_controller.dart';
 
 Container getTextContainer(String text,
     {Color backgroundColor = Colors.grey,
@@ -96,34 +95,4 @@ Icon getSignIcon(VideoSign sign, {double size}) {
         color: Colors.orangeAccent,
       );
   }
-}
-
-bool isCurrentPage(BuildContext context, PageChangeMiXin pageChangeMixin, PageIndex pageIndex, int tabIndex) {
-  /*(pageChangeNotifier.pageIndex == PageIndex.main_page &&
-        pageChangeNotifier.tabIndex == widget.tabIndex)*/
-
-  if (pageChangeMixin.currentPageIndex == pageIndex &&
-      pageChangeMixin.currentTabIndex == tabIndex) return true;
-
-  return false;
-}
-
-void notifyChangePage(BuildContext context, {PageIndex pageIndex, int tabIndex}) {
-  Provider.of<PageChangeNotifier>(context, listen: false).changeIndex(pageIndex: pageIndex, tabIndex: tabIndex);
-  Provider.of<PageChangeAndScrollNotifier>(context, listen: false).changeIndex(pageIndex: pageIndex, tabIndex: tabIndex);
-}
-
-void notifyScrollPage(BuildContext context, PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
-  Provider.of<PageChangeAndScrollNotifier>(context, listen: false).scroll(pageIndex, tabIndex, metrics);
-  Provider.of<PageScrollNotifier>(context, listen: false).scroll(pageIndex, tabIndex, metrics);
-  /*if (axis == null) {
-    Provider.of<PageChangeAndScrollNotifier>(context, listen: false).scroll(pageIndex, tabIndex, metrics);
-    Provider.of<PageScrollNotifier>(context, listen: false).scroll(pageIndex, tabIndex, metrics);
-  } else if (Axis.horizontal == axis) {
-    Provider.of<PageChangeAndScrollNotifier>(context, listen: false).scrollByHorizontal(pageIndex, tabIndex, metrics);
-    Provider.of<PageScrollNotifier>(context, listen: false).scrollByHorizontal(pageIndex, tabIndex, metrics);
-  } else if (Axis.vertical == axis) {
-    Provider.of<PageChangeAndScrollNotifier>(context, listen: false).scrollByVertical(pageIndex, tabIndex, metrics);
-    Provider.of<PageScrollNotifier>(context, listen: false).scrollByVertical(pageIndex, tabIndex, metrics);
-  }*/
 }

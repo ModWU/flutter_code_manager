@@ -8,12 +8,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../page_controller.dart';
 import '../../page_utils.dart';
 
-class ChoicenessHeader extends BaseTabPage {
-  const ChoicenessHeader(PageIndex pageIndex, int tabIndex, this.headerImages)
-      : super(pageIndex, tabIndex);
+class ChoicenessHeader extends StatefulWidget {
+  const ChoicenessHeader(
+      this.headerImages, this.pageVisibleNotifier, this.pageScrollNotifier);
 
   @override
   State<StatefulWidget> createState() => _ChoicenessHeaderState();
+
+  final PageVisibleNotifier pageVisibleNotifier;
+
+  final PageScrollNotifier pageScrollNotifier;
 
   final List<ChoicenessHeaderItem> headerImages;
 }
@@ -22,9 +26,10 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
     with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   _BottomTextNotifier _bottomTextNotifier;
 
-  bool _autoPlay = true;
+  //bool _autoPlay = true;
   int _index = 0;
   double _height = 440.h;
+  VisibleNotifier _autoPlayNotifier = VisibleNotifier(visible: true);//默认开启自动播放
 
   Widget _swiperBuilder(BuildContext context, int index) {
     if (!widget.headerImages[index].isAdvert) {
@@ -83,6 +88,9 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
     }
   }
 
+  //保存最后一次垂直滚动的值
+  ScrollMetrics _lastMetrics;
+
   @override
   void initState() {
     super.initState();
@@ -91,7 +99,40 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
     if (widget.headerImages.length > 0)
       _bottomTextNotifier._text = widget.headerImages[0].introduce;
     print("_ChoicenessHeaderState initState-->${widget.headerImages}");
+
+    //当前滚动对象只针对当前页的滚动，初始化页面滚动监听
+    widget.pageScrollNotifier.addListener(() {
+      ScrollMetrics scrollMetrics = widget.pageScrollNotifier.metrics;
+      //当垂直滚动时判断头部可视范围
+      if (scrollMetrics.axis == Axis.vertical) {
+        //因为肯定是在当前页可视情况下发生滚动，所以直接切换可视状态
+        print("首页精选页垂直滚动收到通知：${scrollMetrics.pixels}");
+        bool visible = _isVisible(scrollMetrics);
+        bool autoPlay = _autoPlayNotifier.visible;
+        if (autoPlay) {
+          //正在自动播放时，滚动到不可视范围时将自动播放停止，并且重置下标为第一张图片
+          if (!visible) {
+            _autoPlayNotifier.hide();
+            _index = 0;
+          }
+        } else {
+          //不在自动播放时，滚动到可视范围时开始自动播放
+          if (visible)
+            _autoPlayNotifier.show();
+        }
+        _lastMetrics = scrollMetrics;
+      }
+    });
+
+    widget.pageVisibleNotifier.addListener(() {
+      print("首页精选页的可视切换收到通知：${widget.pageVisibleNotifier.visible}");
+      //此时需要判断最后一次滚动位置是否是可视范围内：
+      //如果不是可视范围内说明肯定是停止播放的，此时无需处理；
+      if (_isVisible(_lastMetrics))
+        _autoPlayNotifier.toggle(widget.pageVisibleNotifier.visible);
+    });
   }
+
 
   @override
   void didUpdateWidget(covariant ChoicenessHeader oldWidget) {
@@ -137,12 +178,15 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
   @override
   Widget build(BuildContext context) {
     print("head size: ${_height}");
-    return GestureDetector(
-      onTap: () {
-        print("点击了第${_index}个");
-      },
-      child: ChangeNotifierProvider<_BottomTextNotifier>.value(
-        value: _bottomTextNotifier,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: _autoPlayNotifier),
+        ChangeNotifierProvider.value(value: _bottomTextNotifier),
+      ],
+      child: GestureDetector(
+        onTap: () {
+          print("点击了第${_index}个");
+        },
         child: Container(
           width: Dimens.design_screen_width.w,
           color: Colors.grey[200],
@@ -152,51 +196,14 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
             children: [
               SizedBox(
                 height: 370.h,
-                child: Selector<PageChangeAndScrollNotifier, bool>(builder:
+                child: Selector<VisibleNotifier, bool>(builder:
                     (BuildContext context, bool autoPlay, Widget child) {
                   print("---------autoPlay change: $autoPlay");
                   return _buildSwiper(autoPlay);
-                }, selector: (BuildContext context,
-                    PageChangeAndScrollNotifier notifier) {
-                  if (notifier.isPageChange == null) {
-                    print("---------autoPlay before => 第一次进入：notifier.isPageChange = null");
-                    return _autoPlay;
-                  }
-
-                  ScrollMetrics metrics =
-                      notifier.getMetrics(Axis.vertical, widget.pageIndex, widget.tabIndex);
-
-                  if (notifier.isPageChange) {
-
-                    bool isVisible = _isVisible(metrics);
-                    //print("---------autoPlay before => pageIndex:${notifier.currentPageIndex}, tabIndex:${notifier.currentTabIndex}, _autoPlay:${_autoPlay}, isVisible:$isVisible, piex:${metrics?.pixels}");
-                    if (!isVisible) {
-                      if (_autoPlay) _autoPlay = false;
-                      return _autoPlay;
-                    }
-
-                    if (!_autoPlay &&
-                        isCurrentPage(context, notifier, widget.pageIndex,
-                            widget.tabIndex)) {
-                      _autoPlay = true;
-                    } else if (_autoPlay &&
-                        !isCurrentPage(context, notifier, widget.pageIndex,
-                            widget.tabIndex)) {
-                      _autoPlay = false;
-                    }
-                  } else {
-                    if (metrics?.axis == Axis.vertical) {
-                      //print("---------autoPlay before => scroll: ${metrics.pixels}, height:$_height, _autoPlay:$_autoPlay");
-                      bool isVisible = _isVisible(metrics);
-                      if (!_autoPlay && isVisible) {
-                        _autoPlay = true;
-                      } else if (_autoPlay && !isVisible) {
-                        _autoPlay = false;
-                        _index = 0;
-                      }
-                    }
-                  }
-                  return _autoPlay;
+                }, selector:
+                    (BuildContext context, VisibleNotifier notifier) {
+                  print("---------autoPlay before: ${notifier.visible}");
+                  return notifier.visible;
                 }),
               ),
               Expanded(

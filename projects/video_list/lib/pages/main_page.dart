@@ -57,10 +57,6 @@ class HeartBeatApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => PageChangeNotifier()),
-        ChangeNotifierProvider(create: (context) => PageChangeAndScrollNotifier()),
-        ChangeNotifierProvider(create: (context) => PageScrollNotifier()),
-        /*ChangeNotifierProvider(
-            create: (context) => BackgroundToForegroundNotifier()),*/
       ],
       child: _buildApp(context),
     );
@@ -122,15 +118,16 @@ class _HeartBeatState extends State<_HeartBeatPage>
         bottomNavigationBar: BottomNavigationBar(
           // 底部导航
           items: PageIndexExtension.bottoms,
-          currentIndex: pageChangeNotifier.currentPageIndex.index,
+          currentIndex: pageChangeNotifier.pageIndex.index,
           fixedColor: Colors.black,
           unselectedItemColor: Colors.black,
           onTap: (index) {
-            notifyChangePage(context, pageIndex: PageIndex.values[index]);
+            //notifyChangePage(context, pageIndex: PageIndex.values[index]);
+            Provider.of<PageChangeNotifier>(context, listen: false).changeIndex(PageIndex.values[index]);
           },
         ),
         body: IndexedStack(
-          index: pageChangeNotifier.currentPageIndex.index,
+          index: pageChangeNotifier.pageIndex.index,
           children: PageIndexExtension.contents,
         ),
       );

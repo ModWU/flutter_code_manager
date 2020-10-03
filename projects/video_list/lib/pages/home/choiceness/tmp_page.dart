@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:video_list/pages/page_controller.dart';
 
-class TmpPage extends BaseTabPage {
+class TmpPage extends StatefulWidget with PageVisibleMixin {
 
-  const TmpPage(PageIndex pageIndex, int tabIndex, this.data) : super(pageIndex, tabIndex);
+  TmpPage(this.data);
 
   final String data;
 

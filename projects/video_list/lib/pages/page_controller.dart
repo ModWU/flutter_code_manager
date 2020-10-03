@@ -15,8 +15,72 @@ enum PageIndex {
   personal_center_page,
 }
 
+/*class PageId {
+  String _id;
+  Map<String, PageId> _children;
+  PageId _parent;
+
+  PageId(String id, {List<PageId> children})
+      : assert(id != null),
+        _id = id {
+    if (children != null) setChildren(children);
+  }
+
+  String get id => _id;
+
+  String get fullId {
+    List<String> id = [_id];
+    StringBuffer buffer = StringBuffer();
+
+    PageId parent = _parent;
+    while (parent != null) id.add("${parent._id}-");
+
+    buffer.writeAll(id.reversed);
+    return buffer.toString();
+  }
+
+  PageId findChild(String id) => _children == null ? null : _children[id];
+
+  PageId get parent => _parent;
+
+  void setChild(PageId pageId) {
+    assert(pageId != null && pageId._id != null);
+
+    _children ??= {};
+    _children[pageId._id] = pageId.._parent = this;
+  }
+
+  */ /*void addIndex(List<PageId> pageIds) {
+    assert(pageIds != null && pageIds.isNotEmpty);
+    _index ??= {};
+    pageIds.forEach((pageId) {
+      _index[pageId._id] = pageId;
+      pageId._parent = this;
+    });
+  }*/ /*
+
+  void setChildren(List<PageId> pageIds) {
+    assert(pageIds != null && pageIds.isNotEmpty);
+    _children = {};
+    pageIds.forEach((pageId) {
+      _children[pageId._id] = pageId;
+      pageId._parent = this;
+    });
+  }
+}*/
+
 extension PageIndexExtension on PageIndex {
-  static const List<BottomNavigationBarItem> _btmNavTiles = [
+  /*static const String rootId = "root";
+
+  static final PageId _rootPageId = PageId(rootId, children: [
+    PageId(PageIndex.main_page.id),
+    PageId(PageIndex.video_page.id),
+    PageId(PageIndex.vip_page.id),
+    PageId(PageIndex.live_streaming_page.id),
+    PageId(PageIndex.personal_center_page.id),
+  ]);*/
+
+  static final List<BottomNavigationBarItem> bottoms = [
     BottomNavigationBarItem(
         icon: Icon(Icons.home), label: Strings.btm_nav_main_tle),
     BottomNavigationBarItem(
@@ -29,7 +93,7 @@ extension PageIndexExtension on PageIndex {
         icon: Icon(Icons.school), label: Strings.btm_nav_personal_center_tle),
   ];
 
-  static const List<Widget> _contentWidgets = [
+  static final List<Widget> contents = [
     MainPage(),
     VideoPage(),
     VipPage(),
@@ -37,121 +101,87 @@ extension PageIndexExtension on PageIndex {
     PersonalCenterPage(),
   ];
 
-  get bottom => _btmNavTiles[index];
+  //PageId get pageId => _rootPageId.findChild(id);
 
-  get content => _contentWidgets[index];
+  BottomNavigationBarItem get bottom => bottoms[index];
 
-  static get bottoms => _btmNavTiles;
+  Widget get content => contents[index];
 
-  static get contents => _contentWidgets;
+  //String get id => toString();
 }
 
-abstract class BaseTabPage extends StatefulWidget {
-  final PageIndex pageIndex;
-  final int tabIndex;
-  const BaseTabPage(this.pageIndex, this.tabIndex);
-}
+class PageVisibleNotifier extends ChangeNotifier {
+  bool _visible;
 
-/*class BackgroundToForegroundNotifier with ChangeNotifier {
-  void notifyAll() {
-    notifyListeners();
-  }
-}*/
-
-mixin PageScrollMiXin on ChangeNotifier {
-  Map<String, ScrollMetrics> _saveVerticalPositions;
-  Map<String, ScrollMetrics> _saveHorizontalPositions;
-
-  void _putMetrics(PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
-    _saveVerticalPositions ??= {};
-    _saveHorizontalPositions ??= {};
-
-    String actId = "${pageIndex.index}_$tabIndex";
-
-    if (metrics.axis == Axis.vertical)
-      _saveVerticalPositions[actId] = metrics;
-    else if (metrics.axis == Axis.horizontal)
-      _saveHorizontalPositions[actId] = metrics;
-  }
-
-  /*void scrollByVertical(
-      PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
-    if (metrics.axis == Axis.vertical) {
-      _putMetrics(pageIndex, tabIndex, metrics);
-      notifyListeners();
-    }
-  }
-
-  void scrollByHorizontal(
-      PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
-    if (metrics.axis == Axis.horizontal) {
-      _putMetrics(pageIndex, tabIndex, metrics);
-      notifyListeners();
-    }
-  }*/
-
-  void scroll(PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
-    _putMetrics(pageIndex, tabIndex, metrics);
+  void showPage() {
+    if (_visible != null && _visible) return;
+    _visible = true;
     notifyListeners();
   }
 
-  ScrollMetrics getMetrics(Axis axis, PageIndex pageIndex, int tabIndex) {
-    return axis == Axis.horizontal
-        ? (_saveHorizontalPositions == null
-            ? null
-            : _saveHorizontalPositions["${pageIndex.index}_$tabIndex"])
-        : (_saveVerticalPositions == null
-            ? null
-            : _saveVerticalPositions["${pageIndex.index}_$tabIndex"]);
-  }
-}
-
-mixin PageChangeMiXin on ChangeNotifier {
-  Map<PageIndex, int> _saveIndex = {PageIndex.main_page: 0};
-  PageIndex _currentPageIndex = PageIndex.main_page;
-
-  void _putTabIndex(PageIndex pageIndex, int tabIndex) {
-    _saveIndex[pageIndex] = tabIndex;
-  }
-
-  int getTabIndex(PageIndex pageIndex) {
-    return _saveIndex[pageIndex];
-  }
-
-  void changeIndex({PageIndex pageIndex, int tabIndex}) {
-    tabIndex ??= _saveIndex[pageIndex] ?? 0;
-
-    pageIndex ??= _currentPageIndex;
-
-    if (pageIndex == _currentPageIndex && _saveIndex[pageIndex] == tabIndex)
-      return;
-
-    _currentPageIndex = pageIndex;
-    _putTabIndex(pageIndex, tabIndex);
+  void hidePage() {
+    if (_visible != null && !_visible) return;
+    _visible = false;
     notifyListeners();
   }
 
-  PageIndex get currentPageIndex => _currentPageIndex;
-  int get currentTabIndex => _saveIndex[_currentPageIndex];
+
+  bool get visible => _visible;
 }
 
-class PageScrollNotifier with ChangeNotifier, PageScrollMiXin {}
+mixin PageVisibleMixin on Widget {
+  final PageVisibleNotifier pageVisibleNotifier = PageVisibleNotifier();
+  final PageScrollNotifier pageScrollNotifier = PageScrollNotifier();
+}
 
-class PageChangeNotifier with ChangeNotifier, PageChangeMiXin {}
+class VisibleNotifier with ChangeNotifier {
+  bool _visible;
+  VisibleNotifier({bool visible}) : _visible = visible;
 
-class PageChangeAndScrollNotifier
-    with ChangeNotifier, PageChangeMiXin, PageScrollMiXin {
-  bool _isPageChange;
-
-  void changeIndex({PageIndex pageIndex, int tabIndex}) {
-    _isPageChange = true;
-    super.changeIndex(pageIndex: pageIndex, tabIndex: tabIndex);
+  void show() {
+    if (_visible != null && _visible) return;
+    _visible = true;
+    notifyListeners();
   }
 
-  void scroll(PageIndex pageIndex, int tabIndex, ScrollMetrics metrics) {
-    _isPageChange = false;
-    super.scroll(pageIndex, tabIndex, metrics);
+  void hide() {
+    if (_visible != null && !_visible) return;
+    _visible = false;
+    notifyListeners();
   }
 
-  bool get isPageChange => _isPageChange;
+  void toggle(bool visible) {
+    if (visible)
+      show();
+    else
+      hide();
+  }
+
+  bool get visible => _visible;
+}
+
+class PageScrollNotifier with ChangeNotifier {
+  ScrollMetrics _metrics;
+
+  ScrollMetrics get metrics => _metrics;
+
+  void scroll(ScrollMetrics metrics) {
+    assert(metrics != null);
+    _metrics = metrics;
+    notifyListeners();
+  }
+}
+
+class PageChangeNotifier with ChangeNotifier {
+  PageIndex _pageIndex = PageIndex.main_page;
+
+  void changeIndex(PageIndex pageIndex) {
+    assert(pageIndex != null);
+    if (pageIndex == _pageIndex) return;
+    _pageIndex = pageIndex;
+    notifyListeners();
+  }
+
+  PageIndex get pageIndex => _pageIndex;
+
 }

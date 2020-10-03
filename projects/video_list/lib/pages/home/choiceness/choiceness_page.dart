@@ -11,9 +11,8 @@ import 'choiceness_body_header.dart';
 import 'choiceness_page_bar.dart';
 import 'choiceness_video_item.dart';
 
-class ChoicenessPage extends BaseTabPage {
-  const ChoicenessPage(PageIndex pageIndex, int tabIndex)
-      : super(pageIndex, tabIndex);
+class ChoicenessPage extends StatefulWidget with PageVisibleMixin {
+  ChoicenessPage();
 
   //const ChoicenessPage(this.tabIndex);
 
@@ -35,6 +34,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     print("ChoicenessPage -> initState()");
     super.initState();
     _initResources();
+
   }
 
   @override
@@ -79,57 +79,40 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   @override
   Widget build(BuildContext context) {
     print("choiceness build page");
-    return Scaffold(
-      appBar: PreferredSize(
-        //preferredSize: Size(20, 20),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: _barLeadingLeft),
-          child: ChoicenessBar(
-            _appBarListener,
-            searchDesc: "成都双流车祸",
-            searchCategor: '[热门]',
+    return ChangeNotifierProvider(
+      create: (context) => widget.pageVisibleNotifier,
+      child: Scaffold(
+        appBar: PreferredSize(
+          //preferredSize: Size(20, 20),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: _barLeadingLeft),
+            child: ChoicenessBar(
+              _appBarListener,
+              searchDesc: "成都双流车祸",
+              searchCategor: '[热门]',
+            ),
           ),
+          preferredSize: Size.fromHeight(_appBarHeight),
         ),
-        preferredSize: Size.fromHeight(_appBarHeight),
+        floatingActionButton: null,
+        body: Container(
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.builder(
+                itemCount: _videoItems.length + 1,
+                //itemExtent: 50.0, //强制高度为50.0
+
+                physics: const BouncingScrollPhysics(),
+                itemBuilder: (BuildContext context, int index) {
+                  if (index == 0)
+                    return ChoicenessHeader(
+                        _headerImages, widget.pageVisibleNotifier, widget.pageScrollNotifier);
+
+                  return VideoItemWidget(index, _videoItems[index - 1]);
+                }),
+          ),
+        ), //ChoicenessHeader(widget.pageIndex, widget.tabIndex, _headerImages),
       ),
-      floatingActionButton: null,
-      body: Container(
-        child: RefreshIndicator(
-          onRefresh: _refresh,
-          child: Builder(
-            builder: (context) {
-              return NotificationListener(
-                onNotification: (ScrollNotification note) {
-                  //print(note.metrics.pixels.toInt());  // 滚动位置。
-                  // print("scroll: ${note.metrics.pixels}");
-                  /*if (note.metrics.axis == Axis.vertical) {
-                      print(
-                          "axis: ${note.metrics.axis == Axis.horizontal ? "水平" : "垂直"}, extentAfter:${note.metrics.extentAfter}, extentBefore:${note.metrics.extentBefore}, extentInside:${note.metrics.extentInside}, pixels:${note.metrics.pixels}, viewportDimension:${note.metrics.viewportDimension}, minScrollExtent:${note.metrics.minScrollExtent}, maxScrollExtent:${note.metrics.minScrollExtent}");
-
-                      print(
-                          "差值：${note.metrics.extentBefore - note.metrics.extentAfter}");
-                    }*/
-                  notifyScrollPage(context, widget.pageIndex, widget.tabIndex, note.metrics);
-                  return false;
-                },
-                child: ListView.builder(
-                    itemCount: _videoItems.length + 1,
-                    //itemExtent: 50.0, //强制高度为50.0
-
-                    physics: const BouncingScrollPhysics(),
-                    itemBuilder: (BuildContext context, int index) {
-                      if (index == 0)
-                        return ChoicenessHeader(
-                            widget.pageIndex, widget.tabIndex, _headerImages);
-
-                      return VideoItemWidget(PageIndex.main_page,
-                          widget.tabIndex, index, _videoItems[index - 1]);
-                    }),
-              );
-            },
-          ),
-        ),
-      ), //ChoicenessHeader(widget.pageIndex, widget.tabIndex, _headerImages),
     );
   }
 

@@ -10,12 +10,24 @@ import 'choiceness/tmp_page.dart';
 import 'home_page_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+
 class MainPage extends StatefulWidget {
 
-  const MainPage();
+  //MainPage() : super(PageIndex.main_page.pageId);
 
   @override
   State<StatefulWidget> createState() => _MainPageState();
+
+  /*static const String id_choiceness = "choiceness";
+
+  @override
+  Map<String, PageId> getChildrenPageId() {
+    return <String, PageId>{
+      id_choiceness: PageId(id_choiceness),
+    };
+  }*/
+
+
 }
 
 class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {//TickerProviderStateMixin
@@ -38,17 +50,20 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     "视频7",
   ];
 
-  List<Widget> _pageList = const [
-    ChoicenessPage(PageIndex.main_page, 0),
-    TmpPage(PageIndex.main_page, 1, "爱看"),
-    TmpPage(PageIndex.main_page, 2, "视频1"),
-    TmpPage(PageIndex.main_page, 3,"视频2"),
-    TmpPage(PageIndex.main_page, 4,"视频3"),
-    TmpPage(PageIndex.main_page, 5,"视频4"),
-    TmpPage(PageIndex.main_page, 6,"视频5"),
-    TmpPage(PageIndex.main_page, 7,"视频6"),
-    TmpPage(PageIndex.main_page, 8,"视频7"),
+  List<PageVisibleMixin> _pageList = [
+    ChoicenessPage(),
+    TmpPage("爱看"),
+    TmpPage("视频1"),
+    TmpPage("视频2"),
+    TmpPage("视频3"),
+    TmpPage("视频4"),
+    TmpPage("视频5"),
+    TmpPage("视频6"),
+    TmpPage("视频7"),
   ];
+
+
+
 
   @override
   void initState() {
@@ -65,6 +80,21 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
       _isPageAnimation = false;
     });
 
+    //当底部按钮切换时
+    Provider.of<PageChangeNotifier>(context, listen: false).addListener(() {
+      PageIndex pageIndex = Provider.of<PageChangeNotifier>(context, listen: false).pageIndex;
+      int currentTabIndex = _tabController.index;
+      if (pageIndex == PageIndex.main_page) {
+        //通知当前tab页显示了
+        print("通知主页的当前tab显示: $currentTabIndex");
+        _pageList[currentTabIndex].pageVisibleNotifier.showPage();
+      } else {
+        //通知当前tab页隐藏了
+        print("通知主页的当前tab隐藏: $currentTabIndex");
+        _pageList[currentTabIndex].pageVisibleNotifier.hidePage();
+      }
+
+    });
     /*_pageController.addListener(() {
      // print("page:${_pageController.page}  offset:${ _pageController.offset}  _tabController:${_tabController.index}");
      if (_pageController.page == _tabController.index) {
@@ -97,17 +127,40 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           ),
           preferredSize: Size.fromHeight(Dimens.action_bar_height),//可以移动的边距
         ),
-        body: PageView(
-          children: _pageList,
-          controller: _pageController,
-          physics: const BouncingScrollPhysics(),
-          onPageChanged: (index) {
-            print("_MainPageState onPageChanged: ${index}");
-            _isPageAnimation = true;
-            _tabController.animateTo(index);
-            notifyChangePage(context, tabIndex: index);
+        body: NotificationListener(
+          onNotification: (ScrollNotification note) {
+            //print(note.metrics.pixels.toInt());  // 滚动位置。
+            // print("scroll: ${note.metrics.pixels}");
+            /*if (note.metrics.axis == Axis.vertical) {
+                      print(
+                          "axis: ${note.metrics.axis == Axis.horizontal ? "水平" : "垂直"}, extentAfter:${note.metrics.extentAfter}, extentBefore:${note.metrics.extentBefore}, extentInside:${note.metrics.extentInside}, pixels:${note.metrics.pixels}, viewportDimension:${note.metrics.viewportDimension}, minScrollExtent:${note.metrics.minScrollExtent}, maxScrollExtent:${note.metrics.minScrollExtent}");
+
+                      print(
+                          "差值：${note.metrics.extentBefore - note.metrics.extentAfter}");
+                    }*/
+            //notifyScrollPage(context, widget.pageIndex, widget.tabIndex, note.metrics);
+            //print(note.metrics.pixels.toInt());
+
+            //当前滚动通知只监听首页的所有tab页的滚动
+            _pageList[_tabController.index].pageScrollNotifier.scroll(note.metrics);
+
+            return false;
           },
-        ),
+          child: PageView(
+            children: _pageList,
+            controller: _pageController,
+            physics: const BouncingScrollPhysics(),
+            onPageChanged: (index) {
+              print("_MainPageState onPageChanged: ${index},,,,preIndex: ${_tabController.previousIndex}, currentIndex: ${_tabController.index}");
+              _isPageAnimation = true;
+              _tabController.animateTo(index);
+              //notifyChangePage(context, tabIndex: index);
+              //当切换顶部tab时
+              _pageList[_tabController.previousIndex].pageVisibleNotifier.hidePage();
+              _pageList[index].pageVisibleNotifier.showPage();
+            },
+          ),
+        )
       ),
     );
   }
