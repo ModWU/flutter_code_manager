@@ -12,7 +12,15 @@ Container getTextContainer(String text,
     double verticalSpace,
     double fontSize,
     double radius}) {
-  if (horizontalSpace == null) horizontalSpace = 6.w;
+  return getTextContainer2(TextSpan(text: text),
+      backgroundColor: backgroundColor,
+      textColor: textColor,
+      fontWeight: fontWeight,
+      horizontalSpace: horizontalSpace,
+      verticalSpace: verticalSpace,
+      fontSize: fontSize,
+      radius: radius);
+  /* if (horizontalSpace == null) horizontalSpace = 6.w;
 
   if (verticalSpace == null) verticalSpace = 2.w;
 
@@ -32,6 +40,43 @@ Container getTextContainer(String text,
     ),
     child: Text(
       text,
+      style: TextStyle(
+        color: textColor,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+      ),
+    ),
+  );*/
+}
+
+Container getTextContainer2(TextSpan textSpan,
+    {Color backgroundColor = Colors.grey,
+    Color textColor = Colors.white,
+    FontWeight fontWeight = FontWeight.w500,
+    double horizontalSpace,
+    double verticalSpace,
+    double fontSize,
+    double radius}) {
+  if (horizontalSpace == null) horizontalSpace = 6.w;
+
+  if (verticalSpace == null) verticalSpace = 2.w;
+
+  if (fontSize == null) fontSize = 20.sp;
+
+  if (radius == null) radius = 6.w;
+
+  return Container(
+    decoration: BoxDecoration(
+      color: backgroundColor, //Colors.orangeAccent,
+      //设置四周圆角 角度
+      borderRadius: BorderRadius.all(Radius.circular(radius)),
+    ),
+    padding: EdgeInsets.symmetric(
+      horizontal: horizontalSpace,
+      vertical: verticalSpace,
+    ),
+    child: Text.rich(
+      textSpan,
       style: TextStyle(
         color: textColor,
         fontSize: fontSize,

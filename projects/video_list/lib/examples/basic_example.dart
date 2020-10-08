@@ -21,6 +21,8 @@ class _VideoAppState extends State<VideoApp> {
       setState(() {});
     });
 
+
+
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight

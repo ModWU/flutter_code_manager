@@ -10,7 +10,7 @@ import 'package:flutter_screenutil/size_extension.dart';
 import 'dart:ui' as ui show PlaceholderAlignment;
 
 class VideoItemWidget extends StatefulWidget {
-  final ItemMiXin items;
+  final dynamic items;
   final int index;
 
   VideoItemWidget(this.index, this.items);

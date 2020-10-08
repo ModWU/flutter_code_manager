@@ -32,10 +32,12 @@ dependencies:
   flutter_screenutil: ^3.1.0
   provider: ^4.3.2+2
   flutter_swiper : ^1.1.6
+  #flutter_volume: ^0.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -58,6 +60,7 @@ flutter:
     - images/head3.jpg
     - images/head4.jpeg
     - images/head5.jpg
+    - images/advert.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

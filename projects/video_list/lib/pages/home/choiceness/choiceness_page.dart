@@ -25,9 +25,9 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   static const _barLeadingLeft = 12.0;
   static const _appBarHeight = Dimens.action_bar_height - 10.0;
 
-  List<ChoicenessHeaderItem> _headerImages;
+  List _headerItems;
 
-  List<ItemMiXin> _videoItems;
+  List _videoItems;
 
   @override
   void initState() {
@@ -46,8 +46,12 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   void _initResources() {
     List list = ChoicenessController().getChoicenessData();
 
-    _headerImages = list.whereType<ChoicenessHeaderItem>().toList();
-    _videoItems = list.whereType<ItemMiXin>().toList();
+    _headerItems = [];
+    _videoItems = [];
+
+    _headerItems.addAll(list.take(6));
+    list.removeRange(0, 6);
+    _videoItems.addAll(list);
 
     print("_initResources: videoItems size: ${_videoItems.length}");
   }
@@ -106,7 +110,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 itemBuilder: (BuildContext context, int index) {
                   if (index == 0)
                     return ChoicenessHeader(
-                        _headerImages, widget.pageVisibleNotifier, widget.pageScrollNotifier);
+                        _headerItems, widget.pageVisibleNotifier, widget.pageScrollNotifier);
 
                   return VideoItemWidget(index, _videoItems[index - 1]);
                 }),

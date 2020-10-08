@@ -134,12 +134,27 @@ mixin PageVisibleMixin on Widget {
   final PageScrollNotifier pageScrollNotifier = PageScrollNotifier();
 }
 
-class VisibleNotifier with ChangeNotifier {
-  bool _visible;
-  VisibleNotifier({bool visible}) : _visible = visible;
+/*class ValueNotifier<T> with ChangeNotifier {
+  T _value;
+  ValueNotifier();
 
-  void show() {
-    if (_visible != null && _visible) return;
+  ValueNotifier.value(T value) : _value = value;
+
+  void changeValue(T value) {
+    if (_value == value)
+      return;
+    _value = value;
+    notifyListeners();
+  }
+
+  static void h() {
+    ValueNotifier<bool> v = ValueNotifier().value(true);
+  }
+
+  T get value => _value;
+
+  *//*void show() {
+    if (_value != null && value) return;
     _visible = true;
     notifyListeners();
   }
@@ -151,14 +166,15 @@ class VisibleNotifier with ChangeNotifier {
   }
 
   void toggle(bool visible) {
+    assert(visible != null);
     if (visible)
       show();
     else
       hide();
   }
 
-  bool get visible => _visible;
-}
+  bool get visible => _visible;*//*
+}*/
 
 class PageScrollNotifier with ChangeNotifier {
   ScrollMetrics _metrics;
@@ -183,5 +199,4 @@ class PageChangeNotifier with ChangeNotifier {
   }
 
   PageIndex get pageIndex => _pageIndex;
-
 }

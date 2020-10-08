@@ -74,8 +74,13 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     _pageController = PageController();
 
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging && !_isPageAnimation) {
-        _pageController.jumpToPage(_tabController.index);
+      if (_tabController.indexIsChanging) {
+        if (!_isPageAnimation)
+          _pageController.jumpToPage(_tabController.index);
+        //当切换顶部tab时
+        print("tab page change=> current:${_tabController.index}, previous:${_tabController.previousIndex}");
+        _pageList[_tabController.previousIndex].pageVisibleNotifier.hidePage();
+        _pageList[_tabController.index].pageVisibleNotifier.showPage();
       }
       _isPageAnimation = false;
     });
@@ -151,13 +156,8 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
             controller: _pageController,
             physics: const BouncingScrollPhysics(),
             onPageChanged: (index) {
-              print("_MainPageState onPageChanged: ${index},,,,preIndex: ${_tabController.previousIndex}, currentIndex: ${_tabController.index}");
               _isPageAnimation = true;
               _tabController.animateTo(index);
-              //notifyChangePage(context, tabIndex: index);
-              //当切换顶部tab时
-              _pageList[_tabController.previousIndex].pageVisibleNotifier.hidePage();
-              _pageList[index].pageVisibleNotifier.showPage();
             },
           ),
         )
