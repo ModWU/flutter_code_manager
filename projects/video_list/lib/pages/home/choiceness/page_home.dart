@@ -7,9 +7,9 @@ import 'package:video_list/models/choiceness_model.dart';
 import 'package:video_list/pages/page_controller.dart';
 import 'package:video_list/pages/page_utils.dart';
 import 'package:video_list/resources/res/dimens.dart';
-import 'choiceness_body_header.dart';
-import 'choiceness_page_bar.dart';
-import 'choiceness_video_item.dart';
+import 'page_header.dart';
+import 'app_bar.dart';
+import 'video_item.dart';
 
 class ChoicenessPage extends StatefulWidget with PageVisibleMixin {
   ChoicenessPage();
@@ -83,6 +83,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   @override
   Widget build(BuildContext context) {
     print("choiceness build page");
+    super.build(context);
     return ChangeNotifierProvider(
       create: (context) => widget.pageVisibleNotifier,
       child: Scaffold(

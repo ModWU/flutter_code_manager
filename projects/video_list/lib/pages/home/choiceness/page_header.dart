@@ -2,14 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swiper/flutter_swiper.dart';
 import 'package:provider/provider.dart';
-import 'package:video_list/models/base_model.dart';
-import 'package:video_list/models/base_model.dart';
 import 'package:video_list/models/choiceness_model.dart';
-import 'package:video_list/resources/res/dimens.dart';
+
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:video_list/ui/advert_view.dart';
+import '../../../ui/advert_view.dart';
+import '../../../ui/carousel_view.dart';
 import 'package:video_player/video_player.dart';
 import '../../page_controller.dart';
+import '../../../resources/export.dart';
+import '../../../models/base_model.dart';
 import '../../page_utils.dart' as utils;
 
 class ChoicenessHeader extends StatefulWidget {
@@ -37,23 +38,6 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
     ..index = 0;
   bool _cannelAutoPlayInBackground = false;
 
-  Widget _swiperBuilder(BuildContext context, int index) {
-    if (widget.items[index] is AdvertItem) {
-      return AdvertView(widget.items[index], onPlay: (isStartPlay, isPlayEnd) {
-        if (isStartPlay) {
-          _swiperController.stopAutoplay();
-        } else if (isPlayEnd) {
-          _swiperController.startAutoplay();
-        }
-      });
-    } else {
-      return Image.asset(
-        widget.items[index].imgUrl,
-        fit: BoxFit.cover,
-      );
-    }
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -64,21 +48,16 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
         _swiperController.stopAutoplay();
         _cannelAutoPlayInBackground = true;
       }
-    }
-    if (state == AppLifecycleState.resumed) {
+    } else if (state == AppLifecycleState.resumed) {
       print(
           "_ChoicenessHeaderState didChangeAppLifecycleState -> 进入前台 ${_swiperController.autoplay}");
       if (_cannelAutoPlayInBackground) {
         _swiperController.startAutoplay();
         _cannelAutoPlayInBackground = false;
       }
-    }
-
-    if (state == AppLifecycleState.inactive) {
+    } else if (state == AppLifecycleState.inactive) {
       print("_ChoicenessHeaderState didChangeAppLifecycleState -> 可见，不能响应用户操作");
-    }
-
-    if (state == AppLifecycleState.detached) {
+    } else if (state == AppLifecycleState.detached) {
       print(
           "_ChoicenessHeaderState didChangeAppLifecycleState -> 虽然还在运行，但已经没有任何存在的界面");
     }
@@ -103,6 +82,9 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
         VideoItem item = firstItem;
         _bottomTextNotifier = ValueNotifier(item.title);
       }
+
+      //将第一个孩子放到list最后
+      widget.items.add(firstItem);
     }
 
     //当前滚动对象只针对当前页的滚动，初始化页面滚动监听
@@ -112,7 +94,8 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
       if (scrollMetrics.axis == Axis.vertical) {
         //因为肯定是在当前页可视情况下发生滚动，所以直接切换可视状态
         bool visible = _isVisible(scrollMetrics);
-        print("首页精选页垂直滚动收到通知：${scrollMetrics.pixels} visible: $visible autoplay: ${_swiperController.autoplay}");
+        print(
+            "首页精选页垂直滚动收到通知：${scrollMetrics.pixels} visible: $visible autoplay: ${_swiperController.autoplay}");
         //bool autoPlay = _autoPlayNotifier.value;
         if (_swiperController.autoplay) {
           //正在自动播放时，滚动到不可视范围时将自动播放停止，并且重置下标为第一张图片
@@ -180,15 +163,55 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
     super.dispose();
   }
 
-  Widget _buildSwiper() {
+  Widget _swiperBuilder(BuildContext context, int index) {
+    if (widget.items[index] is AdvertItem) {
+      return AdvertView(widget.items[index], onPlay: (isStartPlay, isPlayEnd) {
+        if (isStartPlay) {
+          _swiperController.stopAutoplay();
+        } else if (isPlayEnd) {
+          _swiperController.startAutoplay();
+        }
+      });
+    } else {
+      return Image.asset(
+        widget.items[index].imgUrl,
+        fit: BoxFit.cover,
+      );
+    }
+  }
+
+  /*Widget _swiperBuilder2(BuildContext context, dynamic item) {
+    if (item is AdvertItem) {
+      //print("rebuild swiper item: $index");
+      return AdvertView(item, onPlay: (isStartPlay, isPlayEnd) {
+        if (isStartPlay) {
+          _swiperController.stopAutoplay();
+        } else if (isPlayEnd) {
+          _swiperController.startAutoplay();
+        }
+      });
+    } else {
+      return Image.asset(
+        item.imgUrl,
+        fit: BoxFit.cover,
+      );
+    }
+  }*/
+
+  /*Widget _buildSwiper() {
     print("_buildSwiper........");
     return Swiper(
       itemBuilder: _swiperBuilder,
-      itemCount: widget.items.length,
+      itemCount: widget.items.length + 1,
+      */ /*children: widget.items.map((item) {
+        return _swiperBuilder2(context, item);
+      }).toList(),*/ /*
       //control: _swiperControl, //new SwiperControl(),
       controller: _swiperController,
       pagination: null,
       scrollDirection: Axis.horizontal,
+      //layout: SwiperLayout.CUSTOM,
+      loop: false,
       autoplay: true,
       duration: 500,
       index: 0,
@@ -198,17 +221,27 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
       autoplayDelay: 5000,
       //onTap: (index) => print('点击了第$index个'),
       onIndexChanged: (index) {
+
+        if (index == widget.items.length - 1) {
+          _swiperController.move(0, animation: false);
+          return;
+        }
+
         _swiperController.index = index;
         if (widget.items[index] is AdvertItem) {
-          _bottomTextNotifier.value =
-              (widget.items[index] as AdvertItem).introduce;
-        } else {
-          _bottomTextNotifier.value = (widget.items[index] as VideoItem).title;
+          _bottomTextNotifier.value = widget.items[index].introduce;
+        } else if (widget.items[index] is VideoItem) {
+          _bottomTextNotifier.value = widget.items[index].title;
         }
 
         //_bottomTextNotifier.value =
       },
     );
+  }*/
+
+  Widget _buildCarouselView() {
+    return CarouselView(
+        itemBuilder: _swiperBuilder, itemCount: widget.items.length);
   }
 
   bool _isVisible(ScrollMetrics metrics) {
@@ -220,6 +253,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
   @override
   Widget build(BuildContext context) {
     print("head size: ${_height}");
+    super.build(context);
     return GestureDetector(
       onTap: () {
         print("点击了第${_swiperController.index}个");
@@ -233,7 +267,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
           children: [
             SizedBox(
               height: 370.h,
-              child: _buildSwiper(),
+              child: _buildCarouselView(), //_buildSwiper(),
             ),
             Expanded(
               flex: 1,

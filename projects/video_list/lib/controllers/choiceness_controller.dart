@@ -46,7 +46,7 @@ class ChoicenessController {
       introduce: "免费手机都不要，就是你不对了",
       isApplication: true,
       detailUrl: "https://www.baidu.com/",
-      iconUrl: "https://avatars3.githubusercontent.com/u/19513504?s=460&v=4",
+      iconUrl: "https://i.loli.net/2020/10/09/GvLS47z2DXTRkcq.png",
       videoUrl: "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
       showImgUrl: null,
    );

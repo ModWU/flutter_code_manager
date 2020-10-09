@@ -115,6 +115,7 @@ class _HeartBeatBarState extends State<HeartBeatBar>
       ],
       bottom: PreferredSize(
         //preferredSize: Size(20, 20),
+        preferredSize: Size.zero,
         child: Divider(
           color: Color(0xffe5e5e5),
           height: 0.0,

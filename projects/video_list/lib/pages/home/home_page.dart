@@ -5,7 +5,7 @@ import 'package:video_list/pages/page_controller.dart';
 import '../../resources/export.dart';
 import 'package:provider/provider.dart';
 import '../page_utils.dart';
-import 'choiceness/choiceness_page.dart';
+import 'choiceness/page_home.dart';
 import 'choiceness/tmp_page.dart';
 import 'home_page_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -121,6 +121,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return MaterialApp(
       title: "home",
       theme: Theme.of(context).copyWith(),

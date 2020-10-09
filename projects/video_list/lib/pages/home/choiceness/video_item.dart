@@ -404,6 +404,7 @@ class _VideoItemWidgetState extends State<VideoItemWidget> with AutomaticKeepAli
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (widget.items is VideoItems) {
       return _buildVideoItems(context, widget.items as VideoItems);
     } else if (widget.items is AdvertItem) {
