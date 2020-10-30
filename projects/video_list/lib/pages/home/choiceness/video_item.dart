@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/resources/res/dimens.dart';
 import '../../page_controller.dart';
-import '../../page_utils.dart' as utils;
+import '../../../ui/utils/icons_utils.dart' as utils;
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'dart:ui' as ui show PlaceholderAlignment;
@@ -31,7 +31,6 @@ class _VideoItemWidgetState extends State<VideoItemWidget> with AutomaticKeepAli
   @override
   void initState() {
     super.initState();
-
     _initDimens();
   }
 

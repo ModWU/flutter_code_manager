@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:video_list/resources/res/strings.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_screenutil/size_extension.dart';
-import '../pages/page_utils.dart' as PageUtils;
-import '../models/base_model.dart';
-import '../resources/export.dart';
+import '../utils/circular_utils.dart' as CircularUtils;
+import '../../models/base_model.dart';
+import '../../resources/export.dart';
 import 'dart:async';
 //import 'package:flutter_volume/flutter_volume.dart';
 
@@ -34,8 +34,20 @@ class _AdvertViewState extends State<AdvertView>
 
   bool _detailTxtStartAnimated = false;
 
+  bool _isInitializing = false;
+
   bool _isPlaying() {
     return _videoController?.value?.isPlaying ?? false;
+  }
+
+  bool _isNeedPlay() {
+    return _playClickFlag &&
+        _videoController.value.initialized &&
+        !_videoController.value.isPlaying;
+  }
+
+  bool _isPlayEnd() {
+    return _playEnd;
   }
 
   Widget _getIconWhenEnd() {
@@ -83,7 +95,7 @@ class _AdvertViewState extends State<AdvertView>
               flex: 1,
               child: Align(
                 alignment: Alignment.topCenter,
-                child: PageUtils.getTextContainer(Strings.advert_detail_txt,
+                child: CircularUtils.getTextContainer(Strings.advert_detail_txt,
                     radius: 24.0.w,
                     horizontalSpace: 24.0.w,
                     verticalSpace: 10.0.w,
@@ -100,7 +112,7 @@ class _AdvertViewState extends State<AdvertView>
           //left: 24.w,
           right: 24.w,
           bottom: 24.w,
-          child: PageUtils.getTextSpanContainer(
+          child: CircularUtils.getTextSpanContainer(
               TextSpan(
                 children: [
                   WidgetSpan(
@@ -141,33 +153,54 @@ class _AdvertViewState extends State<AdvertView>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
-      print(
-          "AdvertView didChangeAppLifecycleState -> AppLifecycleState.paused");
+     // print(
+         // "AdvertView didChangeAppLifecycleState -> AppLifecycleState.paused");
       if (_isPlaying()) {
         _videoController?.pause();
         _needContinuePlay = true;
       }
     } else if (state == AppLifecycleState.resumed) {
-      print(
-          "AdvertView didChangeAppLifecycleState -> AppLifecycleState.resumed");
-      if (_needContinuePlay) {
+      //print(
+        //  "AdvertView didChangeAppLifecycleState -> AppLifecycleState.resumed");
+      if (_needContinuePlay || _isNeedPlay()) {
         _needContinuePlay = false;
         _videoController?.play();
       }
     } else if (state == AppLifecycleState.detached) {
-      print(
-          "AdvertView didChangeAppLifecycleState -> AppLifecycleState.detached 操作不了ui");
+     // print(
+         // "AdvertView didChangeAppLifecycleState -> AppLifecycleState.detached 操作不了ui");
       //_videoController?.dispose();
     } else if (state == AppLifecycleState.inactive) {
-      print(
-          "AdvertView didChangeAppLifecycleState -> AppLifecycleState.inactive");
+      //print(
+         // "AdvertView didChangeAppLifecycleState -> AppLifecycleState.inactive");
     }
   }
 
-  void _initVideoFinished() {
+  @override
+  void didUpdateWidget(AdvertView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    //更新控制器
+    if (widget.advertItem != oldWidget.advertItem) {
+      if (widget.advertItem.canPlay != oldWidget.advertItem.canPlay) {
+        if (widget.advertItem.canPlay) {
+          _initVideoController(force: true, resetUrl: true);
+        } else {
+          _disposeVideoController();
+        }
+      } else if (widget.advertItem.canPlay) {
+        if (widget.advertItem.videoUrl != oldWidget.advertItem.videoUrl) {
+          _initVideoController(force: true, resetUrl: true);
+        }
+      }
+    }
+  }
+
+  Future<void> _initVideoFinished(_) async {
     print(
-        "_initVideoFinished _playClickFlag:$_playClickFlag, _videoController.value.isPlaying: ${_videoController.value.isPlaying}, position:${_videoController.value.position}");
-    if (_playClickFlag && !_videoController.value.isPlaying) {
+        "_initVideoFinished _playClickFlag:$_playClickFlag, _videoController.value.isPlaying: ${_videoController.value.isPlaying}, position:${_videoController.value.position} ${_videoController.value.duration}");
+    _videoController.addListener(_onPlay);
+    if (_isNeedPlay()) {
       setState(() {
         _playEnd = false;
         /*if (_videoController.value.position != Duration.zero)
@@ -176,6 +209,63 @@ class _AdvertViewState extends State<AdvertView>
         _startDetailTxtAnimation();
       });
     }
+    _isInitializing = false;
+  }
+
+  void _onPlay() {
+    print(
+        "play position: total:${_videoController.value.duration}  position:${_videoController.value.position} isPlaying:${_videoController.value.isPlaying}");
+
+    if (_videoController.value.duration == null) {
+      _initVideoController(force: true);
+      return;
+    }
+
+    //print("player end! _videoController isPlaying: ${_videoController.value.isPlaying}  position: ${_videoController.value.position}");
+
+    if (_videoController.value.position == _videoController.value.duration) {
+      print(
+          "player end! start => isPlaying: ${_videoController.value.isPlaying}  position: ${_videoController.value.position}");
+      _videoController.removeListener(_onPlay);
+      widget.onPlay?.call(false, true);
+      setState(() {
+        //_videoController.pause();
+        // _videoController.setLooping(true);
+        _playEnd = true;
+        _playClickFlag = false;
+        _detailTxtStartAnimated = false;
+        //_videoController.value = null;//_videoController.value.copyWith(position: Duration.zero, duration: Duration.zero);
+        _videoController.pause();
+        _initVideoController(force: true);
+        print(
+            "player end! end => _videoController isPlaying: ${_videoController.value.isPlaying}  position: ${_videoController.value.position}");
+      });
+    }
+  }
+
+  void _disposeVideoController() {
+    _videoController?.removeListener(_onPlay);
+    _videoController?.dispose();
+  }
+
+  //因为flutter是单线程的，所以跑这段代码的时候就不会跑其他代码
+  void _initVideoController({bool force = false, bool resetUrl = false}) {
+    print("_initVideoController: force:${force}, resetUrl:${resetUrl}, _isInitializing:${_isInitializing}, _videoController:${_videoController}");
+    assert(force != null);
+    if (!force && _isInitializing) return;
+
+    _isInitializing = true;
+
+    assert(resetUrl != null);
+    if (_videoController == null || resetUrl) {
+      _disposeVideoController();
+      _videoController =
+          VideoPlayerController.network(widget.advertItem.videoUrl)
+            ..setLooping(false);
+    }
+
+    _videoController.removeListener(_onPlay);
+    _videoController.initialize().then(_initVideoFinished);
   }
 
   @override
@@ -184,50 +274,7 @@ class _AdvertViewState extends State<AdvertView>
     print("AdvertView init....");
     WidgetsBinding.instance.addObserver(this);
     if (widget.advertItem.canPlay) {
-      _videoController =
-          VideoPlayerController.network(widget.advertItem.videoUrl)
-            ..setLooping(false)
-            ..initialize().then((_) {
-              _initVideoFinished();
-            });
-      _videoController.addListener(() {
-        print(
-            "play position: total:${_videoController.value.duration}  position:${_videoController.value.position}");
-
-        if (_videoController.value.duration == null) {
-          _videoController.initialize().then((_) {
-            _initVideoFinished();
-          });
-          return;
-        }
-
-        if (_videoController.value.position ==
-                _videoController.value.duration &&
-            !_playEnd &&
-            _playClickFlag) {
-          widget.onPlay?.call(false, true);
-          setState(() {
-            //_videoController.pause();
-            // _videoController.setLooping(true);
-            _playEnd = true;
-            _playClickFlag = false;
-            _detailTxtStartAnimated = false;
-            // _videoController.value = _videoController.value.copyWith(position: Duration.zero);
-            _videoController.pause();
-            _videoController.initialize().then((_) {
-              _initVideoFinished();
-            });
-            print(
-                "player end! _videoController isPlaying: ${_videoController.value.isPlaying}  position: ${_videoController.value.position}");
-          });
-        }
-      });
-
-      /*FlutterVolume.volume.then((volume) {
-        setState(() {
-          setVolume(volume, volume > 0);
-        });
-      });*/
+      _initVideoController();
     }
   }
 
@@ -299,7 +346,8 @@ class _AdvertViewState extends State<AdvertView>
                     size: 44.w,
                   ),
                 ),
-                PageUtils.getTextAnimatedContainer(Strings.advert_detail_txt,
+                CircularUtils.getTextAnimatedContainer(
+                    Strings.advert_detail_txt,
                     radius: 24.0.w,
                     horizontalSpace: 24.0.w,
                     verticalSpace: 10.0.w,
@@ -321,6 +369,7 @@ class _AdvertViewState extends State<AdvertView>
         if (!_playClickFlag) {
           children.add(GestureDetector(
             onTap: () {
+              print("中间播放按钮被点击");
               _startPlay();
             },
             child: Icon(
@@ -342,27 +391,33 @@ class _AdvertViewState extends State<AdvertView>
 
       children.add(
         Positioned(
-          right: 10.w,
-          top: 10.w,
-          child: PageUtils.getTextSpanContainer(
-              TextSpan(text: Strings.advert_txt, children: [
-                WidgetSpan(
-                  alignment: PlaceholderAlignment.middle,
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Colors.white,
-                    size: 26.sp,
+            right: 0,
+            top: 0,
+            child: CircularUtils.getTextSpanContainer(
+                TextSpan(text: Strings.advert_txt, children: [
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.white,
+                      size: 26.sp,
+                    ),
+                    style: TextStyle(
+                      letterSpacing: -1,
+                    ),
                   ),
-                ),
-              ]), onTap: () {
-            print("点击${Strings.advert_txt}");
-          },
-              fontSize: 20.sp,
-              textColor: Colors.white,
-              backgroundColor: Color(0x33000000),
-              verticalSpace: 4.w,
-              horizontalSpace: 8.w),
-        ),
+                ]), onTap: () {
+              print("点击${Strings.advert_txt}");
+            },
+                fontSize: 20.sp,
+                textColor: Colors.white,
+                backgroundColor: Color(0x33000000),
+                verticalSpace: 14.w, //14.w,
+                horizontalInvisibleSpace: 12.w,
+                verticalInvisibleSpace: 12.w,
+                invisibleSpaceClickable: true,
+                horizontalSpace: 18.w) //18.w),
+            ),
       );
 
       return AspectRatio(
@@ -420,7 +475,7 @@ class _AdvertViewState extends State<AdvertView>
   void dispose() {
     print("AdvertView dispose...");
     WidgetsBinding.instance.removeObserver(this);
-    _videoController?.dispose();
+    _disposeVideoController();
     super.dispose();
   }
 

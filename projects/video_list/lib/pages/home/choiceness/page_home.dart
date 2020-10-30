@@ -5,7 +5,7 @@ import 'package:video_list/controllers/choiceness_controller.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/models/choiceness_model.dart';
 import 'package:video_list/pages/page_controller.dart';
-import 'package:video_list/pages/page_utils.dart';
+import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/utils/icons_utils.dart';
 import 'package:video_list/resources/res/dimens.dart';
 import 'page_header.dart';
 import 'app_bar.dart';
@@ -40,8 +40,16 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   @override
   void dispose() {
     print("ChoicenessPage -> dispose()");
+    _disposeResources();
     super.dispose();
   }
+
+ void _disposeResources() {
+   _headerItems.clear();
+   _videoItems.clear();
+   _headerItems = null;
+   _videoItems = null;
+ }
 
   void _initResources() {
     List list = ChoicenessController().getChoicenessData();

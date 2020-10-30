@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:video_list/pages/page_controller.dart';
 import '../../resources/export.dart';
 import 'package:provider/provider.dart';
-import '../page_utils.dart';
+import '../../ui/utils/icons_utils.dart';
 import 'choiceness/page_home.dart';
 import 'choiceness/tmp_page.dart';
 import 'home_page_bar.dart';
@@ -114,6 +114,8 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   @override
   void dispose() {
     print("_MainPageState -> dispose()");
+    //这里还需要移除监听
+
     _tabController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -122,6 +124,7 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    print("_pageList: ${_pageList?.length}  _pageController:${_pageController} ");
     return MaterialApp(
       title: "home",
       theme: Theme.of(context).copyWith(),

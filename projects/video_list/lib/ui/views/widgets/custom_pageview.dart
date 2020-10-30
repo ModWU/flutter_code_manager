@@ -3,12 +3,12 @@
 // found in the LICENSE file.
 
 import 'dart:math' as math;
-
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 import 'package:flutter/material.dart';
+import 'package:video_list/ui/views/widgets/sliver_fill.dart';
 
 
 /// A controller for [PageView].
@@ -290,7 +290,7 @@ class CustomPageMetrics extends FixedScrollMetrics {
   final double viewportFraction;
 }
 
-class _CustomPagePosition extends ScrollPositionWithSingleContext implements PageMetrics {
+class _CustomPagePosition extends ScrollPositionWithSingleContext implements CustomPageMetrics {
   _CustomPagePosition({
     ScrollPhysics physics,
     ScrollContext context,
@@ -415,7 +415,7 @@ class _CustomPagePosition extends ScrollPositionWithSingleContext implements Pag
   }
 
   @override
-  PageMetrics copyWith({
+  CustomPageMetrics copyWith({
     double minScrollExtent,
     double maxScrollExtent,
     double pixels,
@@ -423,7 +423,7 @@ class _CustomPagePosition extends ScrollPositionWithSingleContext implements Pag
     AxisDirection axisDirection,
     double viewportFraction,
   }) {
-    return PageMetrics(
+    return CustomPageMetrics(
       minScrollExtent: minScrollExtent ?? (hasContentDimensions ? this.minScrollExtent : null),
       maxScrollExtent: maxScrollExtent ?? (hasContentDimensions ? this.maxScrollExtent : null),
       pixels: pixels ?? (hasPixels ? this.pixels : null),
@@ -467,8 +467,8 @@ class CustomPageScrollPhysics extends ScrollPhysics {
   const CustomPageScrollPhysics({ ScrollPhysics parent }) : super(parent: parent);
 
   @override
-  PageScrollPhysics applyTo(ScrollPhysics ancestor) {
-    return PageScrollPhysics(parent: buildParent(ancestor));
+  CustomPageScrollPhysics applyTo(ScrollPhysics ancestor) {
+    return CustomPageScrollPhysics(parent: buildParent(ancestor));
   }
 
   double _getPage(ScrollMetrics position) {
@@ -514,8 +514,8 @@ class CustomPageScrollPhysics extends ScrollPhysics {
 // to plumb in the factory for _PagePosition, but it will end up accumulating
 // a large list of scroll positions. As long as you don't try to actually
 // control the scroll positions, everything should be fine.
-final PageController _defaultPageController = PageController();
-const PageScrollPhysics _kPagePhysics = PageScrollPhysics();
+final CustomPageController _defaultPageController = CustomPageController();
+const CustomPageScrollPhysics _kPagePhysics = CustomPageScrollPhysics();
 
 /// A scrollable list that works page by page.
 ///
@@ -560,7 +560,8 @@ class CustomPageView extends StatefulWidget {
     Key key,
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
-    PageController controller,
+    this.loop = false,
+    CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
     this.onPageChanged,
@@ -571,6 +572,7 @@ class CustomPageView extends StatefulWidget {
     this.clipBehavior = Clip.hardEdge,
   }) : assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
+        assert(loop != null),
         controller = controller ?? _defaultPageController,
         childrenDelegate = SliverChildListDelegate(children),
         super(key: key);
@@ -597,7 +599,8 @@ class CustomPageView extends StatefulWidget {
     Key key,
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
-    PageController controller,
+    this.loop = false,
+    CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
     this.onPageChanged,
@@ -609,6 +612,7 @@ class CustomPageView extends StatefulWidget {
     this.clipBehavior = Clip.hardEdge,
   }) : assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
+        assert(loop != null),
         controller = controller ?? _defaultPageController,
         childrenDelegate = SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
         super(key: key);
@@ -699,9 +703,10 @@ class CustomPageView extends StatefulWidget {
     Key key,
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
-    PageController controller,
+    CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
+    this.loop = false,
     this.onPageChanged,
     this.childrenDelegate,
     this.dragStartBehavior = DragStartBehavior.start,
@@ -711,6 +716,7 @@ class CustomPageView extends StatefulWidget {
   }) : assert(childrenDelegate != null),
         assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
+        assert(loop != null),
         controller = controller ?? _defaultPageController,
         super(key: key);
 
@@ -735,6 +741,9 @@ class CustomPageView extends StatefulWidget {
   /// Defaults to [Axis.horizontal].
   final Axis scrollDirection;
 
+
+  final bool loop;
+
   /// Whether the page view scrolls in the reading direction.
   ///
   /// For example, if the reading direction is left-to-right and
@@ -751,7 +760,7 @@ class CustomPageView extends StatefulWidget {
 
   /// An object that can be used to control the position to which this page
   /// view is scrolled.
-  final PageController controller;
+  final CustomPageController controller;
 
   /// How the page view should respond to user input.
   ///
@@ -824,7 +833,7 @@ class _CustomPageViewState extends State<CustomPageView> {
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {
         if (notification.depth == 0 && widget.onPageChanged != null && notification is ScrollUpdateNotification) {
-          final PageMetrics metrics = notification.metrics as PageMetrics;
+          final CustomPageMetrics metrics = notification.metrics as CustomPageMetrics;
           final int currentPage = metrics.page.round();
           if (currentPage != _lastReportedPage) {
             _lastReportedPage = currentPage;
@@ -850,7 +859,7 @@ class _CustomPageViewState extends State<CustomPageView> {
             offset: position,
             clipBehavior: widget.clipBehavior,
             slivers: <Widget>[
-              SliverFillViewport(
+              SliverFillViewport2(
                 viewportFraction: widget.controller.viewportFraction,
                 delegate: widget.childrenDelegate,
               ),
@@ -866,7 +875,7 @@ class _CustomPageViewState extends State<CustomPageView> {
     super.debugFillProperties(description);
     description.add(EnumProperty<Axis>('scrollDirection', widget.scrollDirection));
     description.add(FlagProperty('reverse', value: widget.reverse, ifTrue: 'reversed'));
-    description.add(DiagnosticsProperty<PageController>('controller', widget.controller, showName: false));
+    description.add(DiagnosticsProperty<CustomPageController>('controller', widget.controller, showName: false));
     description.add(DiagnosticsProperty<ScrollPhysics>('physics', widget.physics, showName: false));
     description.add(FlagProperty('pageSnapping', value: widget.pageSnapping, ifFalse: 'snapping disabled'));
     description.add(FlagProperty('allowImplicitScrolling', value: widget.allowImplicitScrolling, ifTrue: 'allow implicit scrolling'));

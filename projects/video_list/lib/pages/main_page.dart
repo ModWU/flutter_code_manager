@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/pages/page_controller.dart';
-import 'package:video_list/pages/page_utils.dart';
+import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/utils/icons_utils.dart';
 import '../resources/export.dart';
 
 class HeartBeatApp extends StatelessWidget {

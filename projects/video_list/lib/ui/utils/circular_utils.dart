@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import 'package:video_list/models/base_model.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 
 Widget getTextAnimatedContainer(String text,
@@ -10,8 +8,10 @@ Widget getTextAnimatedContainer(String text,
     FontWeight fontWeight = FontWeight.w500,
     double horizontalSpace,
     double verticalSpace,
+    double horizontalInvisibleSpace = 0,
+    double verticalInvisibleSpace = 0,
+    bool invisibleSpaceClickable = true,
     double fontSize,
-    bool animated,
     Matrix4 transform,
     Duration duration,
     Curve curve,
@@ -25,6 +25,9 @@ Widget getTextAnimatedContainer(String text,
       fontWeight: fontWeight,
       horizontalSpace: horizontalSpace,
       verticalSpace: verticalSpace,
+      horizontalInvisibleSpace: horizontalInvisibleSpace,
+      verticalInvisibleSpace: verticalInvisibleSpace,
+      invisibleSpaceClickable: invisibleSpaceClickable,
       fontSize: fontSize,
       transform: transform,
       duration: duration,
@@ -41,10 +44,12 @@ Widget getTextContainer(String text,
     FontWeight fontWeight = FontWeight.w500,
     double horizontalSpace,
     double verticalSpace,
+    double horizontalInvisibleSpace = 0,
+    double verticalInvisibleSpace = 0,
+    bool invisibleSpaceClickable = true,
     double fontSize,
     EdgeInsets margin,
     VoidCallback onTap,
-    bool animated,
     double radius}) {
   return getTextSpanContainer(TextSpan(text: text),
       backgroundColor: backgroundColor,
@@ -52,10 +57,12 @@ Widget getTextContainer(String text,
       fontWeight: fontWeight,
       horizontalSpace: horizontalSpace,
       verticalSpace: verticalSpace,
+      horizontalInvisibleSpace: horizontalInvisibleSpace,
+      verticalInvisibleSpace: verticalInvisibleSpace,
+      invisibleSpaceClickable: invisibleSpaceClickable,
       fontSize: fontSize,
       margin: margin,
       onTap: onTap,
-      animated: animated,
       radius: radius);
 }
 
@@ -69,33 +76,35 @@ Widget getTextSpanAnimatedContainer(
   FontWeight fontWeight = FontWeight.w500,
   double horizontalSpace,
   double verticalSpace,
+  double horizontalInvisibleSpace = 0,
+  double verticalInvisibleSpace = 0,
+  bool invisibleSpaceClickable = true,
   double fontSize,
   EdgeInsets margin,
   double radius,
   VoidCallback onTap,
   Matrix4 transform,
 }) {
-  if (horizontalSpace == null) horizontalSpace = 6.w;
+  horizontalSpace ??= 6.w;
 
-  if (verticalSpace == null) verticalSpace = 2.w;
+  verticalSpace ??= 2.w;
 
-  if (fontSize == null) fontSize = 20.sp;
+  fontSize ??= 20.sp;
 
-  if (radius == null) radius = 6.w;
+  radius ??= 6.w;
 
-  print("getTextAnimatedContainer2 => $curve");
-
-  Widget child = AnimatedContainer(
+  Widget animatedChild = AnimatedContainer(
     transform: transform,
     duration: duration,
     curve: curve,
     onEnd: onEnd,
     margin: margin,
-    decoration: BoxDecoration(
+    /*decoration: BoxDecoration(
       color: backgroundColor, //Colors.orangeAccent,
       //设置四周圆角 角度
       borderRadius: BorderRadius.all(Radius.circular(radius)),
-    ),
+    ),*/
+    color: backgroundColor,
     padding: EdgeInsets.symmetric(
       horizontal: horizontalSpace,
       vertical: verticalSpace,
@@ -110,33 +119,44 @@ Widget getTextSpanAnimatedContainer(
     ),
   );
 
-  return onTap == null
-      ? child
+  Widget widget = ClipRRect(
+    clipper: RRectRangeClipper(
+        horizontalSpace: horizontalInvisibleSpace,
+        verticalSpace: verticalInvisibleSpace,
+        radius: radius),
+    child: animatedChild,
+  );
+
+  Widget result = onTap == null
+      ? widget
       : GestureDetector(
           onTap: onTap,
-          child: child,
+          behavior: invisibleSpaceClickable ? HitTestBehavior.opaque : null,
+          child: widget,
+        );
+
+  return margin == null
+      ? result
+      : Padding(
+          padding: margin,
+          child: result,
         );
 }
 
 Widget getTextSpanContainer(TextSpan textSpan,
     {Color backgroundColor = Colors.grey,
-    bool animated = false,
     Color textColor = Colors.white,
     FontWeight fontWeight = FontWeight.w500,
     double horizontalSpace,
     double verticalSpace,
+    double horizontalInvisibleSpace = 0,
+    double verticalInvisibleSpace = 0,
+    bool invisibleSpaceClickable = true,
     double fontSize,
     EdgeInsets margin,
     VoidCallback onTap,
     double radius}) {
-  if (horizontalSpace == null) horizontalSpace = 6.w;
-
-  if (verticalSpace == null) verticalSpace = 2.w;
-
-  if (fontSize == null) fontSize = 20.sp;
-
-  if (radius == null) radius = 6.w;
-
+  fontSize ??= 20.sp;
   return getRadiusContainer(
       Text.rich(
         textSpan,
@@ -151,39 +171,44 @@ Widget getTextSpanContainer(TextSpan textSpan,
       fontWeight: fontWeight,
       horizontalSpace: horizontalSpace,
       verticalSpace: verticalSpace,
-      fontSize: fontSize,
+      horizontalInvisibleSpace: horizontalInvisibleSpace,
+      verticalInvisibleSpace: verticalInvisibleSpace,
+      invisibleSpaceClickable: invisibleSpaceClickable,
       onTap: onTap,
       margin: margin,
-      animated: animated,
       radius: radius);
 }
 
 Widget getRadiusContainer(Widget child,
     {Color backgroundColor = Colors.grey,
-    bool animated = false,
     Color textColor = Colors.white,
     FontWeight fontWeight = FontWeight.w500,
     double horizontalSpace,
     double verticalSpace,
-    double fontSize,
+    double horizontalInvisibleSpace,
+    double verticalInvisibleSpace,
+    bool invisibleSpaceClickable = true,
     EdgeInsets margin,
     VoidCallback onTap,
     double radius}) {
-  if (horizontalSpace == null) horizontalSpace = 6.w;
+  horizontalSpace ??= 6.w;
 
-  if (verticalSpace == null) verticalSpace = 2.w;
+  verticalSpace ??= 2.w;
 
-  if (fontSize == null) fontSize = 20.sp;
+  radius ??= 6.w;
 
-  if (radius == null) radius = 6.w;
+  horizontalInvisibleSpace ??= 0.0;
+  verticalInvisibleSpace ??= 0.0;
 
-  Widget widget = Container(
-    decoration: BoxDecoration(
-      color: backgroundColor, //Colors.orangeAccent,
-      //设置四周圆角 角度
-      borderRadius: BorderRadius.all(Radius.circular(radius)),
-    ),
-    margin: margin,
+  print("invisibleSpaceClickable: $invisibleSpaceClickable");
+  print("horizontalInvisibleSpace: $horizontalInvisibleSpace");
+  print("verticalInvisibleSpace: $verticalInvisibleSpace");
+  print("radius: $radius");
+
+  //bool isHasInvisibleSpace = horizontalInvisibleSpace > 0 || verticalInvisibleSpace > 0;
+
+  Widget container = Container(
+    color: backgroundColor,
     padding: EdgeInsets.symmetric(
       horizontal: horizontalSpace,
       vertical: verticalSpace,
@@ -191,66 +216,50 @@ Widget getRadiusContainer(Widget child,
     child: child,
   );
 
-  return onTap == null
+  Widget widget = ClipRRect(
+    clipper: RRectRangeClipper(
+        horizontalSpace: horizontalInvisibleSpace,
+        verticalSpace: verticalInvisibleSpace,
+        radius: radius),
+    child: container,
+  );
+
+  Widget result = onTap == null
       ? widget
       : GestureDetector(
           onTap: onTap,
+          behavior: invisibleSpaceClickable ? HitTestBehavior.opaque : null,
           child: widget,
+        );
+
+  return margin == null
+      ? result
+      : Padding(
+          padding: margin,
+          child: result,
         );
 }
 
-Container getMarkContainer(MarkType markType) {
-  switch (markType) {
-    case MarkType.advance:
-      return getTextContainer("预告", backgroundColor: Colors.redAccent);
-    case MarkType.advanced_request:
-      return getTextContainer("超前点播", backgroundColor: Colors.orangeAccent);
+class RRectRangeClipper extends CustomClipper<RRect> {
+  RRectRangeClipper(
+      {this.verticalSpace = 0, this.horizontalSpace = 0, this.radius = 0});
 
-    case MarkType.hynna_bubble_pop:
-      return getTextContainer("独播", backgroundColor: Colors.orangeAccent);
+  final double verticalSpace;
+  final double horizontalSpace;
+  final double radius;
 
-    case MarkType.vip:
-      return getTextContainer("VIP", backgroundColor: Colors.orangeAccent);
+  @override
+  RRect getClip(Size size) => RRect.fromLTRBR(
+      horizontalSpace,
+      verticalSpace,
+      size.width - horizontalSpace,
+      size.height - verticalSpace,
+      Radius.circular(radius));
 
-    case MarkType.self_made:
-      return getTextContainer("自制", backgroundColor: Colors.redAccent);
-  }
-}
-
-Icon getSignIcon(VideoSign sign, {double size}) {
-  switch (sign) {
-    case VideoSign.lightning:
-      return Icon(
-        Icons.nightlight_round,
-        size: size,
-        color: Colors.orangeAccent,
-      );
-    case VideoSign.hot:
-      return Icon(
-        Icons.whatshot_outlined,
-        size: size,
-        color: Colors.red,
-      );
-
-    case VideoSign.star:
-      return Icon(
-        Icons.star,
-        size: size,
-        color: Colors.orangeAccent,
-      );
-
-    case VideoSign.favorite:
-      return Icon(
-        Icons.favorite,
-        size: size,
-        color: Colors.red,
-      );
-
-    case VideoSign.sun:
-      return Icon(
-        Icons.wb_sunny,
-        size: size,
-        color: Colors.orangeAccent,
-      );
+  @override
+  bool shouldReclip(RRectRangeClipper oldClipper) {
+    return oldClipper.verticalSpace != verticalSpace ||
+        oldClipper.horizontalSpace != horizontalSpace ||
+        oldClipper.radius != radius;
   }
 }
