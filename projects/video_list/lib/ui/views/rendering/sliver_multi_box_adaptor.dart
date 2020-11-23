@@ -52,11 +52,8 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
   /// The [childManager] argument must not be null.
   RenderSliverMultiBoxAdaptor2({
     RenderSliverBoxChildManager childManager,
-    bool loop = false,
   })  : assert(childManager != null),
-        _childManager = childManager,
-        assert(loop != null),
-        _loop = loop {
+        _childManager = childManager {
     assert(() {
       _debugDanglingKeepAlives = <RenderBox>[];
       return true;
@@ -78,16 +75,6 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
   @protected
   RenderSliverBoxChildManager get childManager => _childManager;
   final RenderSliverBoxChildManager _childManager;
-
-  bool _loop;
-  bool get loop => _loop;
-  set loop(bool value) {
-    assert(value != null);
-    if (_loop == value)
-      return;
-    _loop = value;
-    markNeedsLayout();
-  }
 
   /// The nodes being kept alive despite not being visible.
   final Map<int, RenderBox> _keepAliveBucket = <int, RenderBox>{};
@@ -154,7 +141,6 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
     super.insert(child, after: after);
     assert(firstChild != null);
     assert(_debugVerifyChildOrder());
-    print("wuchaochao##log => insert child => index:${(child.parentData as SliverMultiBoxAdaptorParentData2).index}  child.hashcode:${child.hashCode} after.hashcode:${after?.hashCode}");
   }
 
   @override
@@ -198,15 +184,12 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
       }());
       _keepAliveBucket[childParentData.index] = child;
     }
-    print("wuchaochao##log => move child => index:${(child.parentData as SliverMultiBoxAdaptorParentData2).index}  child.hashcode:${child.hashCode} after.hashcode:${after?.hashCode}");
-  }
+   }
 
   @override
   void remove(RenderBox child) {
      final SliverMultiBoxAdaptorParentData2 childParentData =
         child.parentData as SliverMultiBoxAdaptorParentData2;
-     print("wuchaochao##log => remove child => index:${childParentData.index}  child.hashcode:${child.hashCode}  childParentData._keptAlive:${childParentData._keptAlive}");
-
      if (!childParentData._keptAlive) {
       super.remove(child);
       return;
@@ -442,8 +425,7 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
   @protected
   double paintExtentOf(RenderBox child) {
     child = _getRealChild(child);
-    print("paintExtentOf => child is SameIndexRenderObject: ${child is SameIndexRenderObject}");
-    assert(child != null);
+   assert(child != null);
     assert(child.hasSize);
     switch (constraints.axis) {
       case Axis.horizontal:
@@ -528,7 +510,6 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
         addExtent = true;
         break;
     }
-    print("paint paint paint paint ..........");
     assert(mainAxisUnit != null);
     assert(addExtent != null);
     RenderBox child = firstChild;
@@ -550,18 +531,15 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
       if (mainAxisDelta < constraints.remainingPaintExtent &&
           mainAxisDelta + paintExtentOf(child) > 0) {
         RenderBox realRenderBox = _getRealChild(child);
-        print("paint child => realRenderBox is SameIndexRenderObject: ${realRenderBox is SameIndexRenderObject}");
         context.paintChild(realRenderBox, childOffset);
       }
 
       child = childAfter(child);
     }
-    print("paint paint paint paint .......... end end");
   }
 
   RenderBox _getRealChild(RenderBox child) {
     if (child is SameIndexRenderObject) {
-      print("getRealChild => index:${child.index} sameIndex:${child.sameIndex} renderBox:${child.renderBox}");
       return child.renderBox;
     }
     return child;
@@ -633,7 +611,246 @@ class SameIndexRenderObject extends RenderBox {
 
   @override
   void performLayout() {
-    super.performLayout();
+    renderBox.performLayout();
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    renderBox.paint(context, offset);
+  }
+
+  @override
+  Rect get paintBounds => renderBox.paintBounds;
+
+  @override
+  void layout(Constraints constraints, {bool parentUsesSize = false}) {
+    renderBox.layout(constraints, parentUsesSize: parentUsesSize);
+  }
+
+
+  /*@override
+  void attach(covariant PipelineOwner owner) {
+    renderBox.attach(owner);
+  }*/
+
+  /*set parentData(ParentData _parentData) {
+    super.parentData = _parentData;
+    renderBox.parentData = _parentData;
+  }*/
+
+  @override
+  set layer(ContainerLayer newLayer) {
+    renderBox.layer = newLayer;
+  }
+
+  @override
+  void adoptChild(covariant RenderObject child) {
+    renderBox.adoptChild(child);
+  }
+
+  @override
+  void dropChild(covariant RenderObject child) {
+    renderBox.dropChild(child);
+  }
+
+  @override
+  Offset localToGlobal(Offset point, {RenderObject ancestor}) {
+    return renderBox.localToGlobal(point, ancestor: ancestor);
+  }
+
+  /*@override
+  void markParentNeedsLayout() {
+    renderBox.markParentNeedsLayout();
+  }
+
+  @override
+  double getMaxIntrinsicHeight(double width) {
+    return renderBox.getMaxIntrinsicHeight(width);
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) {
+    return renderBox.computeMinIntrinsicHeight(width);
+  }
+
+  @override
+  double computeMaxIntrinsicWidth(double height) {
+    return renderBox.computeMaxIntrinsicWidth(height);
+  }
+
+  @override
+  double computeMaxIntrinsicHeight(double width) {
+    return renderBox.computeMaxIntrinsicHeight(width);
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) {
+    return renderBox.computeMinIntrinsicWidth(height);
+  }*/
+
+  @override
+  BoxConstraints get constraints => renderBox.constraints;
+
+  /*@override
+  void setupParentData(covariant RenderObject child) {
+    renderBox.setupParentData(child);
+  }*/
+
+  /*@override
+  void redepthChildren() {
+    renderBox.redepthChildren();
+  }*/
+
+  /*@override
+  void visitChildren(visitor) {
+    renderBox.visitChildren(visitor);
+  }*/
+
+  /*@override
+  void redepthChild(AbstractNode child) {
+    renderBox.redepthChild(child);
+  }*/
+
+  @override
+  void markNeedsLayoutForSizedByParentChange() {
+    renderBox.markNeedsLayoutForSizedByParentChange();
+  }
+
+  @override
+  void invokeLayoutCallback<T extends Constraints>(callback) {
+    renderBox.invokeLayoutCallback(callback);
+  }
+
+  @override
+  void scheduleInitialLayout() {
+    renderBox.scheduleInitialLayout();
+  }
+
+  /*@override
+  void assembleSemanticsNode(SemanticsNode node, SemanticsConfiguration config, Iterable<SemanticsNode> children) {
+    renderBox.assembleSemanticsNode(node, config, children);
+  }*/
+
+  @override
+  void reassemble() {
+    renderBox.reassemble();
+  }
+
+  @override
+  bool get hasSize => renderBox.hasSize;
+
+  /*@override
+  double getMinIntrinsicHeight(double width) {
+    return renderBox.getMinIntrinsicHeight(width);
+  }
+
+  @override
+  void markNeedsSemanticsUpdate() {
+    renderBox.markNeedsSemanticsUpdate();
+  }
+
+  @override
+  int get depth => renderBox.depth;*/
+
+  /*@override
+  double getDistanceToActualBaseline(TextBaseline baseline) {
+    return renderBox.getDistanceToActualBaseline(baseline);
+  }
+
+  @override
+  double getMinIntrinsicWidth(double height) {
+    return renderBox.getMinIntrinsicWidth(height);
+  }
+
+  @override
+  double getDistanceToBaseline(TextBaseline baseline, {bool onlyReal = false}) {
+    return renderBox.getDistanceToBaseline(baseline, onlyReal: onlyReal);
+  }
+
+  @override
+  double getMaxIntrinsicWidth(double height) {
+    return renderBox.getMaxIntrinsicWidth(height);
+  }
+
+  @override
+  bool get isRepaintBoundary => renderBox.isRepaintBoundary;*/
+
+  @override
+  Matrix4 getTransformTo(RenderObject ancestor) {
+    return renderBox.getTransformTo(ancestor);
+  }
+
+  @override
+  void markNeedsCompositingBitsUpdate() {
+    renderBox.markNeedsCompositingBitsUpdate();
+  }
+
+  @override
+  ContainerLayer get layer => renderBox.layer;
+
+  /*@override
+  AbstractNode get parent => renderBox.parent;
+
+  @override
+  PipelineOwner get owner => renderBox.owner;
+
+  @override
+  ParentData get parentData => renderBox.parentData;
+
+  @override
+  bool get needsCompositing => renderBox.needsCompositing;
+
+  @override
+  Size get size => renderBox.size;
+
+  @override
+  Rect get semanticBounds => renderBox.semanticBounds;
+
+  @override
+  void visitChildrenForSemantics(visitor) {
+    renderBox.visitChildrenForSemantics(visitor);
+  }
+
+  @override
+  void clearSemantics() {
+    renderBox.clearSemantics();
+  }
+
+  @override
+  void detach() {
+    renderBox.detach();
+  }
+
+  @override
+  Offset globalToLocal(Offset point, {RenderObject ancestor}) {
+    return renderBox.globalToLocal(point, ancestor: ancestor);
+  }
+
+    @override
+  // TODO: implement attached
+  bool get attached => renderBox.attached;
+
+  @override
+  double computeDistanceToActualBaseline(TextBaseline baseline) {
+    return renderBox.computeDistanceToActualBaseline(baseline);
+  }*/
+
+  @override
+  bool get alwaysNeedsCompositing => renderBox.alwaysNeedsCompositing;
+
+  @override
+  void applyPaintTransform(covariant RenderObject child, Matrix4 transform) {
+    renderBox.applyPaintTransform(child, transform);
+  }
+
+  @override
+  void markNeedsLayout() {
+    renderBox.markNeedsLayout();
+  }
+
+  @override
+  void markNeedsPaint() {
+    renderBox.markNeedsPaint();
   }
 
   @override

@@ -206,28 +206,27 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
     return widget.delegate.build(this, index);
   }
 
-  int _getSameIndex(int index, Widget newWidget) {
+
+  int _getSameIndex(int index) {
     SliverChildDelegate delegate = widget.delegate;
 
     if (delegate is SliverChildBuilderDelegateWithSameIndex) {
-      int sameIndex = delegate.findSameIndex(index);
+      Map<int, int> sameIndexMap = delegate.findSameIndex();
+      int sameIndex = sameIndexMap[index];
 
-      print("find sameIndex: $sameIndex   index:$index");
+      if (sameIndex == null) {
+        for (int key in sameIndexMap.keys) {
+          if (sameIndexMap[key] == index) {
+            sameIndex = key;
+            break;
+          }
+        }
+      }
 
       if (sameIndex == null ||
           sameIndex < 0 ||
           sameIndex >= childCount ||
           sameIndex == index) return null;
-
-      //Element oldElement = _childElements[index];
-
-      //oldElement.widget.createElement();
-
-      final Element newElement = _childElements[sameIndex];
-
-      print("find sameIndex => newElement $newElement");
-      if (newElement == null) return null;
-
       return sameIndex;
     }
 
@@ -239,6 +238,7 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
   @override
   void createChild(int index, {RenderBox after}) {
     assert(_currentlyUpdatingChildIndex == null);
+    print("wcc##createChild:::::index: $index");
     owner.buildScope(this, () {
       final bool insertFirst = after == null;
       assert(insertFirst || _childElements[index - 1] != null);
@@ -249,29 +249,24 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
       Element newChild;
       try {
         _currentlyUpdatingChildIndex = index;
-        Widget newWidget = _build(index);
-        print("updateChild => index:${index}");
-        final int sameIndex = _getSameIndex(index, newWidget);
-        print("sameIndex => $sameIndex");
+        final int sameIndex = _getSameIndex(index);
+        final Widget newWidget = _build(index);
         if (sameIndex == null) {
           newChild = updateChild(_childElements[index], newWidget, index);
         } else {
-          newChild = _childElements[sameIndex];
-          assert(newChild?.renderObject != null);
-          print("----didAdpotChild-----");
-          SameIndexRenderObject sameIndexRenderObject =
-              _sameIndexCache[index] ??
-                  SameIndexRenderObject(
-                      index: index,
-                      sameIndex: sameIndex,
-                      renderBox: newChild.renderObject);
+          final Element oldElement = _childElements[index] ?? _childElements[sameIndex];
+          if (oldElement != null && Widget.canUpdate(oldElement.widget, newWidget)) {
+            forgetChild(oldElement);
+            deactivateChild(oldElement);
+            owner.inactiveElements.remove(oldElement);
+            oldElement.activateWithParent(this, index);
 
-          _sameIndexCache.putIfAbsent(index, () => sameIndexRenderObject);
+          }
 
-          insertRenderObjectChild(sameIndexRenderObject, index);
+          newChild = updateChild(oldElement, newWidget, index);
+
         }
 
-        print("updateChild => index:${index} end");
       } finally {
         _currentlyUpdatingChildIndex = null;
       }
@@ -296,7 +291,12 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
     if (oldParentData != newParentData &&
         oldParentData != null &&
         newParentData != null) {
+      print("updateChild1 => oldParentData: ${oldParentData.layoutOffset}");
       newParentData.layoutOffset = oldParentData.layoutOffset;
+    } else {
+      /*if (_currentlyUpdatingChildIndex == 0)
+        newParentData.layoutOffset = 0;*/
+      print("updateChild2 => oldParentData: ${oldParentData?.layoutOffset}");
     }
     return newChild;
   }
@@ -315,8 +315,8 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
   void removeChild(RenderBox child) {
     final int index = renderObject.indexOf(child);
 
-    print(
-        "wuchaochao##log => element remove child => index:${(child.parentData as SliverMultiBoxAdaptorParentData2).index}  child.hashcode:${child.hashCode}  childParentData._keptAlive:${(child.parentData as SliverMultiBoxAdaptorParentData2).keptAlive}");
+    print("wcc##removeChild:::::index: $index");
+
     assert(_currentlyUpdatingChildIndex == null);
     assert(index >= 0);
     owner.buildScope(this, () {
@@ -525,7 +525,7 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
   }
 }
 
-typedef ChildSameIndexGetter = int Function(int index);
+typedef ChildSameIndexGetter = Map<int, int> Function();
 
 class SliverChildBuilderDelegateWithSameIndex
     extends SliverChildBuilderDelegate {
@@ -548,10 +548,9 @@ class SliverChildBuilderDelegateWithSameIndex
 
   final ChildSameIndexGetter findChildSameIndexCallback;
 
-  int findSameIndex(int index) {
-    assert(index != null);
+  Map<int, int> findSameIndex() {
     if (findChildSameIndexCallback == null) return null;
 
-    return findChildSameIndexCallback(index);
+    return findChildSameIndexCallback();
   }
 }

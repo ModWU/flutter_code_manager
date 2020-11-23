@@ -240,6 +240,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
     return CarouselView(
       itemBuilder: _swiperBuilder,
       itemCount: widget.items.length,
+      padding: 4.w,
       onPageChanged: (index) {
         print("wuchaochaochaochao.........当前页面：$index");
       },

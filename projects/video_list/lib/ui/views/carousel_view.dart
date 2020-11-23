@@ -1,10 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:video_list/ui/utils/controller_notifier.dart';
 import 'package:video_list/ui/views/widgets/sliver.dart';
-
+import 'package:flutter_screenutil/screenutil.dart';
+import 'package:flutter_screenutil/size_extension.dart';
 import 'widgets/custom_pageview.dart';
+import 'dart:math' as math;
 
 class CarouselView extends StatefulWidget {
   CarouselView(
@@ -13,6 +18,7 @@ class CarouselView extends StatefulWidget {
       this.controller,
       this.autoPlayDelay,
       this.onPageChanged,
+      this.padding = 0.0,
       this.duration,
       this.curve});
 
@@ -34,6 +40,8 @@ class CarouselView extends StatefulWidget {
   final int duration;
 
   final Curve curve;
+
+  final double padding;
 }
 
 const int _defaultAutoPlayDelay = 5000;
@@ -44,10 +52,7 @@ class _CarouselViewState extends State<CarouselView> {
   Timer _autoPlayTimer; //定时器
 
   CarouselController _controller;
-
-  GlobalObjectKey firstChildKey = GlobalObjectKey("first");
-  GlobalObjectKey childChildKey = GlobalObjectKey("last");
-
+  ValueNotifier<double> _valueNotifier = new ValueNotifier<double>(0.0);
 
   @override
   void didUpdateWidget(CarouselView oldWidget) {
@@ -79,6 +84,7 @@ class _CarouselViewState extends State<CarouselView> {
   void _onEvent() {
     switch (_controller.event) {
       case CarouselController.EVENT_AUTO_PLAY:
+        // print("######page自动播放事件: ${_controller.page}");
         if (!_canScroll) return;
         if (_controller.autoPlay) {
           if (_autoPlayTimer == null) {
@@ -90,12 +96,25 @@ class _CarouselViewState extends State<CarouselView> {
           }
         }
         break;
+
+      case CarouselController.EVENT_SCROLL:
+        // print("######page滚动事件: ${_controller.page}");
+        _valueNotifier.value = _controller.page;
+        break;
     }
   }
 
   void _initController() {
     _controller?.dispose();
-    _controller = widget.controller ?? new CarouselController();
+    final int initIndex = _realItemCount > 1 ? 2 : 0;
+    _controller = widget.controller ??
+        new CarouselController(
+          initialPage: initIndex,
+          initialAutoPlay: true,
+          scale: 0.8,
+          viewportFraction: 0.95,
+        );
+    _valueNotifier.value = initIndex * 1.0;
     _controller.addListener(_onEvent);
   }
 
@@ -143,145 +162,127 @@ class _CarouselViewState extends State<CarouselView> {
     }
   }
 
+  bool _notificationStartTag = false;
+  bool _notificationNeedAutoPlay = false;
+
   @override
   Widget build(BuildContext context) {
-    return NotificationListener(
-      onNotification: (ScrollNotification notification) {
-        if (_canScroll && notification is ScrollEndNotification) {
-          print(
-              "wuchaochao => ${notification.metrics.axis == Axis.horizontal ? "水平滚动：" : "垂直滚动："}{ScrollUpdateNotification:${notification is ScrollUpdateNotification}, ScrollEndNotification:${notification is ScrollEndNotification}, ScrollStartNotification:${notification is ScrollStartNotification}, extentInside:${notification.metrics.extentInside}, extentBefore:${notification.metrics.extentBefore}, atEdge:${notification.metrics.atEdge}, axisDirection:${notification.metrics.axisDirection}, hasViewportDimension:${notification.metrics.hasViewportDimension}, viewportDimension:${notification.metrics.viewportDimension}, hasPixels:${notification.metrics.hasPixels}, hasContentDimensions:${notification.metrics.hasContentDimensions}, pixels:${notification.metrics.pixels}，outOfRange:${notification.metrics.outOfRange}，minScrollExtent:${notification.metrics.minScrollExtent}，maxScrollExtent:${notification.metrics.maxScrollExtent}");
+    return ChangeNotifierProvider.value(
+      value: _valueNotifier,
+      child: NotificationListener(
+        onNotification: (ScrollNotification notification) {
+          if (_canScroll && notification.depth == 0) {
+            if (notification is ScrollStartNotification) {
+              _notificationStartTag = true;
+              print("ScrollStartNotification##_controller.page: ${_controller.page}");
+              if (notification.dragDetails != null) {
+                //by human
+                if (_controller.autoPlay) {
+                  _notificationNeedAutoPlay = true;
+                  _controller.stopAutoPlay();
+                }
+              }
+            } else if (notification is ScrollEndNotification) {
+              if (_notificationStartTag) {
+                _notificationStartTag = false;
+                final int currentPage = _controller.page.round();
+                print("ScrollEndNotification##currentPage: $currentPage");
+                if (currentPage == 1) {
+                  _controller.jumpToPage(_realItemCount + 1);
+                } else if (currentPage == 2 + _realItemCount) {
+                  _controller.jumpToPage(2);
+                }
+              }
+              print("pageStartEnd##ScrollEndNotification:_startTag: ");
+              if (_notificationNeedAutoPlay) {
+                _notificationNeedAutoPlay = false;
+                _controller.startAutoPlay();
+              }
+            } else if (notification is ScrollUpdateNotification) {
 
-          final CustomPageMetrics metrics =
-              notification.metrics as CustomPageMetrics;
-          final int currentPage = metrics.page.round();
-          if (currentPage == 0) {
-            // _controller.jumpToPage(1);
-          } else if (currentPage == _realItemCount + 1) {
-            //  _controller.jumpToPage(1);
+              print("ScrollUpdateNotification####_controller page: ${_controller.page}");
+            }
           }
-        }
-        return false;
-      },
-      child: CustomPageView.custom(
-        //physics: const BouncingScrollPhysics(),
-        loop: true,
-        onPageChanged: (index) {
-          /*if (index == 0 || index == _realItemCount + 1) {
+          return false;
+        },
+        child: CustomPageView.custom(
+          //physics: const BouncingScrollPhysics(),
+          loop: true,
+          onPageChanged: (index) {
+            /*if (index == 0 || index == _realItemCount + 1) {
             return;
           }*/
 
-          widget?.onPageChanged?.call(index);
-        },
-        controller: _controller,
-        childrenDelegate: SliverChildBuilderDelegateWithSameIndex(
-          (BuildContext context, int index) {
-            print("....当前页：${index} ${_realItemCount}");
-
-            if (index == 0) {
-              return widget.itemBuilder(context, _realItemCount - 1);
-            } else if (index == _realItemCount + 1) {
-              return widget.itemBuilder(context, 0);
-            }
-
-            return widget.itemBuilder(context, index - 1);
-
-          /*  if (index == 0) {
-              //return widget.itemBuilder(context, _realItemCount - 1);
-              return KeepAlive(
-                child: KeepAlive2(
-                  child: widget.itemBuilder(context, _realItemCount - 1),
-                  key: ValueKey<int>(_realItemCount - 1),
-                ),
-                  keepAlive: true,
-               //key: ValueKey<int>(_realItemCount - 1),
-              );
-            } else if (index == _realItemCount + 1) {
-              //return widget.itemBuilder(context, 0);
-              return KeepAlive(
-                child: KeepAlive2(
-                  child: widget.itemBuilder(context, 0),
-                  key: ValueKey<int>(0),
-                ),
-                keepAlive: true,
-                //key: ValueKey<int>(0),
-              );
-            }
-
-            return KeepAlive(
-              child: KeepAlive2(
-                child:  widget.itemBuilder(context, index - 1),
-                key: ValueKey<int>(index - 1),
-              ),
-              keepAlive: true,
-              //key: ValueKey<int>(index - 1),
-            );*/
+            widget?.onPageChanged?.call(index);
           },
-          findChildSameIndexCallback: (index) {
-            if (_realItemCount < 2)
-              return null;
+          controller: _controller,
+          childrenDelegate: SliverChildBuilderDelegateWithSameIndex(
+            (BuildContext context, int index) {
+              //print("....当前页：${index} ${_realItemCount}");
+              final int widgetIndex = (index - 2) % _realItemCount;
 
-            if (index == 0) {
-              return _realItemCount;
-            }
+              final Widget itemWidget = widget.itemBuilder(context, widgetIndex);
 
-            if (index == _realItemCount + 1) {
-              return 1;
-            }
+              return Consumer<ValueNotifier<double>>(
+                builder: (BuildContext context, ValueNotifier<double> notifier,
+                    Widget wgt) {
+                  final int currentIndex = notifier.value.round();
 
-            if (index == _realItemCount) {
-              return 0;
-            }
+                  final double scale = _controller.scale;
 
-            if (index == 1) {
-              return _realItemCount + 1;
-            }
+                  double scaleVal = 1.0;
 
-            return null;
-          },
-          /*findChildIndexCallback: (Key key) {
-            final ValueKey valueKey = key;
-            final int index = valueKey.value;
-            if (index == 0) {
-              return _realItemCount;
-            } else if (index == _realItemCount + 1) {
-              return 1;
-            }
+                  if (index != currentIndex) {
+                    double _needValue = (currentIndex - notifier.value).abs();
+                    if (_needValue >= 0 && _needValue < 0.5) {
+                      scaleVal = _needValue * 2 * (1 - scale) + scale;
+                    } else {
+                      scaleVal = scale;
+                    }
+                  }
 
+                  print("log###widgetIndex: $widgetIndex, index: $index, notifier.value: ${notifier.value}, currentIndex: $currentIndex scaleVal: $scaleVal");
 
-            return index;
-          },*/
-          childCount: _realItemCount > 1 ? _realItemCount + 2 : _realItemCount,
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: widget.padding),
+                    child: Transform.scale(
+                      scale: scaleVal,
+                      alignment: index == currentIndex
+                          ? Alignment.center
+                          : (index < currentIndex
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft),
+                      child: itemWidget,
+                    ),
+                  );
+                },
+              );
+            },
+            findChildSameIndexCallback: () {
+              return <int, int>{
+                0: _realItemCount,
+                1: _realItemCount + 1,
+                2: _realItemCount + 2,
+                3: _realItemCount + 3,
+              };
+            },
+            childCount:
+                _realItemCount > 1 ? _realItemCount + 4 : _realItemCount,
+          ),
         ),
       ),
     );
   }
 }
 
-/*class KeepAlive2 extends StatefulWidget {
-  const KeepAlive2({Key key, this.child}) : super(key: key);
-
-  final Widget child;
-
-  @override
-  _KeepAliveState2 createState() => _KeepAliveState2();
-}
-
-class _KeepAliveState2 extends State<KeepAlive2>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return widget.child;
-  }
-}*/
-
 class CarouselController extends CustomPageController {
   bool _autoPlay;
 
   bool get autoPlay => _autoPlay ?? initialAutoPlay;
+
+  double _scale;
+
+  double get scale => _scale ?? 1.0;
 
   /// The action to auto play when first creating the [CarouselView].
   final bool initialAutoPlay;
@@ -292,40 +293,42 @@ class CarouselController extends CustomPageController {
 
   int _event;
 
-  int get event => _event;
+  int get event => _event ?? EVENT_SCROLL;
 
   /*this.initialPage = 0,
   this.keepPage = true,
   this.viewportFraction = 1.0,*/
 
-  CarouselController(
-      {this.initialAutoPlay = false,
-      int initialPage = 0,
-      bool keepPage = true,
-      double viewportFraction = 1.0})
-      : super(
+  CarouselController({
+    this.initialAutoPlay = false,
+    int initialPage = 0,
+    bool keepPage = true,
+    double viewportFraction = 1.0,
+    double scale = 1.0,
+  })  : _scale = scale,
+        super(
             initialPage: initialPage,
             keepPage: keepPage,
             viewportFraction: viewportFraction);
 
   void startAutoPlay() {
-    if (_autoPlay) return;
+    if (autoPlay) return;
     _event = EVENT_AUTO_PLAY;
     _autoPlay = true;
     notifyListeners();
+    _event = EVENT_SCROLL;
   }
 
   void stopAutoPlay() {
-    if (!_autoPlay) return;
+    if (!autoPlay) return;
     _event = EVENT_AUTO_PLAY;
     _autoPlay = false;
     notifyListeners();
+    _event = EVENT_SCROLL;
   }
 
   @override
   void notifyListeners() {
-    if (_event != EVENT_AUTO_PLAY) _event = EVENT_SCROLL;
-
     super.notifyListeners();
   }
 

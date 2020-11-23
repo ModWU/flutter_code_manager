@@ -92,11 +92,9 @@ class _SliverFillViewportRenderObjectWidget2
   const _SliverFillViewportRenderObjectWidget2({
     Key key,
     SliverChildDelegate delegate,
-    bool loop = false,
     this.viewportFraction = 1.0,
   })  : assert(viewportFraction != null),
         assert(viewportFraction > 0.0),
-        assert(loop != null),
         super(key: key, delegate: delegate);
 
   final double viewportFraction;
