@@ -560,7 +560,6 @@ class CustomPageView extends StatefulWidget {
     Key key,
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
-    this.loop = false,
     CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
@@ -572,7 +571,6 @@ class CustomPageView extends StatefulWidget {
     this.clipBehavior = Clip.hardEdge,
   }) : assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
-        assert(loop != null),
         controller = controller ?? _defaultPageController,
         childrenDelegate = SliverChildListDelegate(children),
         super(key: key);
@@ -599,7 +597,6 @@ class CustomPageView extends StatefulWidget {
     Key key,
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
-    this.loop = false,
     CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
@@ -612,7 +609,6 @@ class CustomPageView extends StatefulWidget {
     this.clipBehavior = Clip.hardEdge,
   }) : assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
-        assert(loop != null),
         controller = controller ?? _defaultPageController,
         childrenDelegate = SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
         super(key: key);
@@ -706,7 +702,6 @@ class CustomPageView extends StatefulWidget {
     CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
-    this.loop = false,
     this.onPageChanged,
     this.childrenDelegate,
     this.dragStartBehavior = DragStartBehavior.start,
@@ -716,7 +711,6 @@ class CustomPageView extends StatefulWidget {
   }) : assert(childrenDelegate != null),
         assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
-        assert(loop != null),
         controller = controller ?? _defaultPageController,
         super(key: key);
 
@@ -740,9 +734,6 @@ class CustomPageView extends StatefulWidget {
   ///
   /// Defaults to [Axis.horizontal].
   final Axis scrollDirection;
-
-
-  final bool loop;
 
   /// Whether the page view scrolls in the reading direction.
   ///
@@ -832,14 +823,14 @@ class _CustomPageViewState extends State<CustomPageView> {
 
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {
-        if (notification.depth == 0 && widget.onPageChanged != null && notification is ScrollUpdateNotification) {
+        /*if (notification.depth == 0 && widget.onPageChanged != null && notification is ScrollUpdateNotification) {
           final CustomPageMetrics metrics = notification.metrics as CustomPageMetrics;
           final int currentPage = metrics.page.round();
           if (currentPage != _lastReportedPage) {
             _lastReportedPage = currentPage;
             widget.onPageChanged(currentPage);
           }
-        }
+        }*/
         return false;
       },
       child: Scrollable(

@@ -212,6 +212,10 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
 
     if (delegate is SliverChildBuilderDelegateWithSameIndex) {
       Map<int, int> sameIndexMap = delegate.findSameIndex();
+
+      if (sameIndexMap == null)
+        return null;
+
       int sameIndex = sameIndexMap[index];
 
       if (sameIndex == null) {
@@ -251,20 +255,20 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
         _currentlyUpdatingChildIndex = index;
         final int sameIndex = _getSameIndex(index);
         final Widget newWidget = _build(index);
+        //newChild = updateChild(_childElements[index], newWidget, index);
         if (sameIndex == null) {
           newChild = updateChild(_childElements[index], newWidget, index);
         } else {
-          final Element oldElement = _childElements[index] ?? _childElements[sameIndex];
+          Element oldElement = _childElements[index] ?? _childElements[sameIndex];
+
           if (oldElement != null && Widget.canUpdate(oldElement.widget, newWidget)) {
             forgetChild(oldElement);
             deactivateChild(oldElement);
             owner.inactiveElements.remove(oldElement);
             oldElement.activateWithParent(this, index);
-
           }
 
           newChild = updateChild(oldElement, newWidget, index);
-
         }
 
       } finally {

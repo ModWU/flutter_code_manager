@@ -241,8 +241,21 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
       itemBuilder: _swiperBuilder,
       itemCount: widget.items.length,
       padding: 4.w,
-      onPageChanged: (index) {
+      reverse: true,
+      autoPlay: true,
+      loop: true,
+      curve: Curves.ease,
+      initViewportFraction: 0.95,
+      scale: 0.85,
+      scrollDirection: Axis.horizontal,
+      onHandUpChanged: (index) {
         print("wuchaochaochaochao.........当前页面：$index");
+        if (widget.items[index] is AdvertItem) {
+          _bottomTextNotifier.value = widget.items[index].introduce;
+        } else {
+          _bottomTextNotifier.value = widget.items[index].title;
+        }
+
       },
     );
 
