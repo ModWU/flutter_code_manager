@@ -9,10 +9,10 @@ import 'package:video_list/ui/views/widgets/sliver.dart';
 import 'widgets/custom_pageview.dart';
 
 class CarouselView extends StatefulWidget {
-  CarouselView(
+  CarouselView.custom(
       {Key key,
       this.scrollDirection = Axis.horizontal,
-      this.itemBuilder,
+      this.childrenDelegate,
       this.reverse = false,
       this.physics,
       this.pageSnapping = true,
@@ -20,7 +20,6 @@ class CarouselView extends StatefulWidget {
       this.clipBehavior = Clip.hardEdge,
       this.allowImplicitScrolling = false,
       this.restorationId,
-      this.itemCount,
       this.controller,
       this.autoPlayDelay,
       this.autoPlay = true,
@@ -38,16 +37,84 @@ class CarouselView extends StatefulWidget {
         assert(loop != null),
         assert(scale != null),
         assert(initViewportFraction != null),
+        assert(childrenDelegate != null),
+        assert(allowImplicitScrolling != null),
+        assert(clipBehavior != null),
+        super(key: key);
+
+  CarouselView.builder(
+      {Key key,
+      this.scrollDirection = Axis.horizontal,
+      IndexedWidgetBuilder itemBuilder,
+      int itemCount,
+      this.reverse = false,
+      this.physics,
+      this.pageSnapping = true,
+      this.dragStartBehavior = DragStartBehavior.start,
+      this.clipBehavior = Clip.hardEdge,
+      this.allowImplicitScrolling = false,
+      this.restorationId,
+      this.controller,
+      this.autoPlayDelay,
+      this.autoPlay = true,
+      this.onPageChanged,
+      this.onHandUpChanged,
+      this.padding = 0.0,
+      this.loop = true,
+      this.scale = 1.0,
+      this.initViewportFraction = 1.0,
+      this.duration,
+      this.curve})
+      : assert(reverse != null),
+        assert(scrollDirection != null),
+        assert(autoPlay != null),
+        assert(loop != null),
+        assert(scale != null),
+        assert(initViewportFraction != null),
+        assert(allowImplicitScrolling != null),
+        assert(clipBehavior != null),
+        childrenDelegate = CustomSliverChildBuilderDelegate(itemBuilder,
+            childCount: itemCount),
+        super(key: key);
+
+  CarouselView(
+      {Key key,
+      this.scrollDirection = Axis.horizontal,
+      List<Widget> children = const <Widget>[],
+      this.reverse = false,
+      this.physics,
+      this.pageSnapping = true,
+      this.dragStartBehavior = DragStartBehavior.start,
+      this.clipBehavior = Clip.hardEdge,
+      this.allowImplicitScrolling = false,
+      this.restorationId,
+      this.controller,
+      this.autoPlayDelay,
+      this.autoPlay = true,
+      this.onPageChanged,
+      this.onHandUpChanged,
+      this.padding = 0.0,
+      this.loop = true,
+      this.scale = 1.0,
+      this.initViewportFraction = 1.0,
+      this.duration,
+      this.curve})
+      : assert(children != null),
+        assert(reverse != null),
+        assert(scrollDirection != null),
+        assert(autoPlay != null),
+        assert(loop != null),
+        assert(scale != null),
+        assert(initViewportFraction != null),
+        childrenDelegate = CustomSliverChildListDelegate(children),
         super(key: key);
 
   @override
   State<StatefulWidget> createState() => _CarouselViewState();
 
-  final IndexedWidgetBuilder itemBuilder;
+  final CustomSliverChildDelegate childrenDelegate;
 
   final CarouselController controller;
-
-  final int itemCount;
 
   ///单位毫秒
   final int autoPlayDelay;
@@ -180,7 +247,41 @@ class _CarouselViewState extends State<CarouselView> {
     _controller.dispose();
   }
 
-  int get _realItemCount => widget.itemCount ?? 0;
+  //int get _realItemCount => widget.childCount;
+
+  int get _realItemCount {
+    int result = widget.childrenDelegate.estimatedChildCount;
+    if (result == null) {
+      int lo = 0;
+      int hi = 1;
+      const int max = kIsWeb ? 9007199254740992 : ((1 << 63) - 1);
+      while (widget.childrenDelegate.build(context, hi - 1) != null) {
+        lo = hi - 1;
+        if (hi < max ~/ 2) {
+          hi *= 2;
+        } else if (hi < max) {
+          hi = max;
+        } else {
+          throw FlutterError(
+              'Could not find the number of children in ${widget.childrenDelegate}.\n'
+              'The childCount getter was called (implying that the delegate\'s builder returned null '
+              'for a positive index), but even building the child with index $hi (the maximum '
+              'possible integer) did not return null. Consider implementing childCount to avoid '
+              'the cost of searching for the final child.');
+        }
+      }
+      while (hi - lo > 1) {
+        final int mid = (hi - lo) ~/ 2 + lo;
+        if (widget.childrenDelegate.build(context, mid - 1) == null) {
+          hi = mid;
+        } else {
+          lo = mid;
+        }
+      }
+      result = lo;
+    }
+    return result;
+  }
 
   bool get _canScroll =>
       _realItemCount > 1 || (_realItemCount == 1 && widget.loop);
@@ -224,18 +325,16 @@ class _CarouselViewState extends State<CarouselView> {
       Axis axis, bool reverse, int widgetIndex, int currentIndex) {
     if (widgetIndex == currentIndex) return Alignment.center;
 
-    final bool isWidgetQtIndex = widgetIndex < currentIndex;
+    final bool isLtCurrentIndex = widgetIndex < currentIndex;
+    final bool isRightOrTop =
+        (!reverse && isLtCurrentIndex) || (reverse && !isLtCurrentIndex);
 
     switch (axis) {
       case Axis.horizontal:
-        return (!reverse && isWidgetQtIndex) || (reverse && !isWidgetQtIndex)
-            ? Alignment.centerRight
-            : Alignment.centerLeft;
+        return isRightOrTop ? Alignment.centerRight : Alignment.centerLeft;
 
       case Axis.vertical:
-        return (!reverse && isWidgetQtIndex) || (reverse && !isWidgetQtIndex)
-            ? Alignment.topCenter
-            : Alignment.bottomCenter;
+        return isRightOrTop ? Alignment.topCenter : Alignment.bottomCenter;
     }
 
     return Alignment.center;
@@ -361,12 +460,11 @@ class _CarouselViewState extends State<CarouselView> {
             restorationId: widget.restorationId,
             clipBehavior: widget.clipBehavior,
             childrenDelegate: SliverChildBuilderDelegateWithSameIndex(
-              (BuildContext context, int index) {
-                final int widgetIndex = _getRealIndex(index);
-
-                final Widget itemWidget =
-                    widget.itemBuilder(context, widgetIndex);
-
+              widget.childrenDelegate,
+              childCount: widget.loop ? _realItemCount + 4 : _realItemCount,
+              findRealIndex: (int index) => _getRealIndex(index),
+              builder: (BuildContext context, int index, int realIndex,
+                  Widget child) {
                 return Consumer<ValueNotifier<double>>(
                   builder: (BuildContext context,
                       ValueNotifier<double> notifier, Widget wgt) {
@@ -386,8 +484,7 @@ class _CarouselViewState extends State<CarouselView> {
                     }
 
                     print(
-                        "log###widgetIndex: $widgetIndex, index: $index, notifier.value: ${notifier.value}, currentIndex: $currentIndex scaleVal: $scaleVal");
-
+                        "log###realIndex: $realIndex, index: $index, notifier.value: ${notifier.value}, currentIndex: $currentIndex scaleVal: $scaleVal");
                     return Padding(
                       padding: widget.scrollDirection == Axis.vertical
                           ? EdgeInsets.symmetric(vertical: widget.padding)
@@ -399,7 +496,7 @@ class _CarouselViewState extends State<CarouselView> {
                             widget.reverse,
                             index,
                             currentIndex),
-                        child: itemWidget,
+                        child: child,
                       ),
                     );
                   },
@@ -415,7 +512,6 @@ class _CarouselViewState extends State<CarouselView> {
                       }
                     : null;
               },
-              childCount: widget.loop ? _realItemCount + 4 : _realItemCount,
             ),
           ),
         ),
@@ -456,19 +552,28 @@ class CarouselController extends CustomPageController {
             viewportFraction: viewportFraction);
 
   void startAutoPlay() {
-    if (autoPlay) return;
-    _event = EVENT_AUTO_PLAY;
-    _autoPlay = true;
-    notifyListeners();
-    _event = EVENT_SCROLL;
+    _handleAutoPlay(true);
   }
 
   void stopAutoPlay() {
-    if (!autoPlay) return;
-    _event = EVENT_AUTO_PLAY;
-    _autoPlay = false;
+    _handleAutoPlay(false);
+  }
+
+  void _handleAutoPlay(bool autoPlay) {
+    if (this.autoPlay == autoPlay)
+      return;
+    _autoPlay = autoPlay;
+    _sendEventAndRestore(EVENT_AUTO_PLAY);
+  }
+
+  void _sendEventAndRestore(int newEvent) {
+    final int oldEvent = _event;
+    //send event
+    _event = newEvent;
     notifyListeners();
-    _event = EVENT_SCROLL;
+
+    //restore event
+    _event = oldEvent;
   }
 
   @override

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:video_list/models/choiceness_model.dart';
 
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:video_list/ui/views/widgets/sliver.dart';
 import '../../../ui/views/advert_view.dart';
 import '../../../ui/views/carousel_view.dart';
 import 'package:video_player/video_player.dart';
@@ -161,8 +162,13 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
   }
 
   Widget _swiperBuilder(BuildContext context, int index) {
-    if (widget.items[index] is AdvertItem) {
-      return AdvertView(widget.items[index], onPlay: (isStartPlay, isPlayEnd) {
+    //添加count就不用加这些判断
+    /*if (index < 0 || index >= widget.items.length)
+      return null;
+*/
+    final dynamic item = widget.items[index];
+    if (item is AdvertItem) {
+      return AdvertView(item, onPlay: (isStartPlay, isPlayEnd) {
         if (isStartPlay) {
           _swiperController.stopAutoplay();
         } else if (isPlayEnd) {
@@ -171,7 +177,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
       });
     } else {
       return Image.asset(
-        widget.items[index].imgUrl,
+        item.imgUrl,
         fit: BoxFit.cover,
       );
     }
@@ -237,11 +243,20 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
   }*/
 
   Widget _buildCarouselView() {
-    return CarouselView(
-      itemBuilder: _swiperBuilder,
-      itemCount: widget.items.length,
+    return CarouselView.custom(
+      //itemBuilder: _swiperBuilder,
+      //itemCount: widget.items.length,
+      childrenDelegate: CustomSliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            if (index < 0 || index >= widget.items.length)
+              return null;
+            print("yyyyyyyyyyyyyyyyy:::index:$index");
+            return _swiperBuilder(context, index);
+          },
+          childCount: widget.items.length,
+      ),
       padding: 4.w,
-      reverse: true,
+      reverse: false,
       autoPlay: true,
       loop: true,
       curve: Curves.ease,
@@ -255,7 +270,6 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
         } else {
           _bottomTextNotifier.value = widget.items[index].title;
         }
-
       },
     );
 

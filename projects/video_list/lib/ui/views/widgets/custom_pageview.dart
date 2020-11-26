@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 import 'package:flutter/material.dart';
+import 'package:video_list/ui/views/widgets/sliver.dart';
 import 'package:video_list/ui/views/widgets/sliver_fill.dart';
 
 
@@ -572,7 +573,7 @@ class CustomPageView extends StatefulWidget {
   }) : assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
         controller = controller ?? _defaultPageController,
-        childrenDelegate = SliverChildListDelegate(children),
+        childrenDelegate = CustomSliverChildListDelegate(children),
         super(key: key);
 
   /// Creates a scrollable list that works page by page using widgets that are
@@ -610,7 +611,7 @@ class CustomPageView extends StatefulWidget {
   }) : assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
         controller = controller ?? _defaultPageController,
-        childrenDelegate = SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
+        childrenDelegate = CustomSliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
         super(key: key);
 
   /// Creates a scrollable list that works page by page with a custom child
@@ -776,7 +777,7 @@ class CustomPageView extends StatefulWidget {
   /// explicitly. The [PageView] and [PageView.builder] constructors create a
   /// [childrenDelegate] that wraps the given [List] and [IndexedWidgetBuilder],
   /// respectively.
-  final SliverChildDelegate childrenDelegate;
+  final CustomSliverChildDelegate childrenDelegate;
 
   /// {@macro flutter.widgets.scrollable.dragStartBehavior}
   final DragStartBehavior dragStartBehavior;

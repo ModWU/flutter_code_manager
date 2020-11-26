@@ -51,7 +51,7 @@ class SliverFillViewport2 extends StatelessWidget {
   final bool padEnds;
 
   /// {@macro flutter.widgets.sliverMultiBoxAdaptor.delegate}
-  final SliverChildDelegate delegate;
+  final CustomSliverChildDelegate delegate;
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +91,7 @@ class _SliverFillViewportRenderObjectWidget2
     extends SliverMultiBoxAdaptorWidget2 {
   const _SliverFillViewportRenderObjectWidget2({
     Key key,
-    SliverChildDelegate delegate,
+    CustomSliverChildDelegate delegate,
     this.viewportFraction = 1.0,
   })  : assert(viewportFraction != null),
         assert(viewportFraction > 0.0),
