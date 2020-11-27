@@ -61,7 +61,7 @@ abstract class RenderSliverFixedExtentBoxAdaptor2 extends RenderSliverMultiBoxAd
   int getMinChildIndexForScrollOffset(double scrollOffset, double itemExtent) {
     //itemExtent = 50, scrollOffset = 0.00000001
     //actual = 0.99999999999999..(代表第一个快要看不见了) round = 1    result = 0.00000000...1 < 1e-10(此时认为看不见第一个，就使用第二个为最低值)
-    if (itemExtent > 0.0) {
+    if (itemExtent > 0.0 && scrollOffset > 0) {
       final double actual = scrollOffset / itemExtent;
       final int round = actual.round();
       if ((actual - round).abs() < precisionErrorTolerance) {
@@ -166,8 +166,10 @@ abstract class RenderSliverFixedExtentBoxAdaptor2 extends RenderSliverMultiBoxAd
 
     final double itemExtent = this.itemExtent;
 
+    print("##max2: constraints.viewportMainAxisExtent: ${constraints.viewportMainAxisExtent}");
+
     final double scrollOffset = constraints.scrollOffset + constraints.cacheOrigin;
-    assert(scrollOffset >= 0.0);
+    assert(scrollOffset >= 0);
     final double remainingExtent = constraints.remainingCacheExtent;
     assert(remainingExtent >= 0.0);
     final double targetEndScrollOffset = scrollOffset + remainingExtent;
@@ -180,6 +182,8 @@ abstract class RenderSliverFixedExtentBoxAdaptor2 extends RenderSliverMultiBoxAd
     int firstIndex = getMinChildIndexForScrollOffset(scrollOffset, itemExtent);
     int targetLastIndex = targetEndScrollOffset.isFinite ?
     getMaxChildIndexForScrollOffset(targetEndScrollOffset, itemExtent) : null;
+
+    print("logloglog: firstIndex:$firstIndex, targetLastIndex:$targetLastIndex");
 
   /*  final int childCount = childManager.childCount;
     if (firstIndex == 0) {

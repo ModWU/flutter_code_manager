@@ -39,6 +39,10 @@ class RenderSliverFillViewport2 extends RenderSliverFixedExtentBoxAdaptor2 {
   /// the viewport in the main axis.
   double get viewportFraction => _viewportFraction;
   double _viewportFraction;
+
+  bool _keepStartEdge;
+  bool get keepStartEdge => _keepStartEdge;
+
   set viewportFraction(double value) {
     assert(value != null);
     if (_viewportFraction == value)
@@ -46,4 +50,6 @@ class RenderSliverFillViewport2 extends RenderSliverFixedExtentBoxAdaptor2 {
     _viewportFraction = value;
     markNeedsLayout();
   }
+
+
 }

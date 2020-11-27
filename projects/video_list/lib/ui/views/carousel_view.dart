@@ -14,6 +14,7 @@ class CarouselView extends StatefulWidget {
       this.scrollDirection = Axis.horizontal,
       this.childrenDelegate,
       this.reverse = false,
+      this.padEnds = true,
       this.physics,
       this.pageSnapping = true,
       this.dragStartBehavior = DragStartBehavior.start,
@@ -25,13 +26,13 @@ class CarouselView extends StatefulWidget {
       this.autoPlay = true,
       this.onPageChanged,
       this.onHandUpChanged,
-      this.padding = 0.0,
       this.loop = true,
       this.scale = 1.0,
       this.initViewportFraction = 1.0,
       this.duration,
       this.curve})
       : assert(reverse != null),
+        assert(padEnds != null),
         assert(scrollDirection != null),
         assert(autoPlay != null),
         assert(loop != null),
@@ -48,6 +49,7 @@ class CarouselView extends StatefulWidget {
       IndexedWidgetBuilder itemBuilder,
       int itemCount,
       this.reverse = false,
+      this.padEnds = true,
       this.physics,
       this.pageSnapping = true,
       this.dragStartBehavior = DragStartBehavior.start,
@@ -59,13 +61,13 @@ class CarouselView extends StatefulWidget {
       this.autoPlay = true,
       this.onPageChanged,
       this.onHandUpChanged,
-      this.padding = 0.0,
       this.loop = true,
       this.scale = 1.0,
       this.initViewportFraction = 1.0,
       this.duration,
       this.curve})
       : assert(reverse != null),
+        assert(padEnds != null),
         assert(scrollDirection != null),
         assert(autoPlay != null),
         assert(loop != null),
@@ -82,6 +84,7 @@ class CarouselView extends StatefulWidget {
       this.scrollDirection = Axis.horizontal,
       List<Widget> children = const <Widget>[],
       this.reverse = false,
+      this.padEnds = true,
       this.physics,
       this.pageSnapping = true,
       this.dragStartBehavior = DragStartBehavior.start,
@@ -93,7 +96,6 @@ class CarouselView extends StatefulWidget {
       this.autoPlay = true,
       this.onPageChanged,
       this.onHandUpChanged,
-      this.padding = 0.0,
       this.loop = true,
       this.scale = 1.0,
       this.initViewportFraction = 1.0,
@@ -101,6 +103,7 @@ class CarouselView extends StatefulWidget {
       this.curve})
       : assert(children != null),
         assert(reverse != null),
+        assert(padEnds != null),
         assert(scrollDirection != null),
         assert(autoPlay != null),
         assert(loop != null),
@@ -129,8 +132,6 @@ class CarouselView extends StatefulWidget {
 
   final Curve curve;
 
-  final double padding;
-
   final Axis scrollDirection;
 
   final bool reverse;
@@ -153,6 +154,8 @@ class CarouselView extends StatefulWidget {
 
   final double scale;
 
+  final bool padEnds;
+
   final double initViewportFraction;
 }
 
@@ -169,6 +172,8 @@ class _CarouselViewState extends State<CarouselView> {
   int _lastReportedPage = 0;
   int _lastHandUpReportedPage = 0;
   bool _hasHandUpHandle = false;
+
+  ScrollPhysics _physics;
 
   @override
   void didUpdateWidget(CarouselView oldWidget) {
@@ -249,6 +254,8 @@ class _CarouselViewState extends State<CarouselView> {
 
   //int get _realItemCount => widget.childCount;
 
+  int get _childCount => widget.loop ? _realItemCount + 4 : _realItemCount;
+
   int get _realItemCount {
     int result = widget.childrenDelegate.estimatedChildCount;
     if (result == null) {
@@ -321,6 +328,46 @@ class _CarouselViewState extends State<CarouselView> {
     }
   }
 
+  Widget _transformChild(
+      int index, double page, Widget child, BoxConstraints constraints) {
+    final int currentIndex = page.round();
+    final double scale = widget.scale;
+
+    double scaleVal = 1.0;
+
+    if (index != currentIndex) {
+      double _needValue = (currentIndex - page).abs();
+      if (_needValue >= 0 && _needValue < 0.5) {
+        scaleVal = _needValue * 2 * (1 - scale) + scale;
+        print(
+            "##log##: index: $index，currentIndex: $currentIndex, page: $page, scaleVal: $scaleVal, _needValue: $_needValue");
+      } else {
+        scaleVal = scale;
+      }
+    }
+
+    /* final double mainAxisMaxValue = widget.scrollDirection == Axis.horizontal
+        ? constraints.maxWidth
+        : constraints.maxHeight;
+
+    final double viewportMainAxisExtent =
+        mainAxisMaxValue / _controller.viewportFraction;
+
+    final double translateVal =
+        ((viewportMainAxisExtent - mainAxisMaxValue) * 0.5) *
+            (widget.reverse ? 1.0 : -1.0);
+
+    print("##max: viewportMainAxisExtent: $viewportMainAxisExtent");*/
+
+    return Transform.scale(
+      scale: scaleVal,
+      alignment: _getAlignmentReferAxis(
+          widget.scrollDirection, widget.reverse, index, currentIndex),
+      transformHitTests: true,
+      child: child,
+    );
+  }
+
   Alignment _getAlignmentReferAxis(
       Axis axis, bool reverse, int widgetIndex, int currentIndex) {
     if (widgetIndex == currentIndex) return Alignment.center;
@@ -365,9 +412,10 @@ class _CarouselViewState extends State<CarouselView> {
             } else if (notification is ScrollEndNotification) {
               if (_notificationStartTag) {
                 _notificationStartTag = false;
-                final int currentPage = _controller.page.round();
+                final double page = _controller.page;
+                final int currentPage = page.round();
                 print(
-                    "00000ScrollEndNotification##currentPage: $currentPage, page: ${_controller.page}");
+                    "00000ScrollEndNotification##currentPage: $currentPage, page: $page");
                 /* double initOffset = _controller.page - currentPage;
                 if (initOffset.abs() < precisionErrorTolerance)
                   initOffset = 0;*/
@@ -453,7 +501,8 @@ class _CarouselViewState extends State<CarouselView> {
             controller: _controller,
             scrollDirection: widget.scrollDirection,
             reverse: widget.reverse,
-            physics: widget.physics,
+            padEnds: widget.padEnds,
+            //physics: _physics,//CustomScrollPhysics(itemDimension: 0),//_physics,//widget.physics,
             pageSnapping: widget.pageSnapping,
             dragStartBehavior: widget.dragStartBehavior,
             allowImplicitScrolling: widget.allowImplicitScrolling,
@@ -461,43 +510,20 @@ class _CarouselViewState extends State<CarouselView> {
             clipBehavior: widget.clipBehavior,
             childrenDelegate: SliverChildBuilderDelegateWithSameIndex(
               widget.childrenDelegate,
-              childCount: widget.loop ? _realItemCount + 4 : _realItemCount,
-              findRealIndex: (int index) => _getRealIndex(index),
+              childCount: _childCount,
+              findRealIndex: _getRealIndex,
               builder: (BuildContext context, int index, int realIndex,
                   Widget child) {
-                return Consumer<ValueNotifier<double>>(
-                  builder: (BuildContext context,
-                      ValueNotifier<double> notifier, Widget wgt) {
-                    final int currentIndex = notifier.value.round();
-
-                    final double scale = widget.scale;
-
-                    double scaleVal = 1.0;
-
-                    if (index != currentIndex) {
-                      double _needValue = (currentIndex - notifier.value).abs();
-                      if (_needValue >= 0 && _needValue < 0.5) {
-                        scaleVal = _needValue * 2 * (1 - scale) + scale;
-                      } else {
-                        scaleVal = scale;
-                      }
-                    }
-
-                    print(
-                        "log###realIndex: $realIndex, index: $index, notifier.value: ${notifier.value}, currentIndex: $currentIndex scaleVal: $scaleVal");
-                    return Padding(
-                      padding: widget.scrollDirection == Axis.vertical
-                          ? EdgeInsets.symmetric(vertical: widget.padding)
-                          : EdgeInsets.symmetric(horizontal: widget.padding),
-                      child: Transform.scale(
-                        scale: scaleVal,
-                        alignment: _getAlignmentReferAxis(
-                            widget.scrollDirection,
-                            widget.reverse,
-                            index,
-                            currentIndex),
-                        child: child,
-                      ),
+                return LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    return Consumer<ValueNotifier<double>>(
+                      builder: (BuildContext context,
+                          ValueNotifier<double> notifier, Widget wgt) {
+                        print(
+                            "log###realIndex: $realIndex, index: $index, notifier.value: ${notifier.value}");
+                        return _transformChild(
+                            index, notifier.value, child, constraints);
+                      },
                     );
                   },
                 );
@@ -560,8 +586,7 @@ class CarouselController extends CustomPageController {
   }
 
   void _handleAutoPlay(bool autoPlay) {
-    if (this.autoPlay == autoPlay)
-      return;
+    if (this.autoPlay == autoPlay) return;
     _autoPlay = autoPlay;
     _sendEventAndRestore(EVENT_AUTO_PLAY);
   }
@@ -586,3 +611,4 @@ class CarouselController extends CustomPageController {
     super.dispose();
   }
 }
+

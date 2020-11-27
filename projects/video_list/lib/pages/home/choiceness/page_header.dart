@@ -251,16 +251,19 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
             if (index < 0 || index >= widget.items.length)
               return null;
             print("yyyyyyyyyyyyyyyyy:::index:$index");
-            return _swiperBuilder(context, index);
+            return Padding(
+              padding: EdgeInsets.only(left: 40.w),
+              child: _swiperBuilder(context, index),
+            );
           },
           childCount: widget.items.length,
       ),
-      padding: 4.w,
-      reverse: false,
+      reverse: true,
       autoPlay: true,
-      loop: true,
+      loop: false,
+      padEnds: false,
       curve: Curves.ease,
-      initViewportFraction: 0.95,
+      initViewportFraction: 0.85,
       scale: 0.85,
       scrollDirection: Axis.horizontal,
       onHandUpChanged: (index) {
