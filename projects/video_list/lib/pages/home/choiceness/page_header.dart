@@ -2,17 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swiper/flutter_swiper.dart';
 import 'package:provider/provider.dart';
-import 'package:video_list/models/choiceness_model.dart';
-
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:video_list/ui/views/widgets/sliver.dart';
 import '../../../ui/views/advert_view.dart';
-import '../../../ui/views/carousel_view.dart';
-import 'package:video_player/video_player.dart';
 import '../../page_controller.dart';
 import '../../../resources/export.dart';
 import '../../../models/base_model.dart';
-import '../../../ui/utils/icons_utils.dart' as utils;
+import 'package:carousel/carousel.dart';
+//import '../../../ui/utils/icons_utils.dart' as utils;
 
 class ChoicenessHeader extends StatefulWidget {
   const ChoicenessHeader(
@@ -252,18 +248,19 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
               return null;
             print("yyyyyyyyyyyyyyyyy:::index:$index");
             return Padding(
-              padding: EdgeInsets.only(left: 40.w),
+              padding: EdgeInsets.only(left: 60.w),
               child: _swiperBuilder(context, index),
             );
           },
           childCount: widget.items.length,
       ),
-      reverse: true,
+      reverse: false,
       autoPlay: true,
-      loop: false,
-      padEnds: false,
+      loop: true,
+      padEnds: true,
+      //controller: CarouselController(),
       curve: Curves.ease,
-      initViewportFraction: 0.85,
+      viewportFraction: 0.95,
       scale: 0.85,
       scrollDirection: Axis.horizontal,
       onHandUpChanged: (index) {

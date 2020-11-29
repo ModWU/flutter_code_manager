@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:video_list/ui/views/rendering/sliver_fill.dart';
-import 'package:video_list/ui/views/widgets/sliver.dart';
+import '../rendering/sliver_fill.dart';
+import 'sliver.dart';
 
 /// A sliver that contains multiple box children that each fills the viewport.
 ///
@@ -50,7 +50,7 @@ class SliverFillViewport2 extends StatelessWidget {
   /// effect. Defaults to true.
   final bool padEnds;
 
-  /// {@macro flutter.widgets.sliverMultiBoxAdaptor.delegate}
+  /// {@macro flutter.src.widgets.sliverMultiBoxAdaptor.delegate}
   final CustomSliverChildDelegate delegate;
 
   @override

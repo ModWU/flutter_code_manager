@@ -3,13 +3,13 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:video_list/ui/views/rendering/sliver_multi_box_adaptor.dart';
+import '../rendering/sliver_multi_box_adaptor.dart';
 
 /// A base class for sliver that have multiple box children.
 ///
 /// Helps subclasses build their children lazily using a [SliverChildDelegate].
 ///
-/// The widgets returned by the [delegate] are cached and the delegate is only
+/// The src.widgets returned by the [delegate] are cached and the delegate is only
 /// consulted again if it changes and the new delegate's
 /// [SliverChildDelegate.shouldRebuild] method returns true.
 abstract class SliverMultiBoxAdaptorWidget2 extends SliverWithKeepAliveWidget {
@@ -20,7 +20,7 @@ abstract class SliverMultiBoxAdaptorWidget2 extends SliverWithKeepAliveWidget {
   })  : assert(delegate != null),
         super(key: key);
 
-  /// {@template flutter.widgets.sliverMultiBoxAdaptor.delegate}
+  /// {@template flutter.src.widgets.sliverMultiBoxAdaptor.delegate}
   /// The delegate that provides the children for this widget.
   ///
   /// The children are constructed lazily using this delegate to avoid creating
@@ -851,7 +851,7 @@ Widget _createErrorWidget(Object exception, StackTrace stackTrace) {
   final FlutterErrorDetails details = FlutterErrorDetails(
     exception: exception,
     stack: stackTrace,
-    library: 'widgets library',
+    library: 'src.widgets library',
     context: ErrorDescription('building'),
   );
   FlutterError.reportError(details);

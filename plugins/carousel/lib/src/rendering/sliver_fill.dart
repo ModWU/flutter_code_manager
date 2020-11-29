@@ -1,5 +1,5 @@
 import 'package:flutter/rendering.dart';
-import 'package:video_list/ui/views/rendering/sliver_fixed_extent_list.dart';
+import 'sliver_fixed_extent_list.dart';
 
 /// A sliver that contains multiple box children that each fill the viewport.
 ///

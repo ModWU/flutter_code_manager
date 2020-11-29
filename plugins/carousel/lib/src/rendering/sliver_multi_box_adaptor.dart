@@ -466,7 +466,7 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
   @override
   void applyPaintTransform(RenderBox child, Matrix4 transform) {
     if (_keepAliveBucket.containsKey(indexOf(child))) {
-      // It is possible that widgets under kept alive children want to paint
+      // It is possible that src.widgets under kept alive children want to paint
       // themselves. For example, the Material widget tries to paint all
       // InkFeatures under its subtree as long as they are not disposed. In
       // such case, we give it a zero transform to prevent them from painting.

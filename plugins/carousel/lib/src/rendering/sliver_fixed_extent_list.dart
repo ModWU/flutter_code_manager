@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:math' as math;
-import 'package:video_list/ui/views/rendering/sliver_multi_box_adaptor.dart';
+import 'sliver_multi_box_adaptor.dart';
 
 /// A sliver that contains multiple box children that have the same extent in
 /// the main axis.

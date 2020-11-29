@@ -8,8 +8,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 import 'package:flutter/material.dart';
-import 'package:video_list/ui/views/widgets/sliver.dart';
-import 'package:video_list/ui/views/widgets/sliver_fill.dart';
+import 'sliver.dart';
+import 'sliver_fill.dart';
 
 /// A controller for [PageView].
 ///
@@ -101,20 +101,9 @@ import 'package:video_list/ui/views/widgets/sliver_fill.dart';
 /// ```
 /// {@end-tool}
 class CustomPageController extends ScrollController {
-  /// Creates a page controller.
-  ///
-  /// The [initialPage], [keepPage], and [viewportFraction] arguments must not be null.
-  CustomPageController({
-    this.initialPage = 0,
-    this.keepPage = true,
-    this.viewportFraction = 1.0,
-  })  : assert(initialPage != null),
-        assert(keepPage != null),
-        assert(viewportFraction != null),
-        assert(viewportFraction > 0.0);
 
   /// The page to show when first creating the [PageView].
-  final int initialPage;
+  int get initialPage => 0;
 
   /// Save the current [page] with [PageStorage] and restore it if
   /// this controller's scrollable is recreated.
@@ -131,13 +120,13 @@ class CustomPageController extends ScrollController {
   ///  * [PageStorageKey], which should be used when more than one
   ///    scrollable appears in the same route, to distinguish the [PageStorage]
   ///    locations used to save scroll offsets.
-  final bool keepPage;
+  bool get keepPage => true;
 
   /// The fraction of the viewport that each page should occupy.
   ///
   /// Defaults to 1.0, which means each page fills the viewport in the scrolling
   /// direction.
-  final double viewportFraction;
+  double get viewportFraction => 1.0;
 
   /// The current page displayed in the controlled [PageView].
   ///
@@ -559,14 +548,14 @@ const CustomPageScrollPhysics _kPagePhysics = CustomPageScrollPhysics();
 ///    the scroll position without using a [ScrollController].
 class CustomPageView extends StatefulWidget {
   /// Creates a scrollable list that works page by page from an explicit [List]
-  /// of widgets.
+  /// of src.widgets.
   ///
   /// This constructor is appropriate for page views with a small number of
   /// children because constructing the [List] requires doing work for every
   /// child that could possibly be displayed in the page view, instead of just
   /// those children that are actually visible.
   ///
-  /// {@template flutter.widgets.pageView.allowImplicitScrolling}
+  /// {@template flutter.src.widgets.pageView.allowImplicitScrolling}
   /// The [allowImplicitScrolling] parameter must not be null. If true, the
   /// [PageView] will participate in accessibility scrolling more like a
   /// [ListView], where implicit scroll actions will move to the next page
@@ -593,7 +582,7 @@ class CustomPageView extends StatefulWidget {
         childrenDelegate = CustomSliverChildListDelegate(children),
         super(key: key);
 
-  /// Creates a scrollable list that works page by page using widgets that are
+  /// Creates a scrollable list that works page by page using src.widgets that are
   /// created on demand.
   ///
   /// This constructor is appropriate for page views with a large (or infinite)
@@ -610,7 +599,7 @@ class CustomPageView extends StatefulWidget {
   /// you are planning to change child order at a later time, consider using
   /// [PageView] or [PageView.custom].
   ///
-  /// {@macro flutter.widgets.pageView.allowImplicitScrolling}
+  /// {@macro flutter.src.widgets.pageView.allowImplicitScrolling}
   CustomPageView.builder({
     Key key,
     this.scrollDirection = Axis.horizontal,
@@ -715,7 +704,7 @@ class CustomPageView extends StatefulWidget {
   /// ```
   /// {@end-tool}
   ///
-  /// {@macro flutter.widgets.pageView.allowImplicitScrolling}
+  /// {@macro flutter.src.widgets.pageView.allowImplicitScrolling}
   CustomPageView.custom({
     Key key,
     this.scrollDirection = Axis.horizontal,
@@ -750,7 +739,7 @@ class CustomPageView extends StatefulWidget {
   /// will traverse to the next page in the page view.
   final bool allowImplicitScrolling;
 
-  /// {@macro flutter.widgets.scrollable.restorationId}
+  /// {@macro flutter.src.widgets.scrollable.restorationId}
   final String restorationId;
 
   final bool padEnds;
@@ -803,10 +792,10 @@ class CustomPageView extends StatefulWidget {
   /// respectively.
   final CustomSliverChildDelegate childrenDelegate;
 
-  /// {@macro flutter.widgets.scrollable.dragStartBehavior}
+  /// {@macro flutter.src.widgets.scrollable.dragStartBehavior}
   final DragStartBehavior dragStartBehavior;
 
-  /// {@macro flutter.widgets.Clip}
+  /// {@macro flutter.src.widgets.Clip}
   ///
   /// Defaults to [Clip.hardEdge].
   final Clip clipBehavior;

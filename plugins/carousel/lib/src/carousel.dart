@@ -1,114 +1,143 @@
 import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:video_list/ui/views/widgets/sliver.dart';
+import 'widgets/sliver.dart';
 import 'widgets/custom_pageview.dart';
 
+const int _defaultAutoPlayDelay = 5000;
+const Curve _defaultCurve = Curves.ease;
+const Duration _defaultDuration = Duration(milliseconds: 500);
+typedef TransformBuilder = Widget Function(BuildContext context, int index,
+    double page, double viewportMainAxisExtent, Widget child);
+
 class CarouselView extends StatefulWidget {
-  CarouselView.custom(
-      {Key key,
-      this.scrollDirection = Axis.horizontal,
-      this.childrenDelegate,
-      this.reverse = false,
-      this.padEnds = true,
-      this.physics,
-      this.pageSnapping = true,
-      this.dragStartBehavior = DragStartBehavior.start,
-      this.clipBehavior = Clip.hardEdge,
-      this.allowImplicitScrolling = false,
-      this.restorationId,
-      this.controller,
-      this.autoPlayDelay,
-      this.autoPlay = true,
-      this.onPageChanged,
-      this.onHandUpChanged,
-      this.loop = true,
-      this.scale = 1.0,
-      this.initViewportFraction = 1.0,
-      this.duration,
-      this.curve})
-      : assert(reverse != null),
-        assert(padEnds != null),
-        assert(scrollDirection != null),
-        assert(autoPlay != null),
+  CarouselView.custom({
+    Key key,
+    this.loop = false,
+    this.scale = 1.0,
+    this.initialPage = 0,
+    this.keepPage = true,
+    this.viewportFraction = 1.0,
+    this.autoPlayDelay = _defaultAutoPlayDelay,
+    this.autoPlay = false,
+    this.duration = _defaultDuration,
+    this.curve = _defaultCurve,
+    this.scrollDirection = Axis.horizontal,
+    this.childrenDelegate,
+    this.reverse = false,
+    this.padEnds = true,
+    this.physics,
+    this.pageSnapping = true,
+    this.dragStartBehavior = DragStartBehavior.start,
+    this.clipBehavior = Clip.hardEdge,
+    this.allowImplicitScrolling = false,
+    this.restorationId,
+    this.controller,
+    this.onPageChanged,
+    this.onHandUpChanged,
+    this.transformBuilder,
+  })  : assert(autoPlay != null),
         assert(loop != null),
         assert(scale != null),
-        assert(initViewportFraction != null),
+        assert(initialPage != null),
+        assert(keepPage != null),
+        assert(viewportFraction != null),
+        assert(autoPlayDelay != null),
+        assert(duration != null),
+        assert(curve != null),
+        assert(reverse != null),
+        assert(padEnds != null),
+        assert(scrollDirection != null),
         assert(childrenDelegate != null),
         assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
         super(key: key);
 
-  CarouselView.builder(
-      {Key key,
-      this.scrollDirection = Axis.horizontal,
-      IndexedWidgetBuilder itemBuilder,
-      int itemCount,
-      this.reverse = false,
-      this.padEnds = true,
-      this.physics,
-      this.pageSnapping = true,
-      this.dragStartBehavior = DragStartBehavior.start,
-      this.clipBehavior = Clip.hardEdge,
-      this.allowImplicitScrolling = false,
-      this.restorationId,
-      this.controller,
-      this.autoPlayDelay,
-      this.autoPlay = true,
-      this.onPageChanged,
-      this.onHandUpChanged,
-      this.loop = true,
-      this.scale = 1.0,
-      this.initViewportFraction = 1.0,
-      this.duration,
-      this.curve})
-      : assert(reverse != null),
-        assert(padEnds != null),
-        assert(scrollDirection != null),
-        assert(autoPlay != null),
+  CarouselView.builder({
+    Key key,
+    this.autoPlay = false,
+    this.loop = false,
+    this.scale = 1.0,
+    this.initialPage = 0,
+    this.keepPage = true,
+    this.viewportFraction = 1.0,
+    this.autoPlayDelay = _defaultAutoPlayDelay,
+    this.duration = _defaultDuration,
+    this.curve = _defaultCurve,
+    this.scrollDirection = Axis.horizontal,
+    IndexedWidgetBuilder itemBuilder,
+    int itemCount,
+    this.reverse = false,
+    this.padEnds = true,
+    this.physics,
+    this.pageSnapping = true,
+    this.dragStartBehavior = DragStartBehavior.start,
+    this.clipBehavior = Clip.hardEdge,
+    this.allowImplicitScrolling = false,
+    this.restorationId,
+    this.controller,
+    this.onPageChanged,
+    this.onHandUpChanged,
+    this.transformBuilder,
+  })  : assert(autoPlay != null),
         assert(loop != null),
         assert(scale != null),
-        assert(initViewportFraction != null),
+        assert(initialPage != null),
+        assert(keepPage != null),
+        assert(viewportFraction != null),
+        assert(autoPlayDelay != null),
+        assert(duration != null),
+        assert(curve != null),
+        assert(reverse != null),
+        assert(padEnds != null),
+        assert(scrollDirection != null),
         assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
         childrenDelegate = CustomSliverChildBuilderDelegate(itemBuilder,
             childCount: itemCount),
         super(key: key);
 
-  CarouselView(
-      {Key key,
-      this.scrollDirection = Axis.horizontal,
-      List<Widget> children = const <Widget>[],
-      this.reverse = false,
-      this.padEnds = true,
-      this.physics,
-      this.pageSnapping = true,
-      this.dragStartBehavior = DragStartBehavior.start,
-      this.clipBehavior = Clip.hardEdge,
-      this.allowImplicitScrolling = false,
-      this.restorationId,
-      this.controller,
-      this.autoPlayDelay,
-      this.autoPlay = true,
-      this.onPageChanged,
-      this.onHandUpChanged,
-      this.loop = true,
-      this.scale = 1.0,
-      this.initViewportFraction = 1.0,
-      this.duration,
-      this.curve})
-      : assert(children != null),
+  CarouselView({
+    Key key,
+    this.autoPlay = false,
+    this.loop = false,
+    this.scale = 1.0,
+    this.initialPage = 0,
+    this.keepPage = true,
+    this.viewportFraction = 1.0,
+    this.autoPlayDelay = _defaultAutoPlayDelay,
+    this.duration = _defaultDuration,
+    this.curve = _defaultCurve,
+    this.scrollDirection = Axis.horizontal,
+    List<Widget> children = const <Widget>[],
+    this.reverse = false,
+    this.padEnds = true,
+    this.physics,
+    this.pageSnapping = true,
+    this.dragStartBehavior = DragStartBehavior.start,
+    this.clipBehavior = Clip.hardEdge,
+    this.allowImplicitScrolling = false,
+    this.restorationId,
+    this.controller,
+    this.onPageChanged,
+    this.onHandUpChanged,
+    this.transformBuilder,
+  })  : assert(autoPlay != null),
+        assert(loop != null),
+        assert(scale != null),
+        assert(initialPage != null),
+        assert(keepPage != null),
+        assert(viewportFraction != null),
+        assert(autoPlayDelay != null),
+        assert(duration != null),
+        assert(curve != null),
+        assert(children != null),
         assert(reverse != null),
         assert(padEnds != null),
         assert(scrollDirection != null),
-        assert(autoPlay != null),
-        assert(loop != null),
-        assert(scale != null),
-        assert(initViewportFraction != null),
         childrenDelegate = CustomSliverChildListDelegate(children),
         super(key: key);
 
@@ -119,18 +148,11 @@ class CarouselView extends StatefulWidget {
 
   final CarouselController controller;
 
-  ///单位毫秒
-  final int autoPlayDelay;
-
   ///页的改变
   final ValueChanged<int> onPageChanged;
 
   ///页的改变，手指抬起的瞬间
   final ValueChanged<int> onHandUpChanged;
-
-  final int duration;
-
-  final Curve curve;
 
   final Axis scrollDirection;
 
@@ -148,24 +170,30 @@ class CarouselView extends StatefulWidget {
 
   final String restorationId;
 
-  final bool autoPlay;
+  final bool padEnds;
 
   final bool loop;
 
   final double scale;
 
-  final bool padEnds;
+  final int initialPage;
 
-  final double initViewportFraction;
+  final bool keepPage;
+
+  final double viewportFraction;
+
+  final int autoPlayDelay;
+
+  final bool autoPlay;
+
+  final Duration duration;
+
+  final Curve curve;
+
+  final TransformBuilder transformBuilder;
 }
 
-const int _defaultAutoPlayDelay = 5000;
-const Curve _defaultCurve = Curves.ease;
-const Duration _defaultDuration = Duration(milliseconds: 500);
-
 class _CarouselViewState extends State<CarouselView> {
-  Timer _autoPlayTimer; //定时器
-
   CarouselController _controller;
   ValueNotifier<double> _valueNotifier = new ValueNotifier<double>(0.0);
 
@@ -173,82 +201,93 @@ class _CarouselViewState extends State<CarouselView> {
   int _lastHandUpReportedPage = 0;
   bool _hasHandUpHandle = false;
 
-  ScrollPhysics _physics;
-
   @override
   void didUpdateWidget(CarouselView oldWidget) {
-    if (widget.controller != oldWidget.controller) {
-      if (oldWidget.controller != null) {
-        oldWidget.controller.removeListener(_onEvent);
-        oldWidget.controller.dispose();
+    print("loglog##didUpdateWidget:::::");
+    if (widget != oldWidget &&
+        (widget.controller != oldWidget.controller ||
+            !_equalControllerParameter(oldWidget))) {
+      print("loglog##update controller:::::");
+      _initController();
+    }
+
+    if (widget != oldWidget) {
+      if ((widget.controller != oldWidget.controller ||
+          !_equalControllerParameter(oldWidget))) {
+        _initController();
       }
 
-      _initController();
-      _handleAutoPlay();
+      _adjustController(oldWidget);
     }
 
     super.didUpdateWidget(oldWidget);
   }
 
-  bool _autoPlayEnabled() {
-    return _controller.autoPlay;
+  bool _equalControllerParameter(CarouselView oldWidget) {
+    bool result = widget.initialPage == oldWidget.initialPage &&
+        widget.keepPage == oldWidget.keepPage &&
+        widget.viewportFraction == oldWidget.viewportFraction &&
+        widget.autoPlayDelay == oldWidget.autoPlayDelay &&
+        widget.duration == oldWidget.duration &&
+        widget.curve == oldWidget.curve;
+
+    print("longlong##result:$result");
+    return result;
   }
 
-  void _handleAutoPlay() {
-    if (!_canScroll) return;
-
-    if (_autoPlayEnabled() && _autoPlayTimer != null) return;
-    _stopAutoPlay();
-    if (_autoPlayEnabled()) {
-      _startAutoPlay();
-    }
-  }
-
-  void _onEvent() {
-    switch (_controller.event) {
-      case CarouselController.EVENT_AUTO_PLAY:
-        // print("######page自动播放事件: ${_controller.page}");
-        if (!_canScroll) return;
-        if (_controller.autoPlay) {
-          if (_autoPlayTimer == null) {
-            _startAutoPlay();
-          }
-        } else {
-          if (_autoPlayTimer != null) {
-            _stopAutoPlay();
-          }
-        }
-        break;
-
-      case CarouselController.EVENT_SCROLL:
-        // print("######page滚动事件: ${_controller.page}");
-        _valueNotifier.value = _controller.page;
-        break;
-    }
+  void _onScrollEvent() {
+    _valueNotifier.value = _controller.page;
   }
 
   int _getRealIndex(int index) =>
       widget.loop ? (index - 2) % _realItemCount : index;
 
+  int _getFitIndex(int realIndex) {
+    if (!widget.loop) return realIndex;
+
+    final int realItemCount = _realItemCount;
+    if (realIndex < 0) realIndex = 0;
+    if (realIndex >= realItemCount) realIndex = realItemCount - 1;
+
+    return realIndex + 2;
+  }
+
+  /// 必须调整参数
+  void _adjustController(CarouselView oldWidget) {
+    if (widget.autoPlay != _controller.autoPlay) {
+      _controller.handleAutoPlay(widget.autoPlay);
+    }
+    //调整其余参数
+  }
+
   void _initController() {
-    //widget.reverse ? 9 : 2;
-    _controller = widget.controller ??
-        new CarouselController(
-          initialPage:
-              widget.loop ? (widget.reverse ? _realItemCount + 2 : 2) : 0,
-          initialAutoPlay: widget.autoPlay,
-          scale: widget.scale,
-          viewportFraction: widget.initViewportFraction,
-        );
+    print("loglog##_initController:::::");
+    if (_controller != null) {
+      _controller.removeListener(_onScrollEvent);
+      _controller.dispose();
+    }
+
+    _controller = widget.controller ?? CarouselController();
+
+    //初始化控制器
+    _controller
+      .._initialPage = _getFitIndex(widget.initialPage)
+      .._autoPlay = widget.autoPlay
+      .._viewportFraction = widget.viewportFraction
+      .._keepPage = widget.keepPage
+      .._autoPlayDelay = widget.autoPlayDelay
+      .._duration = widget.duration
+      .._curve = widget.curve;
+
     _valueNotifier.value = _controller.initialPage * 1.0;
     _lastReportedPage = _getRealIndex(_controller.initialPage);
     _lastHandUpReportedPage = _lastReportedPage;
-    _controller.removeListener(_onEvent);
-    _controller.addListener(_onEvent);
+    _controller.addListener(_onScrollEvent);
+    _controller.handleAutoPlay(_controller.autoPlay);
   }
 
   void _disposeController() {
-    _controller.removeListener(_onEvent);
+    _controller.removeListener(_onScrollEvent);
     _controller.dispose();
   }
 
@@ -297,35 +336,12 @@ class _CarouselViewState extends State<CarouselView> {
   void initState() {
     super.initState();
     _initController();
-    _handleAutoPlay();
   }
 
   @override
   void dispose() {
     _disposeController();
-    _stopAutoPlay();
     super.dispose();
-  }
-
-  void _startAutoPlay() {
-    assert(_autoPlayTimer == null, "Timer must be stopped before start!");
-    _autoPlayTimer = Timer.periodic(
-        Duration(milliseconds: widget.autoPlayDelay ?? _defaultAutoPlayDelay),
-        _onTimer);
-  }
-
-  void _onTimer(Timer timer) {
-    // _controller.next(animation: true);
-    _controller.nextPage(
-        duration: widget.duration ?? _defaultDuration,
-        curve: widget.curve ?? _defaultCurve);
-  }
-
-  void _stopAutoPlay() {
-    if (_autoPlayTimer != null) {
-      _autoPlayTimer.cancel();
-      _autoPlayTimer = null;
-    }
   }
 
   Widget _transformChild(
@@ -339,33 +355,37 @@ class _CarouselViewState extends State<CarouselView> {
       double _needValue = (currentIndex - page).abs();
       if (_needValue >= 0 && _needValue < 0.5) {
         scaleVal = _needValue * 2 * (1 - scale) + scale;
-        print(
-            "##log##: index: $index，currentIndex: $currentIndex, page: $page, scaleVal: $scaleVal, _needValue: $_needValue");
       } else {
         scaleVal = scale;
       }
     }
 
-    /* final double mainAxisMaxValue = widget.scrollDirection == Axis.horizontal
+    final double mainAxisMaxValue = widget.scrollDirection == Axis.horizontal
         ? constraints.maxWidth
         : constraints.maxHeight;
 
     final double viewportMainAxisExtent =
         mainAxisMaxValue / _controller.viewportFraction;
 
-    final double translateVal =
+    /*final double translateVal =
         ((viewportMainAxisExtent - mainAxisMaxValue) * 0.5) *
             (widget.reverse ? 1.0 : -1.0);
 
     print("##max: viewportMainAxisExtent: $viewportMainAxisExtent");*/
 
-    return Transform.scale(
-      scale: scaleVal,
-      alignment: _getAlignmentReferAxis(
-          widget.scrollDirection, widget.reverse, index, currentIndex),
-      transformHitTests: true,
-      child: child,
-    );
+    final Widget transformChild = scale != 1.0
+        ? Transform.scale(
+            scale: scaleVal,
+            alignment: _getAlignmentReferAxis(
+                widget.scrollDirection, widget.reverse, index, currentIndex),
+            transformHitTests: true,
+            child: child,
+          )
+        : child;
+
+    return widget.transformBuilder
+            ?.call(context, index, page, viewportMainAxisExtent, child) ??
+        transformChild;
   }
 
   Alignment _getAlignmentReferAxis(
@@ -388,7 +408,6 @@ class _CarouselViewState extends State<CarouselView> {
   }
 
   bool _notificationStartTag = false;
-  bool _notificationNeedAutoPlay = false;
   List<int> _downPointers = [];
 
   @override
@@ -404,10 +423,7 @@ class _CarouselViewState extends State<CarouselView> {
                   "00000ScrollStartNotification##_controller.page: ${_controller.page}");
               if (notification.dragDetails != null) {
                 //by human
-                if (_controller.autoPlay) {
-                  _notificationNeedAutoPlay = true;
-                  _controller.stopAutoPlay();
-                }
+                _controller.blocked();
               }
             } else if (notification is ScrollEndNotification) {
               if (_notificationStartTag) {
@@ -432,10 +448,7 @@ class _CarouselViewState extends State<CarouselView> {
                 }
               }
               print("pageStartEnd##ScrollEndNotification:_startTag: ");
-              if (_notificationNeedAutoPlay) {
-                _notificationNeedAutoPlay = false;
-                _controller.startAutoPlay();
-              }
+              _controller.unblocked();
 
               if (!_hasHandUpHandle) {
                 if (widget.onHandUpChanged != null) {
@@ -547,68 +560,109 @@ class _CarouselViewState extends State<CarouselView> {
 }
 
 class CarouselController extends CustomPageController {
+  Timer _autoPlayTimer; //定时器
+
   bool _autoPlay;
 
-  bool get autoPlay => _autoPlay ?? initialAutoPlay;
+  @nonVirtual
+  bool get autoPlay => _autoPlay;
 
-  /// The action to auto play when first creating the [CarouselView].
-  final bool initialAutoPlay;
+  int _autoPlayDelay;
 
-  static const int EVENT_SCROLL = 0;
+  Duration _duration;
 
-  static const int EVENT_AUTO_PLAY = 1;
+  Curve _curve;
 
-  int _event;
+  int _blockObjSum = 0;
 
-  int get event => _event ?? EVENT_SCROLL;
+  int _initialPage;
 
-  /*this.initialPage = 0,
-  this.keepPage = true,
-  this.viewportFraction = 1.0,*/
+  bool _keepPage;
 
-  CarouselController({
-    this.initialAutoPlay = false,
-    int initialPage = 0,
-    bool keepPage = true,
-    double viewportFraction = 1.0,
-    double scale = 1.0,
-  }) : super(
-            initialPage: initialPage,
-            keepPage: keepPage,
-            viewportFraction: viewportFraction);
-
-  void startAutoPlay() {
-    _handleAutoPlay(true);
-  }
-
-  void stopAutoPlay() {
-    _handleAutoPlay(false);
-  }
-
-  void _handleAutoPlay(bool autoPlay) {
-    if (this.autoPlay == autoPlay) return;
-    _autoPlay = autoPlay;
-    _sendEventAndRestore(EVENT_AUTO_PLAY);
-  }
-
-  void _sendEventAndRestore(int newEvent) {
-    final int oldEvent = _event;
-    //send event
-    _event = newEvent;
-    notifyListeners();
-
-    //restore event
-    _event = oldEvent;
-  }
+  double _viewportFraction;
 
   @override
-  void notifyListeners() {
-    super.notifyListeners();
+  int get initialPage => _initialPage ?? super.initialPage;
+
+  @override
+  bool get keepPage => _keepPage ?? super.keepPage;
+
+  @override
+  double get viewportFraction => _viewportFraction ?? super.viewportFraction;
+
+  @nonVirtual
+  bool get isBlocked => _blockObjSum > 0;
+
+  @nonVirtual
+  void startAutoPlay() {
+    handleAutoPlay(true);
+  }
+
+  @nonVirtual
+  void stopAutoPlay() {
+    handleAutoPlay(false);
+  }
+
+  @nonVirtual
+  void blocked() {
+    //还没有对象锁住时
+    if (_blockObjSum == 0) {
+      if (autoPlay) _stopAutoPlay();
+    }
+
+    _blockObjSum++;
+  }
+
+  @nonVirtual
+  void unblocked() {
+    //当最后一个对象进行解锁时
+    if (_blockObjSum == 1) {
+      if (autoPlay) _startAutoPlay();
+    }
+
+    if (_blockObjSum > 0) _blockObjSum--;
+  }
+
+  @nonVirtual
+  void handleAutoPlay(bool autoPlay) {
+    if (this.autoPlay == autoPlay) return;
+
+    _autoPlay = autoPlay;
+    if (isBlocked) return;
+
+    if (autoPlay) {
+      _startAutoPlay();
+    } else {
+      _stopAutoPlay();
+    }
+  }
+
+  void _startAutoPlay() {
+    assert(_autoPlayTimer == null, "Timer must be stopped before start!");
+    _autoPlayTimer = Timer.periodic(
+        Duration(milliseconds: _autoPlayDelay ?? _defaultAutoPlayDelay),
+        _onTimer);
+  }
+
+  void _onTimer(Timer timer) {
+    nextPage(
+        duration: _duration ?? _defaultDuration,
+        curve: _curve ?? _defaultCurve);
+  }
+
+  void _stopAutoPlay() {
+    if (_autoPlayTimer != null) {
+      _autoPlayTimer.cancel();
+      _autoPlayTimer = null;
+    }
   }
 
   @override
   void dispose() {
+    while (isBlocked) {
+      unblocked();
+    }
+    stopAutoPlay();
     super.dispose();
   }
 }
-

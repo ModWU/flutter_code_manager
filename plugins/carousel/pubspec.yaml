@@ -1,0 +1,20 @@
+name: carousel
+description: The carousel for flutter, infinite loop.
+version: 0.0.1
+homepage: https://github.com/ModWU/flutter_code_manager/plugins/carousel
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  provider: ^4.3.2+2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
