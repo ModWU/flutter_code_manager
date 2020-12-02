@@ -8,4 +8,4 @@ By using carousel instead of swiper, you get:
 
 # Showcases
 
-![Horizontal](https://github.com/ModWU/flutter_code_manager/tree/master/plugins/carousel/example/assets/carousel.gif)
+![Example](https://github.com/ModWU/flutter_code_manager/tree/master/plugins/carousel/example/assets/carousel.gif)
