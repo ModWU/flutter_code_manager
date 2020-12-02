@@ -1,6 +1,6 @@
 # carousel_player_example
 
-Demonstrates how to use the carousel package.
+Demonstrates how to use the flutter_carousel package.
 
 ## Getting Started
 

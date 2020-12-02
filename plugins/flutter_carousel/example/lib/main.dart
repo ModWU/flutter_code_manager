@@ -1,8 +1,8 @@
-import 'package:carousel_example/base_model.dart';
 import 'package:flutter/material.dart';
-import 'package:carousel/carousel.dart';
+import 'package:flutter_carousel/flutter_carousel.dart';
 import 'package:provider/provider.dart';
 import 'advert_view.dart';
+import 'base_model.dart';
 
 void main() {
   runApp(MyApp());

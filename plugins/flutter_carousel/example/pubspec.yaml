@@ -1,5 +1,5 @@
-name: carousel_example
-description: Demonstrates how to use the carousel package.
+name: flutter_carousel_example
+description: Demonstrates how to use the flutter_carousel package.
 
 environment:
   sdk: '>=2.10.0 <3.0.0'
@@ -8,7 +8,9 @@ dependencies:
   flutter:
     sdk: flutter
 
-  carousel:
+  flutter_carousel:
+    path: ../
+
   video_player: ^0.10.12+4
   cupertino_icons: ^1.0.1
   provider: ^4.3.2+2
@@ -17,15 +19,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-dependency_overrides:
-  carousel:
-    path: ../
 
 flutter:
   uses-material-design: true
 
   assets:
-    - assets/Butterfly-209.mp4
     - images/h1.jpg
     - images/h2.jpg
     - images/h3.jpg

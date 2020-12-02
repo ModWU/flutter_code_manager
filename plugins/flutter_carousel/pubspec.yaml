@@ -1,7 +1,7 @@
-name: carousel
-description: The carousel for flutter, infinite loop.
+name: flutter_carousel
+description: The flutter_carousel for flutter, infinite loop.
 version: 0.0.1
-homepage: https://github.com/ModWU/flutter_code_manager/plugins/carousel
+homepage: https://github.com/ModWU/flutter_code_manager/plugins/flutter_carousel
 
 environment:
   sdk: ">=2.10.0 <3.0.0"
