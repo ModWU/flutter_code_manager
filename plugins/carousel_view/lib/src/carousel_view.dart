@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter_carousel/flutter_carousel.dart';
+import 'package:carousel_view/carousel_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';

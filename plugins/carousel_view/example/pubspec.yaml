@@ -1,5 +1,5 @@
-name: flutter_carousel_example
-description: Demonstrates how to use the flutter_carousel package.
+name: carousel_view_example
+description: Demonstrates how to use the carousel_view package.
 
 environment:
   sdk: '>=2.10.0 <3.0.0'
@@ -8,7 +8,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_carousel:
+  carousel_view:
     path: ../
 
   video_player: ^0.10.12+4

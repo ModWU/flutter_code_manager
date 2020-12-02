@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_carousel/flutter_carousel.dart';
+import 'package:carousel_view/carousel_view.dart';
 import 'package:provider/provider.dart';
 import 'advert_view.dart';
 import 'base_model.dart';
