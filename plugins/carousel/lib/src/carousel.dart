@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:carousel/carousel.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'widgets/sliver.dart';
 import 'widgets/custom_pageview.dart';
 
 const int _defaultAutoPlayDelay = 5000;
@@ -16,19 +18,13 @@ typedef TransformBuilder = Widget Function(BuildContext context, int index,
 class CarouselView extends StatefulWidget {
   CarouselView.custom({
     Key key,
-    this.loop = false,
     this.scale = 1.0,
-    this.initialPage = 0,
-    this.keepPage = true,
-    this.viewportFraction = 1.0,
-    this.autoPlayDelay = _defaultAutoPlayDelay,
-    this.autoPlay = false,
-    this.duration = _defaultDuration,
-    this.curve = _defaultCurve,
     this.scrollDirection = Axis.horizontal,
     this.childrenDelegate,
     this.reverse = false,
     this.padEnds = true,
+    this.loop = true,
+    this.padEndsViewportFraction,
     this.physics,
     this.pageSnapping = true,
     this.dragStartBehavior = DragStartBehavior.start,
@@ -39,17 +35,11 @@ class CarouselView extends StatefulWidget {
     this.onPageChanged,
     this.onHandUpChanged,
     this.transformBuilder,
-  })  : assert(autoPlay != null),
-        assert(loop != null),
-        assert(scale != null),
-        assert(initialPage != null),
-        assert(keepPage != null),
-        assert(viewportFraction != null),
-        assert(autoPlayDelay != null),
-        assert(duration != null),
-        assert(curve != null),
-        assert(reverse != null),
+  })  : assert(reverse != null),
         assert(padEnds != null),
+        assert(loop != null),
+        assert(
+            padEndsViewportFraction == null || padEndsViewportFraction >= 0.0),
         assert(scrollDirection != null),
         assert(childrenDelegate != null),
         assert(allowImplicitScrolling != null),
@@ -58,20 +48,14 @@ class CarouselView extends StatefulWidget {
 
   CarouselView.builder({
     Key key,
-    this.autoPlay = false,
-    this.loop = false,
     this.scale = 1.0,
-    this.initialPage = 0,
-    this.keepPage = true,
-    this.viewportFraction = 1.0,
-    this.autoPlayDelay = _defaultAutoPlayDelay,
-    this.duration = _defaultDuration,
-    this.curve = _defaultCurve,
     this.scrollDirection = Axis.horizontal,
     IndexedWidgetBuilder itemBuilder,
     int itemCount,
     this.reverse = false,
     this.padEnds = true,
+    this.loop = true,
+    this.padEndsViewportFraction,
     this.physics,
     this.pageSnapping = true,
     this.dragStartBehavior = DragStartBehavior.start,
@@ -82,17 +66,12 @@ class CarouselView extends StatefulWidget {
     this.onPageChanged,
     this.onHandUpChanged,
     this.transformBuilder,
-  })  : assert(autoPlay != null),
-        assert(loop != null),
-        assert(scale != null),
-        assert(initialPage != null),
-        assert(keepPage != null),
-        assert(viewportFraction != null),
-        assert(autoPlayDelay != null),
-        assert(duration != null),
-        assert(curve != null),
+  })  : assert(scale != null),
         assert(reverse != null),
         assert(padEnds != null),
+        assert(loop != null),
+        assert(
+            padEndsViewportFraction == null || padEndsViewportFraction >= 0.0),
         assert(scrollDirection != null),
         assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
@@ -102,19 +81,13 @@ class CarouselView extends StatefulWidget {
 
   CarouselView({
     Key key,
-    this.autoPlay = false,
-    this.loop = false,
     this.scale = 1.0,
-    this.initialPage = 0,
-    this.keepPage = true,
-    this.viewportFraction = 1.0,
-    this.autoPlayDelay = _defaultAutoPlayDelay,
-    this.duration = _defaultDuration,
-    this.curve = _defaultCurve,
     this.scrollDirection = Axis.horizontal,
     List<Widget> children = const <Widget>[],
     this.reverse = false,
     this.padEnds = true,
+    this.loop = true,
+    this.padEndsViewportFraction,
     this.physics,
     this.pageSnapping = true,
     this.dragStartBehavior = DragStartBehavior.start,
@@ -125,18 +98,13 @@ class CarouselView extends StatefulWidget {
     this.onPageChanged,
     this.onHandUpChanged,
     this.transformBuilder,
-  })  : assert(autoPlay != null),
-        assert(loop != null),
-        assert(scale != null),
-        assert(initialPage != null),
-        assert(keepPage != null),
-        assert(viewportFraction != null),
-        assert(autoPlayDelay != null),
-        assert(duration != null),
-        assert(curve != null),
+  })  : assert(scale != null),
         assert(children != null),
         assert(reverse != null),
         assert(padEnds != null),
+        assert(loop != null),
+        assert(
+            padEndsViewportFraction == null || padEndsViewportFraction >= 0.0),
         assert(scrollDirection != null),
         childrenDelegate = CustomSliverChildListDelegate(children),
         super(key: key);
@@ -174,21 +142,9 @@ class CarouselView extends StatefulWidget {
 
   final bool loop;
 
+  final double padEndsViewportFraction;
+
   final double scale;
-
-  final int initialPage;
-
-  final bool keepPage;
-
-  final double viewportFraction;
-
-  final int autoPlayDelay;
-
-  final bool autoPlay;
-
-  final Duration duration;
-
-  final Curve curve;
 
   final TransformBuilder transformBuilder;
 }
@@ -204,35 +160,19 @@ class _CarouselViewState extends State<CarouselView> {
   @override
   void didUpdateWidget(CarouselView oldWidget) {
     print("loglog##didUpdateWidget:::::");
-    if (widget != oldWidget &&
-        (widget.controller != oldWidget.controller ||
-            !_equalControllerParameter(oldWidget))) {
-      print("loglog##update controller:::::");
-      _initController();
-    }
 
     if (widget != oldWidget) {
-      if ((widget.controller != oldWidget.controller ||
-          !_equalControllerParameter(oldWidget))) {
-        _initController();
+      final int childCount = _childCount;
+      if (_controller._childCount != childCount) {
+        _controller._childCount = childCount;
       }
 
-      _adjustController(oldWidget);
+      if ((widget.controller != oldWidget.controller)) {
+        _initController(oldWidget: oldWidget);
+      }
     }
 
     super.didUpdateWidget(oldWidget);
-  }
-
-  bool _equalControllerParameter(CarouselView oldWidget) {
-    bool result = widget.initialPage == oldWidget.initialPage &&
-        widget.keepPage == oldWidget.keepPage &&
-        widget.viewportFraction == oldWidget.viewportFraction &&
-        widget.autoPlayDelay == oldWidget.autoPlayDelay &&
-        widget.duration == oldWidget.duration &&
-        widget.curve == oldWidget.curve;
-
-    print("longlong##result:$result");
-    return result;
   }
 
   void _onScrollEvent() {
@@ -241,6 +181,11 @@ class _CarouselViewState extends State<CarouselView> {
 
   int _getRealIndex(int index) =>
       widget.loop ? (index - 2) % _realItemCount : index;
+
+  int _getFitRealIndex(int index) {
+    if (widget.loop) return index;
+    return (index - 2) % _realItemCount;
+  }
 
   int _getFitIndex(int realIndex) {
     if (!widget.loop) return realIndex;
@@ -252,46 +197,73 @@ class _CarouselViewState extends State<CarouselView> {
     return realIndex + 2;
   }
 
-  /// 必须调整参数
-  void _adjustController(CarouselView oldWidget) {
-    if (widget.autoPlay != _controller.autoPlay) {
-      _controller.handleAutoPlay(widget.autoPlay);
+  int _getInitialPage(CarouselView oldView, CarouselController oldController) {
+    assert(oldView != null);
+    assert(oldController != null);
+    if ((oldController.position?.hasViewportDimension) ?? false) {
+      final int oldCurrentPage = oldController.page.round();
+
+      if (widget.loop) {
+        return oldView.loop
+            ? oldCurrentPage.clamp(0, _childCount)
+            : _getFitIndex(oldCurrentPage);
+      } else {
+        return !oldView.loop
+            ? oldCurrentPage.clamp(0, _childCount)
+            : _getFitRealIndex(oldCurrentPage);
+      }
     }
-    //调整其余参数
+
+    return null;
   }
 
-  void _initController() {
+  void _initController({CarouselView oldWidget}) {
     print("loglog##_initController:::::");
-    if (_controller != null) {
-      _controller.removeListener(_onScrollEvent);
-      _controller.dispose();
+    final CarouselController oldController = _controller;
+
+    _controller = widget.controller ?? _DefaultCarouselController();
+
+    _controller
+      .._initialPage = _getFitIndex(_controller.initialPage)
+      .._childCount = _childCount;
+
+    bool needInitialValue = true;
+
+    if (oldController != null &&
+        oldWidget != null &&
+        oldController != _controller) {
+      final int oldPage = _getInitialPage(oldWidget, oldController);
+      if (oldPage != null) {
+        needInitialValue = false;
+        //_valueNotifier.value = oldPage * 1.0;
+        WidgetsBinding.instance.addPostFrameCallback((callback) {
+          _valueNotifier.value = oldPage * 1.0;
+          _controller.jumpToPage(oldPage);
+        });
+      }
+
+      if (oldController is _DefaultCarouselController) {
+        print("_controller._initialPage oldPage: $oldPage");
+        oldController.removeListener(_onScrollEvent);
+        oldController.dispose();
+      }
     }
 
-    _controller = widget.controller ?? CarouselController();
+    if (needInitialValue) {
+      _valueNotifier.value = _controller.initialPage * 1.0;
+      _lastReportedPage = _getRealIndex(_controller.initialPage);
+      _lastHandUpReportedPage = _lastReportedPage;
+    }
 
-    //初始化控制器
-    _controller
-      .._initialPage = _getFitIndex(widget.initialPage)
-      .._autoPlay = widget.autoPlay
-      .._viewportFraction = widget.viewportFraction
-      .._keepPage = widget.keepPage
-      .._autoPlayDelay = widget.autoPlayDelay
-      .._duration = widget.duration
-      .._curve = widget.curve;
-
-    _valueNotifier.value = _controller.initialPage * 1.0;
-    _lastReportedPage = _getRealIndex(_controller.initialPage);
-    _lastHandUpReportedPage = _lastReportedPage;
     _controller.addListener(_onScrollEvent);
-    _controller.handleAutoPlay(_controller.autoPlay);
+
+    _controller._initAutoPlay();
   }
 
   void _disposeController() {
     _controller.removeListener(_onScrollEvent);
     _controller.dispose();
   }
-
-  //int get _realItemCount => widget.childCount;
 
   int get _childCount => widget.loop ? _realItemCount + 4 : _realItemCount;
 
@@ -336,11 +308,17 @@ class _CarouselViewState extends State<CarouselView> {
   void initState() {
     super.initState();
     _initController();
+    // _valueNotifier.value = _controller.initialPage * 1.0;
   }
 
   @override
   void dispose() {
-    _disposeController();
+    print("##################66666666666666666dispose");
+    if (widget.controller == null) {
+      _disposeController();
+    } else {
+      _controller.stopAutoPlay();
+    }
     super.dispose();
   }
 
@@ -373,15 +351,13 @@ class _CarouselViewState extends State<CarouselView> {
 
     print("##max: viewportMainAxisExtent: $viewportMainAxisExtent");*/
 
-    final Widget transformChild = scale != 1.0
-        ? Transform.scale(
+    final Widget transformChild = Transform.scale(
             scale: scaleVal,
             alignment: _getAlignmentReferAxis(
                 widget.scrollDirection, widget.reverse, index, currentIndex),
             transformHitTests: true,
             child: child,
-          )
-        : child;
+          );
 
     return widget.transformBuilder
             ?.call(context, index, page, viewportMainAxisExtent, child) ??
@@ -412,6 +388,7 @@ class _CarouselViewState extends State<CarouselView> {
 
   @override
   Widget build(BuildContext context) {
+    print("build build build: ${_controller.viewportFraction}");
     return ChangeNotifierProvider.value(
       value: _valueNotifier,
       child: NotificationListener(
@@ -515,6 +492,7 @@ class _CarouselViewState extends State<CarouselView> {
             scrollDirection: widget.scrollDirection,
             reverse: widget.reverse,
             padEnds: widget.padEnds,
+            padEndsViewportFraction: widget.padEndsViewportFraction,
             //physics: _physics,//CustomScrollPhysics(itemDimension: 0),//_physics,//widget.physics,
             pageSnapping: widget.pageSnapping,
             dragStartBehavior: widget.dragStartBehavior,
@@ -559,6 +537,8 @@ class _CarouselViewState extends State<CarouselView> {
   }
 }
 
+class _DefaultCarouselController extends CarouselController {}
+
 class CarouselController extends CustomPageController {
   Timer _autoPlayTimer; //定时器
 
@@ -573,25 +553,69 @@ class CarouselController extends CustomPageController {
 
   Curve _curve;
 
+  //默认锁住
   int _blockObjSum = 0;
 
   int _initialPage;
 
   bool _keepPage;
 
+  int _childCount;
+
   double _viewportFraction;
 
   @override
-  int get initialPage => _initialPage ?? super.initialPage;
+  int get initialPage => _initialPage;
 
   @override
-  bool get keepPage => _keepPage ?? super.keepPage;
+  bool get keepPage => _keepPage;
 
   @override
-  double get viewportFraction => _viewportFraction ?? super.viewportFraction;
+  double get viewportFraction => _viewportFraction;
 
   @nonVirtual
   bool get isBlocked => _blockObjSum > 0;
+
+  bool _init = false;
+
+  set autoPlayDelay(int value) {
+    if (value == _autoPlayDelay) return;
+    _autoPlayDelay = value;
+  }
+
+  set duration(Duration value) {
+    if (value == _duration) return;
+    _duration = value;
+  }
+
+  set curve(Curve value) {
+    if (value == _curve) return;
+    _curve = value;
+  }
+
+  CarouselController({
+    int initialPage = 0,
+    bool keepPage = true,
+    double viewportFraction = 1.0,
+    bool autoPlay = false,
+    int autoPlayDelay = _defaultAutoPlayDelay,
+    Duration duration = _defaultDuration,
+    Curve curve = _defaultCurve,
+  })  : assert(initialPage != null),
+        assert(keepPage != null),
+        assert(viewportFraction != null),
+        assert(viewportFraction > 0.0),
+        assert(autoPlay != null),
+        assert(autoPlayDelay != null),
+        assert(duration != null),
+        assert(curve != null),
+        _initialPage = initialPage,
+        _keepPage = keepPage,
+        _viewportFraction = viewportFraction,
+        _autoPlayDelay = autoPlayDelay,
+        _duration = duration,
+        _autoPlay = autoPlay,
+        _curve = curve;
 
   @nonVirtual
   void startAutoPlay() {
@@ -623,12 +647,21 @@ class CarouselController extends CustomPageController {
     if (_blockObjSum > 0) _blockObjSum--;
   }
 
+  void _initAutoPlay() {
+    _init = true;
+    if (autoPlay && _autoPlayTimer == null) {
+      _startAutoPlay();
+    }
+  }
+
   @nonVirtual
   void handleAutoPlay(bool autoPlay) {
     if (this.autoPlay == autoPlay) return;
 
     _autoPlay = autoPlay;
-    if (isBlocked) return;
+    print(
+        "handleAutoPlay: init: $_init, isBlocked: $isBlocked, autoPlay: $autoPlay");
+    if (!_init || isBlocked) return;
 
     if (autoPlay) {
       _startAutoPlay();
@@ -645,9 +678,11 @@ class CarouselController extends CustomPageController {
   }
 
   void _onTimer(Timer timer) {
-    nextPage(
-        duration: _duration ?? _defaultDuration,
-        curve: _curve ?? _defaultCurve);
+    if (positions.isNotEmpty) {
+      animateToPage((page.round() + 1) % _childCount,
+          duration: _duration ?? _defaultDuration,
+          curve: _curve ?? _defaultCurve);
+    }
   }
 
   void _stopAutoPlay() {

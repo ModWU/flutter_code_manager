@@ -70,8 +70,8 @@ abstract class SliverMultiBoxAdaptorWidget2 extends SliverWithKeepAliveWidget {
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties
-        .add(DiagnosticsProperty<CustomSliverChildDelegate>('delegate', delegate));
+    properties.add(
+        DiagnosticsProperty<CustomSliverChildDelegate>('delegate', delegate));
   }
 }
 
@@ -155,7 +155,6 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
             _currentBeforeChild = newChild.renderObject as RenderBox;
         } else {
           _childElements.remove(index);
-          _sameIndexCache.remove(index);
         }
       }
 
@@ -181,7 +180,6 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
           }
           // We do not want the remapped child to get deactivated during processElement.
           _childElements.remove(index);
-          _sameIndexCache.remove(index);
         } else {
           newChildren.putIfAbsent(index, () => _childElements[index]);
         }
@@ -235,8 +233,6 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
     return null;
   }
 
-  Map<int, SameIndexRenderObject> _sameIndexCache = {};
-
   @override
   void createChild(int index, {RenderBox after}) {
     assert(_currentlyUpdatingChildIndex == null);
@@ -246,14 +242,11 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
       assert(insertFirst || _childElements[index - 1] != null);
       _currentBeforeChild = insertFirst
           ? null
-          : _sameIndexCache[index - 1] ??
-              (_childElements[index - 1].renderObject as RenderBox);
+          : (_childElements[index - 1].renderObject as RenderBox);
       Element newChild;
       try {
         _currentlyUpdatingChildIndex = index;
-        print("wcc##createChild:::::index2: $index");
         final int sameIndex = _getSameIndex(index);
-        print("wcc##createChild:::::index3: $index");
         final Widget newWidget = _build(index);
         //newChild = updateChild(_childElements[index], newWidget, index);
         if (sameIndex == null) {
@@ -266,7 +259,13 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
               Widget.canUpdate(oldElement.widget, newWidget)) {
             forgetChild(oldElement);
             deactivateChild(oldElement);
+            //该函数会报错，请在BuildOwner类中添加如下代码：
+            //_InactiveElements get inactiveElements => _inactiveElements;
             owner.inactiveElements.remove(oldElement);
+            //该函数会报错，请在Element类中添加如下代码：
+            //void activateWithParent(Element parent, dynamic newSlot) {
+            //             //   _activateWithParent(parent, newSlot);
+            //             //}
             oldElement.activateWithParent(this, index);
           }
 
@@ -279,7 +278,6 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
         _childElements[index] = newChild;
       } else {
         _childElements.remove(index);
-        _sameIndexCache.remove(index);
       }
     });
   }
@@ -296,12 +294,7 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
     if (oldParentData != newParentData &&
         oldParentData != null &&
         newParentData != null) {
-      print("updateChild1 => oldParentData: ${oldParentData.layoutOffset}");
       newParentData.layoutOffset = oldParentData.layoutOffset;
-    } else {
-      /*if (_currentlyUpdatingChildIndex == 0)
-        newParentData.layoutOffset = 0;*/
-      print("updateChild2 => oldParentData: ${oldParentData?.layoutOffset}");
     }
     return newChild;
   }
@@ -312,15 +305,12 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
     assert(child.slot != null);
     assert(_childElements.containsKey(child.slot));
     _childElements.remove(child.slot);
-    _sameIndexCache.remove(child.slot);
     super.forgetChild(child);
   }
 
   @override
   void removeChild(RenderBox child) {
     final int index = renderObject.indexOf(child);
-
-    print("wcc##removeChild:::::index: $index");
 
     assert(_currentlyUpdatingChildIndex == null);
     assert(index >= 0);
@@ -334,7 +324,6 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
         _currentlyUpdatingChildIndex = null;
       }
       _childElements.remove(index);
-      _sameIndexCache.remove(index);
       assert(!_childElements.containsKey(index));
     });
   }
@@ -532,7 +521,8 @@ class SliverMultiBoxAdaptorElement2 extends RenderObjectElement
 
 typedef ChildSameIndexGetter = Map<int, int> Function();
 
-class SliverChildBuilderDelegateWithSameIndex extends CustomSliverChildDelegate {
+class SliverChildBuilderDelegateWithSameIndex
+    extends CustomSliverChildDelegate {
   final int childCount;
 
   final Function(int index) findRealIndex;
@@ -573,11 +563,12 @@ class SliverChildBuilderDelegateWithSameIndex extends CustomSliverChildDelegate 
 
   int findIndexByKey(Key key) => delegate.findIndexByKey(key);
 
-
   @override
-  Widget build(BuildContext context, int index,  {DelegateChildBuilder delegateChildBuilder}) {
+  Widget build(BuildContext context, int index,
+      {DelegateChildBuilder delegateChildBuilder}) {
     final int realIndex = findRealIndex?.call(index) ?? index;
-    return delegate.build(context, realIndex, delegateChildBuilder: (BuildContext context, int realIndex, Widget child) {
+    return delegate.build(context, realIndex, delegateChildBuilder:
+        (BuildContext context, int realIndex, Widget child) {
       return builder?.call(context, index, realIndex, child) ?? child;
     });
   }
@@ -597,27 +588,28 @@ class SliverChildBuilderDelegateWithSameIndex extends CustomSliverChildDelegate 
 typedef NullableRealIndexedWidgetBuilder = Widget Function(
     BuildContext context, int index, int realIndex, Widget child);
 
-
 int _kDefaultSemanticIndexCallback(Widget _, int localIndex) => localIndex;
 
-typedef DelegateChildBuilder = Widget Function(BuildContext context, int index, Widget child);
+typedef DelegateChildBuilder = Widget Function(
+    BuildContext context, int index, Widget child);
 
 abstract class CustomSliverChildDelegate {
-
   const CustomSliverChildDelegate();
 
-  Widget build(BuildContext context, int index, {DelegateChildBuilder delegateChildBuilder});
+  Widget build(BuildContext context, int index,
+      {DelegateChildBuilder delegateChildBuilder});
 
   int get estimatedChildCount => null;
 
   double estimateMaxScrollOffset(
-      int firstIndex,
-      int lastIndex,
-      double leadingScrollOffset,
-      double trailingScrollOffset,
-      ) => null;
+    int firstIndex,
+    int lastIndex,
+    double leadingScrollOffset,
+    double trailingScrollOffset,
+  ) =>
+      null;
 
-  void didFinishLayout(int firstIndex, int lastIndex) { }
+  void didFinishLayout(int firstIndex, int lastIndex) {}
 
   bool shouldRebuild(covariant CustomSliverChildDelegate oldDelegate);
 
@@ -635,30 +627,30 @@ abstract class CustomSliverChildDelegate {
   void debugFillDescription(List<String> description) {
     try {
       final int children = estimatedChildCount;
-      if (children != null)
-        description.add('estimated child count: $children');
+      if (children != null) description.add('estimated child count: $children');
     } catch (e) {
       description.add('estimated child count: EXCEPTION (${e.runtimeType})');
     }
   }
 }
 
-class _SaltedValueKey extends ValueKey<Key>{
-  const _SaltedValueKey(Key key): assert(key != null), super(key);
+class _SaltedValueKey extends ValueKey<Key> {
+  const _SaltedValueKey(Key key)
+      : assert(key != null),
+        super(key);
 }
 
 class CustomSliverChildBuilderDelegate extends CustomSliverChildDelegate {
-
   const CustomSliverChildBuilderDelegate(
-      this.builder, {
-        this.findChildIndexCallback,
-        this.childCount,
-        this.addAutomaticKeepAlives = true,
-        this.addRepaintBoundaries = true,
-        this.addSemanticIndexes = true,
-        this.semanticIndexCallback = _kDefaultSemanticIndexCallback,
-        this.semanticIndexOffset = 0,
-      }) : assert(builder != null),
+    this.builder, {
+    this.findChildIndexCallback,
+    this.childCount,
+    this.addAutomaticKeepAlives = true,
+    this.addRepaintBoundaries = true,
+    this.addSemanticIndexes = true,
+    this.semanticIndexCallback = _kDefaultSemanticIndexCallback,
+    this.semanticIndexOffset = 0,
+  })  : assert(builder != null),
         assert(addAutomaticKeepAlives != null),
         assert(addRepaintBoundaries != null),
         assert(addSemanticIndexes != null),
@@ -682,8 +674,7 @@ class CustomSliverChildBuilderDelegate extends CustomSliverChildDelegate {
 
   @override
   int findIndexByKey(Key key) {
-    if (findChildIndexCallback == null)
-      return null;
+    if (findChildIndexCallback == null) return null;
     assert(key != null);
     Key childKey;
     if (key is _SaltedValueKey) {
@@ -696,13 +687,15 @@ class CustomSliverChildBuilderDelegate extends CustomSliverChildDelegate {
   }
 
   @override
-  Widget build(BuildContext context, int index, {DelegateChildBuilder delegateChildBuilder}) {
+  Widget build(BuildContext context, int index,
+      {DelegateChildBuilder delegateChildBuilder}) {
     assert(builder != null);
-    if (index < 0 || (childCount != null && index >= childCount))
-      return null;
+    if (index < 0 || (childCount != null && index >= childCount)) return null;
     Widget child;
     try {
-      child = delegateChildBuilder?.call(context, index, builder(context, index)) ?? builder(context, index);
+      child =
+          delegateChildBuilder?.call(context, index, builder(context, index)) ??
+              builder(context, index);
     } catch (exception, stackTrace) {
       child = _createErrorWidget(exception, stackTrace);
     }
@@ -710,15 +703,14 @@ class CustomSliverChildBuilderDelegate extends CustomSliverChildDelegate {
       return null;
     }
     final Key key = child.key != null ? _SaltedValueKey(child.key) : null;
-    if (addRepaintBoundaries)
-      child = RepaintBoundary(child: child);
+    if (addRepaintBoundaries) child = RepaintBoundary(child: child);
     if (addSemanticIndexes) {
       final int semanticIndex = semanticIndexCallback(child, index);
       if (semanticIndex != null)
-        child = IndexedSemantics(index: semanticIndex + semanticIndexOffset, child: child);
+        child = IndexedSemantics(
+            index: semanticIndex + semanticIndexOffset, child: child);
     }
-    if (addAutomaticKeepAlives)
-      child = AutomaticKeepAlive(child: child);
+    if (addAutomaticKeepAlives) child = AutomaticKeepAlive(child: child);
     return KeyedSubtree(child: child, key: key);
   }
 
@@ -726,19 +718,19 @@ class CustomSliverChildBuilderDelegate extends CustomSliverChildDelegate {
   int get estimatedChildCount => childCount;
 
   @override
-  bool shouldRebuild(covariant CustomSliverChildBuilderDelegate oldDelegate) => true;
+  bool shouldRebuild(covariant CustomSliverChildBuilderDelegate oldDelegate) =>
+      true;
 }
 
 class CustomSliverChildListDelegate extends CustomSliverChildDelegate {
-
   CustomSliverChildListDelegate(
-      this.children, {
-        this.addAutomaticKeepAlives = true,
-        this.addRepaintBoundaries = true,
-        this.addSemanticIndexes = true,
-        this.semanticIndexCallback = _kDefaultSemanticIndexCallback,
-        this.semanticIndexOffset = 0,
-      }) : assert(children != null),
+    this.children, {
+    this.addAutomaticKeepAlives = true,
+    this.addRepaintBoundaries = true,
+    this.addSemanticIndexes = true,
+    this.semanticIndexCallback = _kDefaultSemanticIndexCallback,
+    this.semanticIndexOffset = 0,
+  })  : assert(children != null),
         assert(addAutomaticKeepAlives != null),
         assert(addRepaintBoundaries != null),
         assert(addSemanticIndexes != null),
@@ -746,13 +738,13 @@ class CustomSliverChildListDelegate extends CustomSliverChildDelegate {
         _keyToIndex = <Key, int>{null: 0};
 
   const CustomSliverChildListDelegate.fixed(
-      this.children, {
-        this.addAutomaticKeepAlives = true,
-        this.addRepaintBoundaries = true,
-        this.addSemanticIndexes = true,
-        this.semanticIndexCallback = _kDefaultSemanticIndexCallback,
-        this.semanticIndexOffset = 0,
-      }) : assert(children != null),
+    this.children, {
+    this.addAutomaticKeepAlives = true,
+    this.addRepaintBoundaries = true,
+    this.addSemanticIndexes = true,
+    this.semanticIndexCallback = _kDefaultSemanticIndexCallback,
+    this.semanticIndexOffset = 0,
+  })  : assert(children != null),
         assert(addAutomaticKeepAlives != null),
         assert(addRepaintBoundaries != null),
         assert(addSemanticIndexes != null),
@@ -815,25 +807,24 @@ class CustomSliverChildListDelegate extends CustomSliverChildDelegate {
   }
 
   @override
-  Widget build(BuildContext context, int index, {DelegateChildBuilder delegateChildBuilder}) {
+  Widget build(BuildContext context, int index,
+      {DelegateChildBuilder delegateChildBuilder}) {
     assert(children != null);
-    if (index < 0 || index >= children.length)
-      return null;
-    Widget child =  delegateChildBuilder?.call(context, index, children[index]) ?? children[index];
-    final Key key = child.key != null? _SaltedValueKey(child.key) : null;
-    assert(
-    child != null,
-    "The sliver's children must not contain null values, but a null value was found at index $index"
-    );
-    if (addRepaintBoundaries)
-      child = RepaintBoundary(child: child);
+    if (index < 0 || index >= children.length) return null;
+    Widget child =
+        delegateChildBuilder?.call(context, index, children[index]) ??
+            children[index];
+    final Key key = child.key != null ? _SaltedValueKey(child.key) : null;
+    assert(child != null,
+        "The sliver's children must not contain null values, but a null value was found at index $index");
+    if (addRepaintBoundaries) child = RepaintBoundary(child: child);
     if (addSemanticIndexes) {
       final int semanticIndex = semanticIndexCallback(child, index);
       if (semanticIndex != null)
-        child = IndexedSemantics(index: semanticIndex + semanticIndexOffset, child: child);
+        child = IndexedSemantics(
+            index: semanticIndex + semanticIndexOffset, child: child);
     }
-    if (addAutomaticKeepAlives)
-      child = AutomaticKeepAlive(child: child);
+    if (addAutomaticKeepAlives) child = AutomaticKeepAlive(child: child);
     return KeyedSubtree(child: child, key: key);
   }
 

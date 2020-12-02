@@ -1,4 +1,8 @@
+import 'package:carousel_example/base_model.dart';
 import 'package:flutter/material.dart';
+import 'package:carousel/carousel.dart';
+import 'package:provider/provider.dart';
+import 'advert_view.dart';
 
 void main() {
   runApp(MyApp());
@@ -11,18 +15,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(),
     );
   }
 }
@@ -30,84 +25,247 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+enum CarouselProperty {
+  reverse,
+  autoPlay,
+  padEnds,
+  padEndsViewportFraction,
+  autoPlayDelay,
+  viewportFraction,
+  scale,
+  scrollDirection,
+  leftPadding,
+  rightPadding,
+  topPadding,
+  bottomPadding,
+  currentIndex,
+}
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+class _MyHomePageState extends State<MyHomePage> {
+  CarouselController _controller;
+
+  List _resources = [
+    'images/h1.jpg',
+    'images/h2.jpg',
+    'images/h3.jpg',
+    'images/h4.jpeg',
+    AdvertItem(
+      name: "crazy-story",
+      introduce: "introduce",
+      isApplication: true,
+      detailUrl: "https://www.baidu.com/",
+      iconUrl: "https://i.loli.net/2020/10/09/GvLS47z2DXTRkcq.png",
+      videoUrl:
+          "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
+      showImgUrl: null,
+    ),
+  ];
+
+  static int _initialIndex = 0;
+
+  static double _basePaddingValue = 4.0;
+
+  ValueNotifier<int> _indexNotifier = new ValueNotifier<int>(_initialIndex);
+
+  Map<CarouselProperty, Object> _properties = {
+    CarouselProperty.reverse: false,
+    CarouselProperty.autoPlayDelay: false,
+    CarouselProperty.autoPlay: false,
+    CarouselProperty.viewportFraction: false,
+    CarouselProperty.padEndsViewportFraction: false,
+    CarouselProperty.padEnds: false,
+    CarouselProperty.scale: false,
+    CarouselProperty.scrollDirection: false,
+    CarouselProperty.leftPadding: false,
+    CarouselProperty.rightPadding: false,
+    CarouselProperty.topPadding: false,
+    CarouselProperty.bottomPadding: false,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    // _controller = CarouselController();
+  }
+
+  @override
+  void dispose() {
+    //  _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _buildItem(BuildContext context, int index) {
+    dynamic data = _resources[index];
+    if (data is AdvertItem) {
+      return AdvertView(data, onPlay: (isStartPlay, isPlayEnd) {});
+    } else {
+      return Image.asset(
+        data,
+        fit: BoxFit.cover,
+      );
+    }
+  }
+
+  //compare the 'PageView'
+  Widget _buildPageView() {
+    return PageView.custom(
+      childrenDelegate: SliverChildBuilderDelegate(
+        (BuildContext context, int index) {
+          return _buildItem(context, index);
+        },
+        childCount: _resources.length,
+      ),
+      controller: PageController(viewportFraction: 0.95),
+      onPageChanged: (index) {
+        setState(() {});
+      },
+    );
+  }
+
+  //Find a bug with 'viewportFraction', There may be little gaps that are useless.
+  Widget _buildCarouselView() {
+    return CarouselView.custom(
+      //'carouselController' must be destroyed, This is just a demo
+      controller: _controller = CarouselController(
+        viewportFraction:
+            _properties[CarouselProperty.viewportFraction] ? 0.95 : 1.0,
+        initialPage: 0,
+        autoPlayDelay:
+            _properties[CarouselProperty.autoPlayDelay] ? 1000 : 5000,
+        autoPlay: _properties[CarouselProperty.autoPlay],
+        //curve: Curves.ease,
+        //duration: Duration(milliseconds: 500),
+      ), //_controller,
+      childrenDelegate: CustomSliverChildBuilderDelegate(
+        (BuildContext context, int index) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: _properties[CarouselProperty.leftPadding]
+                  ? _basePaddingValue
+                  : 0,
+              right: _properties[CarouselProperty.rightPadding]
+                  ? _basePaddingValue
+                  : 0,
+              top: _properties[CarouselProperty.topPadding]
+                  ? _basePaddingValue
+                  : 0,
+              bottom: _properties[CarouselProperty.bottomPadding]
+                  ? _basePaddingValue
+                  : 0,
+            ),
+            child: _buildItem(context, index),
+          );
+        },
+        childCount: _resources.length,
+      ),
+      reverse: _properties[CarouselProperty.reverse],
+      //'loop' keep initial value
+      loop: true,
+      //'padEndsViewportFraction' can take 'padEnds' place
+      padEndsViewportFraction:
+          _properties[CarouselProperty.padEndsViewportFraction] ? 0.5 : null,
+      padEnds: _properties[CarouselProperty.padEnds],
+      scale: _properties[CarouselProperty.scale] ? 0.85 : 1.0,
+      scrollDirection: _properties[CarouselProperty.scrollDirection]
+          ? Axis.vertical
+          : Axis.horizontal,
+      //"transformBuilder" can transform the positions of children
+      /*transformBuilder: (BuildContext context, int index, double page,
+          double viewportMainAxisExtent, Widget child) {
+        //You can transform the position of child according to the 'index' and 'page'
+        return child;
+      },*/
+      onHandUpChanged: (index) {
+        //It's not smooth with set the state directly. The same to 'PageView'.
+        /*setState(() {
+          _properties[CarouselProperty.currentIndex] = index;
+        });*/
+        //It is recommended to use 'provider' for updating
+        _indexNotifier.value = index;
+      },
+      //"onPageChanged" provide the original callback way that listening 'index' change
+      /*onPageChanged: (index) {
+        print("currentIndex: $index");
+      },*/
+    );
+  }
+
+  Widget _selectItem(String tag, CarouselProperty property,
+      {Function(bool selected) onSelected}) {
+    return RawChip(
+      label: Text(tag),
+      selected: _properties[property],
+      onSelected: onSelected ??
+          (v) {
+            setState(() {
+              _properties[property] = v;
+            });
+          },
+      showCheckmark: false,
+      selectedColor: Colors.blue,
+      selectedShadowColor: Colors.red,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
+    return ChangeNotifierProvider.value(
+      value: _indexNotifier,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Consumer<ValueNotifier<int>>(
+            builder: (BuildContext context, ValueNotifier<int> indexNotifier,
+                Widget child) {
+              return Text("${indexNotifier.value}");
+            },
+          ),
+          centerTitle: true,
+        ),
+        body: SingleChildScrollView(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: <
+              Widget>[
+            SizedBox(
+              height: 240,
+              child: _buildCarouselView(),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+            Wrap(
+              spacing: 8.0,
+              runSpacing: 4.0,
+              alignment: WrapAlignment.center,
+              children: <Widget>[
+                _selectItem(
+                    "verticalDirection", CarouselProperty.scrollDirection),
+                _selectItem("reverse", CarouselProperty.reverse),
+                _selectItem("autoPlay", CarouselProperty.autoPlay,
+                    onSelected: (autoPlay) {
+                  setState(() {
+                    _properties[CarouselProperty.autoPlay] = autoPlay;
+                  });
+                  //You can also call the 'handleAutoPlay'/'startAutoPlay'/'stopAutoPlay' method of CarouselController
+                  //if (_controller != null) _controller.handleAutoPlay(autoPlay);
+                }),
+                _selectItem("autoPlayDelay", CarouselProperty.autoPlayDelay),
+                _selectItem("scale", CarouselProperty.scale),
+                _selectItem(
+                    "viewportFraction", CarouselProperty.viewportFraction),
+                _selectItem("padEnds", CarouselProperty.padEnds),
+                _selectItem("padEndsViewportFraction",
+                    CarouselProperty.padEndsViewportFraction),
+                _selectItem("leftPadding", CarouselProperty.leftPadding),
+                _selectItem("rightPadding", CarouselProperty.rightPadding),
+                _selectItem("topPadding", CarouselProperty.topPadding),
+                _selectItem("bottomPadding", CarouselProperty.bottomPadding),
+              ],
             ),
-          ],
+          ]),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

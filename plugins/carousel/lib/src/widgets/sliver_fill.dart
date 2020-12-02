@@ -25,8 +25,11 @@ class SliverFillViewport2 extends StatelessWidget {
     this.delegate,
     this.viewportFraction = 1.0,
     this.padEnds = true,
+    this.padEndsViewportFraction,
   })  : assert(viewportFraction != null),
         assert(viewportFraction > 0.0),
+        assert(
+            padEndsViewportFraction == null || padEndsViewportFraction >= 0.0),
         assert(padEnds != null),
         super(key: key);
 
@@ -36,6 +39,8 @@ class SliverFillViewport2 extends StatelessWidget {
   /// once. If this fraction is greater than 1.0, each child will be larger than
   /// the viewport in the main axis.
   final double viewportFraction;
+
+  final double padEndsViewportFraction;
 
   /// Whether to add padding to both ends of the list.
   ///
@@ -56,7 +61,8 @@ class SliverFillViewport2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SliverFractionalPadding(
-      viewportFraction: padEnds ? (1 - viewportFraction).clamp(0, 1) / 2 : 0,
+      viewportFraction: padEndsViewportFraction ??
+          (padEnds ? (1 - viewportFraction).clamp(0, 1) / 2 : 0),
       sliver: _SliverFillViewportRenderObjectWidget2(
         viewportFraction: viewportFraction,
         delegate: delegate,
@@ -110,8 +116,7 @@ class _SliverFillViewportRenderObjectWidget2
   @override
   void updateRenderObject(
       BuildContext context, RenderSliverFillViewport2 renderObject) {
-    renderObject
-      ..viewportFraction = viewportFraction;
+    renderObject..viewportFraction = viewportFraction;
   }
 }
 

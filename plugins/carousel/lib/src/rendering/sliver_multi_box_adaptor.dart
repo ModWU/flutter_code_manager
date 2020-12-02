@@ -105,12 +105,6 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
     super.adoptChild(child);
     final SliverMultiBoxAdaptorParentData2 childParentData =
     child.parentData as SliverMultiBoxAdaptorParentData2;
-    if (child is SameIndexRenderObject) {
-      final SliverMultiBoxAdaptorParentData2 realChildParentData =
-      child.renderBox.parentData as SliverMultiBoxAdaptorParentData2;
-
-      childParentData.keepAlive = realChildParentData.keepAlive;
-    }
 
     if (!childParentData._keptAlive)
       childManager.didAdoptChild(child as RenderBox);
@@ -424,7 +418,6 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
   /// child's [RenderBox.size] property. This is only valid after layout.
   @protected
   double paintExtentOf(RenderBox child) {
-    child = _getRealChild(child);
    assert(child != null);
     assert(child.hasSize);
     switch (constraints.axis) {
@@ -478,13 +471,13 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (firstChild == null) return;
+    if (firstChild == null)
+      return;
     // offset is to the top-left corner, regardless of our axis direction.
     // originOffset gives us the delta from the real origin to the origin in the axis direction.
     Offset mainAxisUnit, crossAxisUnit, originOffset;
     bool addExtent;
-    switch (applyGrowthDirectionToAxisDirection(
-        constraints.axisDirection, constraints.growthDirection)) {
+    switch (applyGrowthDirectionToAxisDirection(constraints.axisDirection, constraints.growthDirection)) {
       case AxisDirection.up:
         mainAxisUnit = const Offset(0.0, -1.0);
         crossAxisUnit = const Offset(1.0, 0.0);
@@ -513,36 +506,30 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
     assert(mainAxisUnit != null);
     assert(addExtent != null);
     RenderBox child = firstChild;
+    print("66666666666666 paint start=>");
+    int count = 0;
     while (child != null) {
       final double mainAxisDelta = childMainAxisPosition(child);
       final double crossAxisDelta = childCrossAxisPosition(child);
       Offset childOffset = Offset(
-        originOffset.dx +
-            mainAxisUnit.dx * mainAxisDelta +
-            crossAxisUnit.dx * crossAxisDelta,
-        originOffset.dy +
-            mainAxisUnit.dy * mainAxisDelta +
-            crossAxisUnit.dy * crossAxisDelta,
+        originOffset.dx + mainAxisUnit.dx * mainAxisDelta + crossAxisUnit.dx * crossAxisDelta,
+        originOffset.dy + mainAxisUnit.dy * mainAxisDelta + crossAxisUnit.dy * crossAxisDelta,
       );
-      if (addExtent) childOffset += mainAxisUnit * paintExtentOf(child);
+      if (addExtent)
+        childOffset += mainAxisUnit * paintExtentOf(child);
+
 
       // If the child's visible interval (mainAxisDelta, mainAxisDelta + paintExtentOf(child))
       // does not intersect the paint extent interval (0, constraints.remainingPaintExtent), it's hidden.
-      if (mainAxisDelta < constraints.remainingPaintExtent &&
-          mainAxisDelta + paintExtentOf(child) > 0) {
-        RenderBox realRenderBox = _getRealChild(child);
-        context.paintChild(realRenderBox, childOffset);
+      if (mainAxisDelta < constraints.remainingPaintExtent && mainAxisDelta + paintExtentOf(child) > 0) {
+        print("66666666666666 paint index:$count=> final-childOffset: ${childOffset.toString()}, layoutOffset: ${childScrollOffset(child)}, constraints.scrollOffset: ${constraints.scrollOffset}, child.size: ${child.size}");
+
+        context.paintChild(child, childOffset);
       }
+      count++;
 
       child = childAfter(child);
     }
-  }
-
-  RenderBox _getRealChild(RenderBox child) {
-    if (child is SameIndexRenderObject) {
-      return child.renderBox;
-    }
-    return child;
   }
 
   @override
@@ -597,280 +584,4 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
     }
     return children;
   }
-}
-
-class SameIndexRenderObject extends RenderBox {
-
-  final int sameIndex;
-  final int index;
-  final RenderBox renderBox;
-  SameIndexRenderObject({this.index, this.sameIndex, this.renderBox}) : assert(index != null), assert(sameIndex != null), assert(renderBox != null);
-
-  @override
-  bool get sizedByParent => true;
-
-  @override
-  void performLayout() {
-    renderBox.performLayout();
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    renderBox.paint(context, offset);
-  }
-
-  @override
-  Rect get paintBounds => renderBox.paintBounds;
-
-  @override
-  void layout(Constraints constraints, {bool parentUsesSize = false}) {
-    renderBox.layout(constraints, parentUsesSize: parentUsesSize);
-  }
-
-
-  /*@override
-  void attach(covariant PipelineOwner owner) {
-    renderBox.attach(owner);
-  }*/
-
-  /*set parentData(ParentData _parentData) {
-    super.parentData = _parentData;
-    renderBox.parentData = _parentData;
-  }*/
-
-  @override
-  set layer(ContainerLayer newLayer) {
-    renderBox.layer = newLayer;
-  }
-
-  @override
-  void adoptChild(covariant RenderObject child) {
-    renderBox.adoptChild(child);
-  }
-
-  @override
-  void dropChild(covariant RenderObject child) {
-    renderBox.dropChild(child);
-  }
-
-  @override
-  Offset localToGlobal(Offset point, {RenderObject ancestor}) {
-    return renderBox.localToGlobal(point, ancestor: ancestor);
-  }
-
-  /*@override
-  void markParentNeedsLayout() {
-    renderBox.markParentNeedsLayout();
-  }
-
-  @override
-  double getMaxIntrinsicHeight(double width) {
-    return renderBox.getMaxIntrinsicHeight(width);
-  }
-
-  @override
-  double computeMinIntrinsicHeight(double width) {
-    return renderBox.computeMinIntrinsicHeight(width);
-  }
-
-  @override
-  double computeMaxIntrinsicWidth(double height) {
-    return renderBox.computeMaxIntrinsicWidth(height);
-  }
-
-  @override
-  double computeMaxIntrinsicHeight(double width) {
-    return renderBox.computeMaxIntrinsicHeight(width);
-  }
-
-  @override
-  double computeMinIntrinsicWidth(double height) {
-    return renderBox.computeMinIntrinsicWidth(height);
-  }*/
-
-  @override
-  BoxConstraints get constraints => renderBox.constraints;
-
-  /*@override
-  void setupParentData(covariant RenderObject child) {
-    renderBox.setupParentData(child);
-  }*/
-
-  /*@override
-  void redepthChildren() {
-    renderBox.redepthChildren();
-  }*/
-
-  /*@override
-  void visitChildren(visitor) {
-    renderBox.visitChildren(visitor);
-  }*/
-
-  /*@override
-  void redepthChild(AbstractNode child) {
-    renderBox.redepthChild(child);
-  }*/
-
-  @override
-  void markNeedsLayoutForSizedByParentChange() {
-    renderBox.markNeedsLayoutForSizedByParentChange();
-  }
-
-  @override
-  void invokeLayoutCallback<T extends Constraints>(callback) {
-    renderBox.invokeLayoutCallback(callback);
-  }
-
-  @override
-  void scheduleInitialLayout() {
-    renderBox.scheduleInitialLayout();
-  }
-
-  /*@override
-  void assembleSemanticsNode(SemanticsNode node, SemanticsConfiguration config, Iterable<SemanticsNode> children) {
-    renderBox.assembleSemanticsNode(node, config, children);
-  }*/
-
-  @override
-  void reassemble() {
-    renderBox.reassemble();
-  }
-
-  @override
-  bool get hasSize => renderBox.hasSize;
-
-  /*@override
-  double getMinIntrinsicHeight(double width) {
-    return renderBox.getMinIntrinsicHeight(width);
-  }
-
-  @override
-  void markNeedsSemanticsUpdate() {
-    renderBox.markNeedsSemanticsUpdate();
-  }
-
-  @override
-  int get depth => renderBox.depth;*/
-
-  /*@override
-  double getDistanceToActualBaseline(TextBaseline baseline) {
-    return renderBox.getDistanceToActualBaseline(baseline);
-  }
-
-  @override
-  double getMinIntrinsicWidth(double height) {
-    return renderBox.getMinIntrinsicWidth(height);
-  }
-
-  @override
-  double getDistanceToBaseline(TextBaseline baseline, {bool onlyReal = false}) {
-    return renderBox.getDistanceToBaseline(baseline, onlyReal: onlyReal);
-  }
-
-  @override
-  double getMaxIntrinsicWidth(double height) {
-    return renderBox.getMaxIntrinsicWidth(height);
-  }
-
-  @override
-  bool get isRepaintBoundary => renderBox.isRepaintBoundary;*/
-
-  @override
-  Matrix4 getTransformTo(RenderObject ancestor) {
-    return renderBox.getTransformTo(ancestor);
-  }
-
-  @override
-  void markNeedsCompositingBitsUpdate() {
-    renderBox.markNeedsCompositingBitsUpdate();
-  }
-
-  @override
-  ContainerLayer get layer => renderBox.layer;
-
-  /*@override
-  AbstractNode get parent => renderBox.parent;
-
-  @override
-  PipelineOwner get owner => renderBox.owner;
-
-  @override
-  ParentData get parentData => renderBox.parentData;
-
-  @override
-  bool get needsCompositing => renderBox.needsCompositing;
-
-  @override
-  Size get size => renderBox.size;
-
-  @override
-  Rect get semanticBounds => renderBox.semanticBounds;
-
-  @override
-  void visitChildrenForSemantics(visitor) {
-    renderBox.visitChildrenForSemantics(visitor);
-  }
-
-  @override
-  void clearSemantics() {
-    renderBox.clearSemantics();
-  }
-
-  @override
-  void detach() {
-    renderBox.detach();
-  }
-
-  @override
-  Offset globalToLocal(Offset point, {RenderObject ancestor}) {
-    return renderBox.globalToLocal(point, ancestor: ancestor);
-  }
-
-    @override
-  // TODO: implement attached
-  bool get attached => renderBox.attached;
-
-  @override
-  double computeDistanceToActualBaseline(TextBaseline baseline) {
-    return renderBox.computeDistanceToActualBaseline(baseline);
-  }*/
-
-  @override
-  bool get alwaysNeedsCompositing => renderBox.alwaysNeedsCompositing;
-
-  @override
-  void applyPaintTransform(covariant RenderObject child, Matrix4 transform) {
-    renderBox.applyPaintTransform(child, transform);
-  }
-
-  @override
-  void markNeedsLayout() {
-    renderBox.markNeedsLayout();
-  }
-
-  @override
-  void markNeedsPaint() {
-    renderBox.markNeedsPaint();
-  }
-
-  @override
-  bool hitTest(BoxHitTestResult result, {Offset position}) {
-    return renderBox.hitTest(result, position: position);
-  }
-
-  @override
-  bool hitTestChildren(BoxHitTestResult result, {Offset position}) {
-    return renderBox.hitTestChildren(result, position: position);
-  }
-
-  @override
-  bool hitTestSelf(Offset position) {
-    return renderBox.hitTestSelf(position);
-  }
-
-  @override
-  void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
-    renderBox.handleEvent(event, entry);
-  }
-
 }

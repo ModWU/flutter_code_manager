@@ -63,11 +63,15 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
   //保存最后一次垂直滚动的值
   ScrollMetrics _lastMetrics;
 
+  CarouselController _controller;
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
+
+    _controller = CarouselController();
 
     if (widget.items.length > 0) {
       var firstItem = widget.items[0];
@@ -248,7 +252,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
               return null;
             print("yyyyyyyyyyyyyyyyy:::index:$index");
             return Padding(
-              padding: EdgeInsets.only(left: 60.w),
+              padding: EdgeInsets.only(left: 0.w),
               child: _swiperBuilder(context, index),
             );
           },
@@ -256,10 +260,13 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
       ),
       reverse: false,
       autoPlay: true,
-      loop: true,
       padEnds: true,
+      controller:  CarouselController(),//_controller,
+      loop: true,
+      //padEndsViewportFraction: 0.05,
       //controller: CarouselController(),
       curve: Curves.ease,
+      autoPlayDelay: 5000,
       viewportFraction: 0.95,
       scale: 0.85,
       scrollDirection: Axis.horizontal,

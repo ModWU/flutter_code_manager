@@ -101,7 +101,6 @@ import 'sliver_fill.dart';
 /// ```
 /// {@end-tool}
 class CustomPageController extends ScrollController {
-
   /// The page to show when first creating the [PageView].
   int get initialPage => 0;
 
@@ -210,7 +209,7 @@ class CustomPageController extends ScrollController {
   @override
   ScrollPosition createScrollPosition(ScrollPhysics physics,
       ScrollContext context, ScrollPosition oldPosition) {
-    return _CustomPagePosition(
+    _CustomPagePosition position = _CustomPagePosition(
       physics: physics,
       context: context,
       initialPage: initialPage,
@@ -218,6 +217,10 @@ class CustomPageController extends ScrollController {
       viewportFraction: viewportFraction,
       oldPosition: oldPosition,
     );
+
+    print("logloglogaaaaaaaaaaaaaaaaaaaa: position is ScrollPosition: ${position is ScrollPosition}");
+
+    return position;
   }
 
   @override
@@ -566,6 +569,7 @@ class CustomPageView extends StatefulWidget {
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
     this.padEnds = true,
+    this.padEndsViewportFraction,
     CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
@@ -578,6 +582,8 @@ class CustomPageView extends StatefulWidget {
   })  : assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
         assert(padEnds != null),
+        assert(
+            padEndsViewportFraction == null || padEndsViewportFraction >= 0.0),
         controller = controller ?? _defaultPageController,
         childrenDelegate = CustomSliverChildListDelegate(children),
         super(key: key);
@@ -605,6 +611,7 @@ class CustomPageView extends StatefulWidget {
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
     this.padEnds = true,
+    this.padEndsViewportFraction,
     CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
@@ -618,6 +625,8 @@ class CustomPageView extends StatefulWidget {
   })  : assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
         assert(padEnds != null),
+        assert(
+            padEndsViewportFraction == null || padEndsViewportFraction >= 0.0),
         controller = controller ?? _defaultPageController,
         childrenDelegate = CustomSliverChildBuilderDelegate(itemBuilder,
             childCount: itemCount),
@@ -710,6 +719,7 @@ class CustomPageView extends StatefulWidget {
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
     this.padEnds = true,
+    this.padEndsViewportFraction,
     CustomPageController controller,
     this.physics,
     this.pageSnapping = true,
@@ -723,6 +733,8 @@ class CustomPageView extends StatefulWidget {
         assert(allowImplicitScrolling != null),
         assert(clipBehavior != null),
         assert(padEnds != null),
+        assert(
+            padEndsViewportFraction == null || padEndsViewportFraction >= 0.0),
         controller = controller ?? _defaultPageController,
         super(key: key);
 
@@ -743,6 +755,8 @@ class CustomPageView extends StatefulWidget {
   final String restorationId;
 
   final bool padEnds;
+
+  final double padEndsViewportFraction;
 
   /// The axis along which the page view scrolls.
   ///
@@ -871,6 +885,7 @@ class _CustomPageViewState extends State<CustomPageView> {
                 viewportFraction: widget.controller.viewportFraction,
                 delegate: widget.childrenDelegate,
                 padEnds: widget.padEnds,
+                padEndsViewportFraction: widget.padEndsViewportFraction,
               ),
             ],
           );
