@@ -218,8 +218,6 @@ class CustomPageController extends ScrollController {
       oldPosition: oldPosition,
     );
 
-    print("logloglogaaaaaaaaaaaaaaaaaaaa: position is ScrollPosition: ${position is ScrollPosition}");
-
     return position;
   }
 
@@ -851,6 +849,7 @@ class _CustomPageViewState extends State<CustomPageView> {
     ).applyTo(widget.pageSnapping
         ? _kPagePhysics.applyTo(widget.physics)
         : widget.physics);
+    print("wcc003 => _CustomPageViewState build physics: ${physics.hashCode} parent:${physics.parent}");
 
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {

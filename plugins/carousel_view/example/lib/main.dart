@@ -3,6 +3,7 @@ import 'package:carousel_view/carousel_view.dart';
 import 'package:provider/provider.dart';
 import 'advert_view.dart';
 import 'base_model.dart';
+import 'dart:math' as math;
 
 void main() {
   runApp(MyApp());
@@ -142,6 +143,9 @@ class _MyHomePageState extends State<MyHomePage> {
         //curve: Curves.ease,
         //duration: Duration(milliseconds: 500),
       ), //_controller,
+      //Disable manual sliding
+      physics: _CurvePageScrollPhysics(), //_CurvePageScrollPhysics(),
+      pageSnapping: true,
       childrenDelegate: CustomSliverChildBuilderDelegate(
         (BuildContext context, int index) {
           return Padding(
@@ -267,5 +271,54 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+  }
+}
+
+class _CurvePageScrollPhysics extends ScrollPhysics {
+  _CurvePageScrollPhysics({_CurvePageScrollPhysics parent})
+      : super(parent: parent);
+
+  @override
+  Simulation createBallisticSimulation(
+      ScrollMetrics position, double velocity) {
+    print("wcc003 => _CurvePageScrollPhysics createBallisticSimulation");
+    final Tolerance tolerance = this.tolerance;
+    if (position.outOfRange) {
+      double end;
+      if (position.pixels > position.maxScrollExtent)
+        end = position.maxScrollExtent;
+      if (position.pixels < position.minScrollExtent)
+        end = position.minScrollExtent;
+      assert(end != null);
+      return ScrollSpringSimulation(
+        spring,
+        position.pixels,
+        end,
+        math.min(0.0, velocity),
+        tolerance: tolerance,
+      );
+    }
+    if (velocity.abs() < tolerance.velocity) return null;
+    if (velocity > 0.0 && position.pixels >= position.maxScrollExtent)
+      return null;
+    if (velocity < 0.0 && position.pixels <= position.minScrollExtent)
+      return null;
+    return ClampingScrollSimulation(
+      position: position.pixels,
+      velocity: velocity,
+      tolerance: tolerance,
+    );
+  }
+
+ /* @override
+  ScrollPhysics applyTo(ScrollPhysics ancestor) {
+    return _CurvePageScrollPhysics(
+      parent: buildParent(ancestor),
+    );
+  }*/
+
+  @override
+  String toString() {
+    return "我自己的弹性对象";
   }
 }

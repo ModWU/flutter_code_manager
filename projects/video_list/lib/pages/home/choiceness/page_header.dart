@@ -7,7 +7,7 @@ import '../../../ui/views/advert_view.dart';
 import '../../page_controller.dart';
 import '../../../resources/export.dart';
 import '../../../models/base_model.dart';
-import 'package:carousel/carousel.dart';
+import 'package:carousel_view/carousel_view.dart';
 //import '../../../ui/utils/icons_utils.dart' as utils;
 
 class ChoicenessHeader extends StatefulWidget {
@@ -259,15 +259,9 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
           childCount: widget.items.length,
       ),
       reverse: false,
-      autoPlay: true,
       padEnds: true,
       controller:  CarouselController(),//_controller,
       loop: true,
-      //padEndsViewportFraction: 0.05,
-      //controller: CarouselController(),
-      curve: Curves.ease,
-      autoPlayDelay: 5000,
-      viewportFraction: 0.95,
       scale: 0.85,
       scrollDirection: Axis.horizontal,
       onHandUpChanged: (index) {

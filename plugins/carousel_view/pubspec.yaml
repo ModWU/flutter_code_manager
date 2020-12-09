@@ -1,7 +1,7 @@
 name: carousel_view
 description: The carousel_view for flutter, infinite loop.
 version: 0.0.1
-homepage: https://github.com/ModWU/flutter_code_manager/plugins/carousel_view
+homepage: https://github.com/ModWU/flutter_code_manager/tree/master/plugins/carousel_view
 
 environment:
   sdk: ">=2.10.0 <3.0.0"

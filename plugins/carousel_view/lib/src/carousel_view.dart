@@ -116,10 +116,8 @@ class CarouselView extends StatefulWidget {
 
   final CarouselController controller;
 
-  ///页的改变
   final ValueChanged<int> onPageChanged;
 
-  ///页的改变，手指抬起的瞬间
   final ValueChanged<int> onHandUpChanged;
 
   final Axis scrollDirection;
@@ -159,8 +157,6 @@ class _CarouselViewState extends State<CarouselView> {
 
   @override
   void didUpdateWidget(CarouselView oldWidget) {
-    print("loglog##didUpdateWidget:::::");
-
     if (widget != oldWidget) {
       final int childCount = _childCount;
       if (_controller._childCount != childCount) {
@@ -218,7 +214,6 @@ class _CarouselViewState extends State<CarouselView> {
   }
 
   void _initController({CarouselView oldWidget}) {
-    print("loglog##_initController:::::");
     final CarouselController oldController = _controller;
 
     _controller = widget.controller ?? _DefaultCarouselController();
@@ -243,7 +238,6 @@ class _CarouselViewState extends State<CarouselView> {
       }
 
       if (oldController is _DefaultCarouselController) {
-        print("_controller._initialPage oldPage: $oldPage");
         oldController.removeListener(_onScrollEvent);
         oldController.dispose();
       }
@@ -313,7 +307,6 @@ class _CarouselViewState extends State<CarouselView> {
 
   @override
   void dispose() {
-    print("##################66666666666666666dispose");
     if (widget.controller == null) {
       _disposeController();
     } else {
@@ -352,12 +345,12 @@ class _CarouselViewState extends State<CarouselView> {
     print("##max: viewportMainAxisExtent: $viewportMainAxisExtent");*/
 
     final Widget transformChild = Transform.scale(
-            scale: scaleVal,
-            alignment: _getAlignmentReferAxis(
-                widget.scrollDirection, widget.reverse, index, currentIndex),
-            transformHitTests: true,
-            child: child,
-          );
+      scale: scaleVal,
+      alignment: _getAlignmentReferAxis(
+          widget.scrollDirection, widget.reverse, index, currentIndex),
+      transformHitTests: true,
+      child: child,
+    );
 
     return widget.transformBuilder
             ?.call(context, index, page, viewportMainAxisExtent, child) ??
@@ -386,45 +379,63 @@ class _CarouselViewState extends State<CarouselView> {
   bool _notificationStartTag = false;
   List<int> _downPointers = [];
 
+  void _correctIndex(ScrollMetrics scrollMetrics) {
+    assert(scrollMetrics != null);
+    assert(scrollMetrics.hasViewportDimension);
+    assert(scrollMetrics is CustomPageMetrics);
+    final CustomPageMetrics metrics = scrollMetrics as CustomPageMetrics;
+    final double page = metrics.page;
+    final int currentPage = !widget.pageSnapping ? page.floor() : page.round();
+    /* double initOffset = _controller.page - currentPage;
+                if (initOffset.abs() < precisionErrorTolerance)
+                  initOffset = 0;*/
+
+    if (widget.loop) {
+      int realPage;
+
+      if (currentPage == 1) {
+        realPage = _realItemCount + 1;
+      } else if (currentPage == 2 + _realItemCount) {
+        realPage = 2;
+      } else if (currentPage == 0) {
+        realPage = _realItemCount;
+      } else if (currentPage == 3 + _realItemCount) {
+        realPage = 3;
+      }
+
+      if (realPage != null) {
+        if (!widget.pageSnapping) {
+          final double offset = (realPage + (page - currentPage)) *
+              metrics.viewportDimension *
+              metrics.viewportFraction;
+          _controller.jumpTo(offset);
+        } else {
+          _controller.jumpToPage(realPage);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    print("build build build: ${_controller.viewportFraction}");
     return ChangeNotifierProvider.value(
       value: _valueNotifier,
       child: NotificationListener(
         onNotification: (ScrollNotification notification) {
           if (_canScroll && notification.depth == 0) {
             if (notification is ScrollStartNotification) {
+              _controller.blocked();
               _notificationStartTag = true;
-              print(
-                  "00000ScrollStartNotification##_controller.page: ${_controller.page}");
-              if (notification.dragDetails != null) {
+              //Discard this method
+              /*if (notification.dragDetails != null) {
                 //by human
-                _controller.blocked();
-              }
+              }*/
             } else if (notification is ScrollEndNotification) {
               if (_notificationStartTag) {
                 _notificationStartTag = false;
-                final double page = _controller.page;
-                final int currentPage = page.round();
-                print(
-                    "00000ScrollEndNotification##currentPage: $currentPage, page: $page");
-                /* double initOffset = _controller.page - currentPage;
-                if (initOffset.abs() < precisionErrorTolerance)
-                  initOffset = 0;*/
-                if (widget.loop) {
-                  if (currentPage == 1) {
-                    _controller.jumpToPage(_realItemCount + 1);
-                  } else if (currentPage == 2 + _realItemCount) {
-                    _controller.jumpToPage(2);
-                  } else if (currentPage == 0) {
-                    _controller.jumpToPage(_realItemCount);
-                  } else if (currentPage == 3 + _realItemCount) {
-                    _controller.jumpToPage(3);
-                  }
-                }
+                _correctIndex(notification.metrics);
               }
-              print("pageStartEnd##ScrollEndNotification:_startTag: ");
+
               _controller.unblocked();
 
               if (!_hasHandUpHandle) {
@@ -440,8 +451,6 @@ class _CarouselViewState extends State<CarouselView> {
 
               _hasHandUpHandle = false;
             } else if (notification is ScrollUpdateNotification) {
-              print(
-                  "ScrollUpdateNotification####_controller page: ${_controller.page}");
               if (widget.onPageChanged != null) {
                 final CustomPageMetrics metrics =
                     notification.metrics as CustomPageMetrics;
@@ -458,21 +467,16 @@ class _CarouselViewState extends State<CarouselView> {
         },
         child: Listener(
           onPointerDown: (PointerDownEvent event) {
-            print("1######onPointerDown: ${event.pointer}");
             int pointer = event.pointer;
             _downPointers.add(pointer);
             _hasHandUpHandle = false;
           },
           onPointerCancel: (PointerCancelEvent event) {
-            print("1######onPointerCancel: ${event.pointer}");
             _downPointers.remove(event.pointer);
             _hasHandUpHandle = false;
           },
-          onPointerHover: (PointerHoverEvent event) {
-            print("1######onPointerHover: ${event.pointer}");
-          },
+          onPointerHover: (PointerHoverEvent event) {},
           onPointerUp: (PointerUpEvent event) {
-            print("1######onPointerUp: ${event.pointer}");
             _downPointers.remove(event.pointer);
 
             if (_downPointers.isEmpty &&
@@ -494,6 +498,7 @@ class _CarouselViewState extends State<CarouselView> {
             padEnds: widget.padEnds,
             padEndsViewportFraction: widget.padEndsViewportFraction,
             //physics: _physics,//CustomScrollPhysics(itemDimension: 0),//_physics,//widget.physics,
+            physics: widget.physics,
             pageSnapping: widget.pageSnapping,
             dragStartBehavior: widget.dragStartBehavior,
             allowImplicitScrolling: widget.allowImplicitScrolling,
@@ -510,8 +515,6 @@ class _CarouselViewState extends State<CarouselView> {
                     return Consumer<ValueNotifier<double>>(
                       builder: (BuildContext context,
                           ValueNotifier<double> notifier, Widget wgt) {
-                        print(
-                            "log###realIndex: $realIndex, index: $index, notifier.value: ${notifier.value}");
                         return _transformChild(
                             index, notifier.value, child, constraints);
                       },
@@ -540,7 +543,7 @@ class _CarouselViewState extends State<CarouselView> {
 class _DefaultCarouselController extends CarouselController {}
 
 class CarouselController extends CustomPageController {
-  Timer _autoPlayTimer; //定时器
+  Timer _autoPlayTimer;
 
   bool _autoPlay;
 
@@ -553,7 +556,6 @@ class CarouselController extends CustomPageController {
 
   Curve _curve;
 
-  //默认锁住
   int _blockObjSum = 0;
 
   int _initialPage;
@@ -629,7 +631,6 @@ class CarouselController extends CustomPageController {
 
   @nonVirtual
   void blocked() {
-    //还没有对象锁住时
     if (_blockObjSum == 0) {
       if (autoPlay) _stopAutoPlay();
     }
@@ -639,7 +640,6 @@ class CarouselController extends CustomPageController {
 
   @nonVirtual
   void unblocked() {
-    //当最后一个对象进行解锁时
     if (_blockObjSum == 1) {
       if (autoPlay) _startAutoPlay();
     }
@@ -659,8 +659,6 @@ class CarouselController extends CustomPageController {
     if (this.autoPlay == autoPlay) return;
 
     _autoPlay = autoPlay;
-    print(
-        "handleAutoPlay: init: $_init, isBlocked: $isBlocked, autoPlay: $autoPlay");
     if (!_init || isBlocked) return;
 
     if (autoPlay) {
@@ -679,6 +677,8 @@ class CarouselController extends CustomPageController {
 
   void _onTimer(Timer timer) {
     if (positions.isNotEmpty) {
+      print(
+          "_onTimer => page.round(): ${page.round()}, nextPage: ${page.round() + 1}, _childCount: $_childCount");
       animateToPage((page.round() + 1) % _childCount,
           duration: _duration ?? _defaultDuration,
           curve: _curve ?? _defaultCurve);
