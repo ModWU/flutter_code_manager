@@ -389,7 +389,6 @@ class _CarouselViewState extends State<CarouselView> {
     /* double initOffset = _controller.page - currentPage;
                 if (initOffset.abs() < precisionErrorTolerance)
                   initOffset = 0;*/
-
     if (widget.loop) {
       int realPage;
 

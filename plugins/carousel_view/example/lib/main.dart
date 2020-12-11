@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_view/carousel_view.dart';
+import 'package:flutter/physics.dart';
 import 'package:provider/provider.dart';
 import 'advert_view.dart';
 import 'base_model.dart';
@@ -144,8 +145,8 @@ class _MyHomePageState extends State<MyHomePage> {
         //duration: Duration(milliseconds: 500),
       ), //_controller,
       //Disable manual sliding
-      physics: _CurvePageScrollPhysics(), //_CurvePageScrollPhysics(),
-      pageSnapping: true,
+      //physics: _CurvePageScrollPhysics(), //_CurvePageScrollPhysics(),
+      //pageSnapping: false,
       childrenDelegate: CustomSliverChildBuilderDelegate(
         (BuildContext context, int index) {
           return Padding(
@@ -274,51 +275,95 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class _CurvePageScrollPhysics extends ScrollPhysics {
-  _CurvePageScrollPhysics({_CurvePageScrollPhysics parent})
-      : super(parent: parent);
+/*class _CurvePageScrollPhysics extends ScrollPhysics {
+  _CurvePageScrollPhysics({ScrollPhysics parent}) : super(parent: parent);
+
+  double _getPage(ScrollMetrics position) {
+    double page = position.pixels / position.viewportDimension;
+    return page;
+  }
+
+  double _getPixels(ScrollMetrics position, double page) {
+    return page * position.viewportDimension;
+  }
+
+  double _getTargetPixels(
+      ScrollMetrics position, Tolerance tolerance, double velocity) {
+    double page = _getPage(position);
+    if (velocity < -tolerance.velocity)
+      page -= 0.5;
+    else if (velocity > tolerance.velocity) page += 0.5;
+    return _getPixels(position, page.roundToDouble());
+  }
 
   @override
   Simulation createBallisticSimulation(
       ScrollMetrics position, double velocity) {
-    print("wcc003 => _CurvePageScrollPhysics createBallisticSimulation");
+    // If we're out of range and not headed back in range, defer to the parent
+    // ballistics, which should put us back in range at a page boundary.
+    print(
+        "555 => createBallisticSimulation: velocity:$velocity pixels:${position.pixels}");
+    if ((velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
+        (velocity >= 0.0 && position.pixels >= position.maxScrollExtent))
+      return super.createBallisticSimulation(position, velocity);
     final Tolerance tolerance = this.tolerance;
-    if (position.outOfRange) {
-      double end;
-      if (position.pixels > position.maxScrollExtent)
-        end = position.maxScrollExtent;
-      if (position.pixels < position.minScrollExtent)
-        end = position.minScrollExtent;
-      assert(end != null);
-      return ScrollSpringSimulation(
-        spring,
-        position.pixels,
-        end,
-        math.min(0.0, velocity),
-        tolerance: tolerance,
-      );
-    }
-    if (velocity.abs() < tolerance.velocity) return null;
-    if (velocity > 0.0 && position.pixels >= position.maxScrollExtent)
-      return null;
-    if (velocity < 0.0 && position.pixels <= position.minScrollExtent)
-      return null;
-    return ClampingScrollSimulation(
-      position: position.pixels,
-      velocity: velocity,
-      tolerance: tolerance,
-    );
+    final double target = _getTargetPixels(position, tolerance, velocity);
+    if (target != position.pixels)
+      return _EaseScrollSpringSimulation(spring, position.pixels, target, velocity,
+          tolerance: tolerance);
+
+    return null;
   }
 
- /* @override
+  @override
+  bool get allowImplicitScrolling => false;
+
+  @override
   ScrollPhysics applyTo(ScrollPhysics ancestor) {
-    return _CurvePageScrollPhysics(
-      parent: buildParent(ancestor),
+    ScrollPhysics parent = buildParent(ancestor);
+    _CurvePageScrollPhysics physics = _CurvePageScrollPhysics(
+      parent: parent,
     );
-  }*/
+    return physics;
+  }
 
   @override
   String toString() {
-    return "我自己的弹性对象";
+    return "我自己的弹性对象 -> $parent";
+  }
+}*/
+
+/*
+class _EaseScrollSpringSimulation extends ScrollSpringSimulation {
+  _EaseScrollSpringSimulation(
+    SpringDescription spring,
+    double start,
+    double end,
+    double velocity, {
+    Tolerance tolerance = const Tolerance(time: 0.1),
+  }) : super(spring, start, end, velocity, tolerance: tolerance);
+
+  @override
+  double x(double time) {
+    if (isDone(time))
+      return super.x(time);
+    //var j = Curves.easeIn;
+    */
+/*Curve curve = Curves.fastLinearToSlowEaseIn;//Cubic(1.0, 0.0, 1.0, 1.0);//Curves.easeIn;
+    double newTime = curve.transform(time);
+
+    double value = super.x(newTime);
+
+    print("_EaseScrollSpringSimulation.x => time:$time, newTime:$newTime, value:$value");*//*
+
+    double value = super.x(time);
+    print("_EaseScrollSpringSimulation.x => time:$time, value:$value");
+    return value;
+    */
+/*double value = super.x(time);
+    print("_EaseScrollSpringSimulation.x => time:$time, value:$value");
+    return value;*//*
+
   }
 }
+*/
