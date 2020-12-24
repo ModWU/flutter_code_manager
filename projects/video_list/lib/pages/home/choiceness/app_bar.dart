@@ -69,7 +69,7 @@ class ChoicenessBar extends StatelessWidget {
                   child: Icon(
                     Icons.search,
                     //size: 26,
-                    //color: Colors.black45,
+                    color: Colors.red,
                   ),
                 ),
                 Flexible(

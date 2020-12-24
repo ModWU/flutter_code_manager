@@ -506,8 +506,6 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
     assert(mainAxisUnit != null);
     assert(addExtent != null);
     RenderBox child = firstChild;
-    print("66666666666666 paint start=>");
-    int count = 0;
     while (child != null) {
       final double mainAxisDelta = childMainAxisPosition(child);
       final double crossAxisDelta = childCrossAxisPosition(child);
@@ -522,11 +520,8 @@ abstract class RenderSliverMultiBoxAdaptor2 extends RenderSliver
       // If the child's visible interval (mainAxisDelta, mainAxisDelta + paintExtentOf(child))
       // does not intersect the paint extent interval (0, constraints.remainingPaintExtent), it's hidden.
       if (mainAxisDelta < constraints.remainingPaintExtent && mainAxisDelta + paintExtentOf(child) > 0) {
-        print("66666666666666 paint index:$count=> final-childOffset: ${childOffset.toString()}, layoutOffset: ${childScrollOffset(child)}, constraints.scrollOffset: ${constraints.scrollOffset}, child.size: ${child.size}");
-
         context.paintChild(child, childOffset);
       }
-      count++;
 
       child = childAfter(child);
     }

@@ -71,7 +71,11 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
 
     WidgetsBinding.instance.addObserver(this);
 
-    _controller = CarouselController();
+    _controller = CarouselController(
+      viewportFraction: 0.96,
+      autoPlay: true,
+      autoPlayDelay: 5000
+    );
 
     if (widget.items.length > 0) {
       var firstItem = widget.items[0];
@@ -248,11 +252,8 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
       //itemCount: widget.items.length,
       childrenDelegate: CustomSliverChildBuilderDelegate(
           (BuildContext context, int index) {
-            if (index < 0 || index >= widget.items.length)
-              return null;
-            print("yyyyyyyyyyyyyyyyy:::index:$index");
             return Padding(
-              padding: EdgeInsets.only(left: 0.w),
+              padding: EdgeInsets.symmetric(horizontal: 2.w),
               child: _swiperBuilder(context, index),
             );
           },
@@ -260,9 +261,9 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
       ),
       reverse: false,
       padEnds: true,
-      controller:  CarouselController(),//_controller,
+      controller:  _controller,//_controller,
       loop: true,
-      scale: 0.85,
+      scale: 0.995,
       scrollDirection: Axis.horizontal,
       onHandUpChanged: (index) {
         print("wuchaochaochaochao.........当前页面：$index");
