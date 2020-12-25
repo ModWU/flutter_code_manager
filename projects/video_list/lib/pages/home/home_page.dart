@@ -136,35 +136,15 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
           ),
           preferredSize: Size.fromHeight(Dimens.action_bar_height),//可以移动的边距
         ),
-        body: NotificationListener(
-          onNotification: (ScrollNotification note) {
-            //print(note.metrics.pixels.toInt());  // 滚动位置。
-            // print("scroll: ${note.metrics.pixels}");
-            /*if (note.metrics.axis == Axis.vertical) {
-                      print(
-                          "axis: ${note.metrics.axis == Axis.horizontal ? "水平" : "垂直"}, extentAfter:${note.metrics.extentAfter}, extentBefore:${note.metrics.extentBefore}, extentInside:${note.metrics.extentInside}, pixels:${note.metrics.pixels}, viewportDimension:${note.metrics.viewportDimension}, minScrollExtent:${note.metrics.minScrollExtent}, maxScrollExtent:${note.metrics.minScrollExtent}");
-
-                      print(
-                          "差值：${note.metrics.extentBefore - note.metrics.extentAfter}");
-                    }*/
-            //notifyScrollPage(context, widget.pageIndex, widget.tabIndex, note.metrics);
-            //print(note.metrics.pixels.toInt());
-
-            //当前滚动通知只监听首页的所有tab页的滚动
-            _pageList[_tabController.index].pageScrollNotifier.scroll(note.metrics);
-
-            return false;
+        body: PageView(
+          children: _pageList,
+          controller: _pageController,
+          physics: const BouncingScrollPhysics(),
+          onPageChanged: (index) {
+            _isPageAnimation = true;
+            _tabController.animateTo(index);
           },
-          child: PageView(
-            children: _pageList,
-            controller: _pageController,
-            physics: const BouncingScrollPhysics(),
-            onPageChanged: (index) {
-              _isPageAnimation = true;
-              _tabController.animateTo(index);
-            },
-          ),
-        )
+        ),
       ),
     );
   }

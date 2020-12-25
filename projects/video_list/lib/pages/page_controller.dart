@@ -131,19 +131,6 @@ class PageVisibleNotifier extends ChangeNotifier {
 
 mixin PageVisibleMixin on Widget {
   final PageVisibleNotifier pageVisibleNotifier = PageVisibleNotifier();
-  final PageScrollNotifier pageScrollNotifier = PageScrollNotifier();
-}
-
-class PageScrollNotifier with ChangeNotifier {
-  ScrollMetrics _metrics;
-
-  ScrollMetrics get metrics => _metrics;
-
-  void scroll(ScrollMetrics metrics) {
-    assert(metrics != null);
-    _metrics = metrics;
-    notifyListeners();
-  }
 }
 
 class PageChangeNotifier with ChangeNotifier {

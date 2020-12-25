@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -7,14 +9,190 @@ import '../../page_controller.dart';
 import '../../../ui/utils/icons_utils.dart' as utils;
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:flutter_screenutil/size_extension.dart';
+import 'dart:math' as math;
 
 double itemVerticalSpacing = 3.0.w, itemHorizontalSpacing = 6.0.w;
-double itemVerticalSize = (Dimens.design_screen_width.w - 3.0.w) / 2.0,
-    itemHorizontalSize = (Dimens.design_screen_width.w - 6.0.w) / 2.5;
+
+class ViewportOffsetData {
+  final double visibleOffset;
+  final double height;
+  final int index;
+
+  const ViewportOffsetData(this.index, this.height, this.visibleOffset);
+
+  @override
+  String toString() {
+    return 'ViewportOffsetData{"index": $index, "height": $height, "visibleOffset": $visibleOffset}';
+  }
+}
+
+class HeightMeasurer {
+  List<double> _heightList;
+
+  static final double headItemHeight = 440.h;
+  static final double advertItemHeight = Dimens.design_screen_width.w * 0.5;
+  static final double itemHeightWithHorizontalList =
+      (Dimens.design_screen_width.w - 6.0.w) / 2.5;
+
+  static final double primaryTitleHeight = 96.h;
+  static final double bottomRefreshHeight = 90.h;
+
+  static final double itemHeaderHeightWithVerticalList =
+      Dimens.design_screen_width.w * 0.5;
+  static final double itemVideoTitleHeightWithVerticalList = 120.h;
+  static final double itemVideoMainAxisSpaceWithVerticalList = 90.h;
+  static final double itemVideoCrossAxisSpaceWithVerticalList = 4.h;
+  static final double itemVideoAspectRatioWithVerticalList = 1.0; //宽比高：1:1
+  static final int itemVideoCrossAxisCountWithVerticalList = 2; //水平方向的数量
+
+  double getHeight(int index) {
+    assert(_heightList != null);
+    assert(index != null && index >= 0 && index < _heightList.length);
+    return _heightList[index];
+  }
+
+  List<ViewportOffsetData> getViewportOffsetData(double extentBefore, double viewportDimension) {
+    assert(extentBefore != null && extentBefore >= 0);
+    assert(_heightList != null && _heightList.isNotEmpty);
+    final List<ViewportOffsetData> list = List<ViewportOffsetData>();
+    print("getHeaderVisibleWrap => extentBefore: $extentBefore");
+    final double viewportAfter = extentBefore + viewportDimension;
+    double totalHeight = 0;
+    bool isFindStart = false;
+    for (int i = 0; i < _heightList.length; i++) {
+      totalHeight += _heightList[i];
+      //visibleWrap = VisibleWrap(i, _heightList[i], totalHeight - extentBefore);
+      //先找头
+      if (list.isEmpty && (extentBefore <= totalHeight)) {
+        list.add(ViewportOffsetData(i, _heightList[i], totalHeight - extentBefore));
+        isFindStart = true;
+        continue;
+      }
+
+      //再找尾
+      if (viewportAfter <= totalHeight) {
+        final double visibleOffset = _heightList[i] - (totalHeight - viewportAfter);
+        if (visibleOffset > 0)
+          list.add(ViewportOffsetData(i, _heightList[i], visibleOffset));
+        break;
+      }
+
+      if (isFindStart)
+        list.add(ViewportOffsetData(i, _heightList[i], _heightList[i]));
+    }
+
+    return list;
+  }
+
+  void removeHeight(int index) {
+    assert(_heightList != null);
+    assert(index != null && index >= 0 && index < _heightList.length);
+    var item = _heightList.removeAt(index);
+    assert(item != null);
+  }
+
+  void insertHeight(int index, dynamic item) {
+    assert(_heightList != null);
+    assert(index != null && index >= 0 && index <= _heightList.length);
+    assert(item is VideoItems || item is AdvertItem);
+    double height = _computerHeight(index, item);
+    assert(height > 0);
+    _heightList.insert(index, height);
+  }
+
+  void addHeight(dynamic item) {
+    assert(_heightList != null);
+    assert(item is VideoItems || item is AdvertItem);
+    double height = _computerHeight(_heightList.length, item);
+    assert(height > 0);
+    _heightList.add(height);
+  }
+
+  void addAllHeight(List items) {
+    assert(_heightList != null);
+    assert(items != null && items.isNotEmpty);
+    int startIndex = _heightList.length;
+    for (int index = 0; index < items.length; index++) {
+      double height = _computerHeight(startIndex + index, items[index]);
+      assert(height > 0);
+      _heightList.add(height);
+    }
+  }
+
+  double _computerHeight(int index, dynamic item) {
+    assert(item is VideoItems || item is AdvertItem);
+    double totalHeight = 0;
+    if (item is VideoItems) {
+      //顶部一定都有标题
+      totalHeight += primaryTitleHeight;
+      if (item.layout == VideoLayout.vertical) {
+        //计算垂直高
+        int length = item.items.length;
+
+        if (length.isOdd) {
+          totalHeight += itemHeaderHeightWithVerticalList;
+          if (item.items[0].title?.preTitle != null) {
+            totalHeight += itemVideoTitleHeightWithVerticalList;
+          }
+          length--;
+
+          if (length > 0) {
+            totalHeight += itemVideoMainAxisSpaceWithVerticalList;
+          }
+        }
+
+        if (length > 0) {
+          final int lineCount =
+              (length / itemVideoCrossAxisCountWithVerticalList).ceil();
+          final double itemWidth = (Dimens.design_screen_width.w -
+                  itemVideoCrossAxisSpaceWithVerticalList *
+                      (itemVideoCrossAxisCountWithVerticalList - 1)) /
+              itemVideoCrossAxisCountWithVerticalList;
+
+          final double itemHeight =
+              itemWidth / itemVideoAspectRatioWithVerticalList;
+
+          totalHeight += (lineCount * itemHeight + itemVideoMainAxisSpaceWithVerticalList * (lineCount - 1));
+        }
+      } else {
+        totalHeight += itemHeightWithHorizontalList;
+      }
+
+      //判断底部是否有刷新
+      if (item.bottom != null &&
+          (item.bottom.isHasRefresh ||
+              item.bottom.playTitle != null)) {
+        totalHeight += HeightMeasurer.bottomRefreshHeight;
+      }
+
+    } else if (item is AdvertItem) {
+      //广告上下都有间距
+      totalHeight +=
+          advertItemHeight + itemVideoMainAxisSpaceWithVerticalList * 2;
+    }
+
+    return totalHeight;
+  }
+
+  void initAllHeight(List items) {
+    assert(items != null && items.isNotEmpty);
+    final List tmpItems = List.from(items);
+    //头部高度固定
+    tmpItems.removeAt(0);
+
+    _heightList = [];
+    _heightList.add(headItemHeight);
+
+    addAllHeight(tmpItems);
+  }
+}
 
 Widget buildVideoTitle(VideoItemTitle title) {
-  return Padding(
-    padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 28.w),
+  return Container(
+    padding: EdgeInsets.symmetric(horizontal: 28.w),
+    height: HeightMeasurer.primaryTitleHeight,
+    color: Colors.green,
+    //alignment: Alignment.center,
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -87,15 +265,16 @@ Widget buildVideoTitle(VideoItemTitle title) {
 }
 
 Widget buildBottom(VideoBottom bottom, VideoLayout layout) {
-  if (bottom == null) return null;
-
-  if (!bottom.isHasRefresh && bottom.playTitle == null) return null;
+  assert(bottom != null);
+  assert(layout != null);
+  assert(bottom.isHasRefresh || bottom.playTitle != null);
 
   bool isOnlyOne =
-  bottom.isHasRefresh ? (bottom.playTitle != null ? false : true) : true;
+      bottom.isHasRefresh ? (bottom.playTitle != null ? false : true) : true;
 
-  return Padding(
-    padding: EdgeInsets.symmetric(vertical: 32.h),
+  return Container(
+    //padding: EdgeInsets.symmetric(vertical: 32.h),
+    height: HeightMeasurer.bottomRefreshHeight,
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       // crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -111,9 +290,9 @@ Widget buildBottom(VideoBottom bottom, VideoLayout layout) {
               padding: isOnlyOne
                   ? EdgeInsets.zero
                   : EdgeInsets.only(
-                  right: layout == VideoLayout.horizontal
-                      ? itemHorizontalSpacing
-                      : itemVerticalSpacing),
+                      right: layout == VideoLayout.horizontal
+                          ? itemHorizontalSpacing
+                          : itemVerticalSpacing),
               child: Center(
                 child: _buildBottomIcon(
                   Icons.play_circle_outline,
@@ -122,16 +301,16 @@ Widget buildBottom(VideoBottom bottom, VideoLayout layout) {
                     children: bottom.playSign == null
                         ? null
                         : [
-                      WidgetSpan(
-                        child: utils.getSignIcon(bottom.playSign,
-                            size: 12),
-                        alignment: PlaceholderAlignment.middle,
-                      ),
-                      if (bottom.playDesc != null)
-                        TextSpan(
-                          text: bottom.playDesc,
-                        ),
-                    ],
+                            WidgetSpan(
+                              child:
+                                  utils.getSignIcon(bottom.playSign, size: 12),
+                              alignment: PlaceholderAlignment.middle,
+                            ),
+                            if (bottom.playDesc != null)
+                              TextSpan(
+                                text: bottom.playDesc,
+                              ),
+                          ],
                   ),
                   onTap: () {
                     print("点击了${bottom.playTitle}");
@@ -147,9 +326,9 @@ Widget buildBottom(VideoBottom bottom, VideoLayout layout) {
               padding: isOnlyOne
                   ? EdgeInsets.zero
                   : EdgeInsets.only(
-                  left: layout == VideoLayout.horizontal
-                      ? itemHorizontalSpacing
-                      : itemVerticalSpacing),
+                      left: layout == VideoLayout.horizontal
+                          ? itemHorizontalSpacing
+                          : itemVerticalSpacing),
               child: Center(
                 child: _buildBottomIcon(
                   Icons.refresh,
@@ -165,7 +344,6 @@ Widget buildBottom(VideoBottom bottom, VideoLayout layout) {
     ),
   );
 }
-
 
 Widget _buildBottomIcon(IconData iconData, TextSpan textSpan,
     {GestureTapCallback onTap}) {

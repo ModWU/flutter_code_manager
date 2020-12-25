@@ -143,7 +143,6 @@ class ChoicenessController {
     );
 
     List list = [
-      headerImage1,
       headerImage2,
       headerImage3,
       headerImage4,
@@ -160,13 +159,13 @@ class ChoicenessController {
       else
         return 0;
     });
-    return List.from(list.take(6));
+    return List.from(list.take(5))..insert(0, headerImage1);
   }
 
   List getRondomDataByAdd() {
     List data = [];
     var random = new Random();
-    int count = random.nextInt(5) + 2;
+    int count = random.nextInt(2) + 1;
     for (int i = 0; i < count; i++) {
       int titleIndex = random.nextInt(MarkType.values.length);
       int layoutIndex = random.nextInt(VideoLayout.values.length);

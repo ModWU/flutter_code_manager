@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_swiper/flutter_swiper.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:video_list/pages/home/choiceness/video_page_utils.dart';
 import '../../../ui/views/advert_view.dart';
 import '../../page_controller.dart';
 import '../../../resources/export.dart';
@@ -12,14 +13,12 @@ import 'package:carousel_view/carousel_view.dart';
 
 class ChoicenessHeader extends StatefulWidget {
   const ChoicenessHeader(
-      this.items, this.pageVisibleNotifier, this.pageScrollNotifier);
+      this.items, this.pageVisibleNotifier);
 
   @override
   State<StatefulWidget> createState() => _ChoicenessHeaderState();
 
   final PageVisibleNotifier pageVisibleNotifier;
-
-  final PageScrollNotifier pageScrollNotifier;
 
   final List items;
 }
@@ -29,7 +28,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
   ValueNotifier<dynamic> _bottomTextNotifier;
 
   //int _index = 0;
-  double _height = 440.h;
+  double _height = HeightMeasurer.headItemHeight;
   SwiperController _swiperController = SwiperController()
     ..autoplay = true
     ..index = 0;
@@ -73,7 +72,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
 
     _controller = CarouselController(
       viewportFraction: 0.96,
-      autoPlay: true,
+      autoPlay: false,
       autoPlayDelay: 5000
     );
 
@@ -90,7 +89,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
     }
 
     //当前滚动对象只针对当前页的滚动，初始化页面滚动监听
-    widget.pageScrollNotifier.addListener(() {
+    /*widget.pageScrollNotifier.addListener(() {
       ScrollMetrics scrollMetrics = widget.pageScrollNotifier.metrics;
       //当垂直滚动时判断头部可视范围
       if (scrollMetrics.axis == Axis.vertical) {
@@ -111,7 +110,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
         }
         _lastMetrics = scrollMetrics;
       }
-    });
+    });*/
 
     widget.pageVisibleNotifier.addListener(() {
       print("首页精选页的可视切换收到通知：${widget.pageVisibleNotifier.visible}");
@@ -304,7 +303,7 @@ class _ChoicenessHeaderState extends State<ChoicenessHeader>
             Expanded(
               flex: 1,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: ChangeNotifierProvider.value(

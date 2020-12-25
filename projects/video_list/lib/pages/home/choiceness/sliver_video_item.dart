@@ -8,7 +8,7 @@ import '../../../ui/utils/icons_utils.dart' as utils;
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'dart:ui' as ui show PlaceholderAlignment;
-import 'video_page_utils.dart' as VideoPageUtils;
+import 'video_page_utils.dart';
 
 class VideoItemWidget extends StatefulWidget {
   final VideoItems items;
@@ -42,20 +42,18 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
     final int count = items.length;
 
     return Container(
-      height: VideoPageUtils.itemHorizontalSize,
+      height: HeightMeasurer.itemHeightWithHorizontalList,
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         scrollDirection: Axis.horizontal,
         shrinkWrap: true,
         slivers: [
           SliverFixedExtentList(
-            itemExtent: VideoPageUtils.itemHorizontalSize * 1.2,
+            itemExtent: HeightMeasurer.itemHeightWithHorizontalList * 1.2,
             delegate: SliverChildBuilderDelegate((content, index) {
               return Padding(
-                padding: EdgeInsets.only(
-                    right: VideoPageUtils.itemHorizontalSpacing),
-                child: _buildVideoItem(
-                    items[index], VideoPageUtils.itemHorizontalSize),
+                padding: EdgeInsets.only(right: itemHorizontalSpacing),
+                child: _buildVideoItem(items[index]),
               );
             }, childCount: count),
           ),
@@ -65,19 +63,20 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
   }
 
   Widget _buildVideoHeader(VideoItem item) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 4.w),
-      child: Column(
-        children: [
-          Container(
-            height: Dimens.design_screen_width.w * 0.5,
-            width: Dimens.design_screen_width.w,
-            child: _buildVideoBody(item),
-          ),
-          if (item.title?.preTitle != null) _buildVideoTitle(item),
-        ],
-      ),
+    return Column(
+      children: [
+        Container(
+          height: HeightMeasurer.itemHeaderHeightWithVerticalList,
+          width: double.infinity,
+          child: _buildVideoBody(item),
+        ),
+        if (item.title?.preTitle != null) _buildVideoTitle(item),
+      ],
     );
+    /* return Padding(
+      padding: EdgeInsets.only(bottom: HeightMeasurer.itemVideoMainAxisSpaceHeightWithVerticalList),
+      child: ,
+    );*/
   }
 
   Widget _buildVideoBody(VideoItem item) {
@@ -112,8 +111,11 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
   }
 
   Widget _buildVideoTitle(VideoItem item) {
-    return Padding(
+    return Container(
       padding: EdgeInsets.only(left: 24.w, top: 18.w, bottom: 18.w),
+      height: HeightMeasurer.itemVideoTitleHeightWithVerticalList,
+      color: Colors.yellow,
+      alignment: Alignment.center,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -154,47 +156,51 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
     );
   }
 
-  Widget _buildVideoItem(VideoItem item, double height) {
-    return Container(
-      height: height,
-      child: Column(
-        children: [
-          Expanded(
-            flex: 3,
-            child: _buildVideoBody(item),
-          ),
-          if (item.title?.preTitle != null) _buildVideoTitle(item),
-        ],
-      ),
+  Widget _buildVideoItem(VideoItem item) {
+    return Column(
+      children: [
+        Expanded(
+          flex: 3,
+          child: _buildVideoBody(item),
+        ),
+        if (item.title?.preTitle != null) _buildVideoTitle(item),
+      ],
     );
   }
 
   Widget _buildVideoWithVertical(VideoItems item) {
     final List<VideoItem> items = List.from(item.items);
-    final int count = items.length;
 
-    final VideoItem headerItem = count.isOdd ? items.removeAt(0) : null;
-
-    print("##count:$count, headerItem: $headerItem");
+    final VideoItem headerItem = items.length.isOdd ? items.removeAt(0) : null;
 
     return Column(
       children: [
-        if (headerItem != null) (_buildVideoHeader(headerItem)),
-        CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          shrinkWrap: true,
-          slivers: [
-            SliverGrid.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 4.w,
-                crossAxisSpacing: 4.w,
-                childAspectRatio: 1.2,
-                children: items
-                    .map((e) =>
-                        _buildVideoItem(e, VideoPageUtils.itemVerticalSize))
-                    .toList()),
-          ],
-        ),
+        if (headerItem != null)
+          Padding(
+            padding: items.length > 0
+                ? EdgeInsets.only(
+                    bottom:
+                        HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList)
+                : 0,
+            child: _buildVideoHeader(headerItem),
+          ),
+        if (items.length > 0)
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            shrinkWrap: true,
+            slivers: [
+              SliverGrid.count(
+                  crossAxisCount:
+                      HeightMeasurer.itemVideoCrossAxisCountWithVerticalList,
+                  mainAxisSpacing:
+                      HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList,
+                  crossAxisSpacing:
+                      HeightMeasurer.itemVideoCrossAxisSpaceWithVerticalList,
+                  childAspectRatio:
+                      HeightMeasurer.itemVideoAspectRatioWithVerticalList,
+                  children: items.map((e) => _buildVideoItem(e)).toList()),
+            ],
+          ),
       ],
     );
   }
@@ -298,10 +304,12 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
 
     return Column(
       children: [
-        VideoPageUtils.buildVideoTitle(widget.items.title),
+        buildVideoTitle(widget.items.title),
         child,
-        if (widget.items.bottom != null)
-          VideoPageUtils.buildBottom(widget.items.bottom, widget.items.layout),
+        if (widget.items.bottom != null &&
+            (widget.items.bottom.isHasRefresh ||
+                widget.items.bottom.playTitle != null))
+          buildBottom(widget.items.bottom, widget.items.layout),
       ],
     );
   }

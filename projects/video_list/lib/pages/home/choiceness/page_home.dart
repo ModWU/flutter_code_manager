@@ -1,9 +1,12 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/controllers/choiceness_controller.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/models/choiceness_model.dart';
+import 'package:video_list/pages/home/choiceness/video_page_utils.dart';
 import 'package:video_list/pages/page_controller.dart';
 import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/utils/icons_utils.dart';
 import 'package:video_list/resources/res/dimens.dart';
@@ -56,12 +59,9 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     super.dispose();
   }
 
-  void _disposeResources() {
-
-  }
+  void _disposeResources() {}
 
   void _initResources() {
-
     List dataList = ChoicenessController().initChoicenessData();
 
     _list = new ListModel(
@@ -100,11 +100,10 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     }
   }
 
-  Widget _buildRemovedItem(
-      BuildContext context, int index, dynamic item, Animation<double> animation) {
+  Widget _buildRemovedItem(BuildContext context, int index, dynamic item,
+      Animation<double> animation) {
     if (index == 0) {
-      return ChoicenessHeader(
-          item, widget.pageVisibleNotifier, widget.pageScrollNotifier);
+      return ChoicenessHeader(item, widget.pageVisibleNotifier);
     }
 
     if (item is VideoItems) {
@@ -115,34 +114,39 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     return null;
   }
 
+  Random random = Random();
 
   Widget _buildItem(
       BuildContext context, int index, Animation<double> animation) {
     print("remove notifiy _buildItem: ${index}");
     final dynamic data = _list[index];
+    Widget child;
     if (index == 0) {
-      return ChoicenessHeader(
-          data, widget.pageVisibleNotifier, widget.pageScrollNotifier);
+      child = ChoicenessHeader(data, widget.pageVisibleNotifier);
     }
 
     if (data is VideoItems) {
-      return VideoItemWidget(data);
+      child = Container(
+        color: Color.fromARGB(random.nextInt(100) + 155, random.nextInt(255), random.nextInt(255), random.nextInt(255)),
+        child: VideoItemWidget(data),
+      );
     } else if (data is AdvertItem) {
-      return Container(
+      child = Container(
         width: Dimens.design_screen_width.w,
-        height: Dimens.design_screen_width.w / 2,
+        height: HeightMeasurer.itemHeaderHeightWithVerticalList + HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList * 2,
+        padding: EdgeInsets.symmetric(vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
         color: Colors.black26,
         child: AdvertView(data),
       );
     }
-    return null;
-
+    return child;
   }
 
   Future<Null> _onRefresh() async {
     print("刷新成功");
     await Future.delayed(Duration(milliseconds: 1000));
-    List newDataList = ChoicenessController().updateChoicenessData(_list._items);
+    List newDataList =
+        ChoicenessController().updateChoicenessData(_list._items);
     _list.update(newDataList);
     /* setState(() {
       _initResources();
@@ -189,15 +193,45 @@ class _ChoicenessPageState extends State<ChoicenessPage>
           preferredSize: Size.fromHeight(_appBarHeight),
         ),
         floatingActionButton: null,
-        body: Container(
+        body: NotificationListener(
+          onNotification: (ScrollNotification notification) {
+            final ScrollMetrics metrics = notification.metrics;
+            /*print("##123 => ${metrics.runtimeType}");
+
+            if (notification is ScrollStartNotification) {
+              print(
+                  '##123 => 滚动开始 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection}');
+            }
+            if (notification is ScrollUpdateNotification) {
+              print(
+                  '##123 => 滚动中 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection}');
+            }*/
+            if (notification is ScrollEndNotification && metrics.axis == Axis.vertical) {
+              /*print(
+                  '##123 => 停止滚动 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection} extentAfter: ${notification.metrics.extentAfter}');
+              if (notification.metrics.extentAfter == 0) {
+                print(
+                    '##123 => 滚动到底部 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection}');
+              }
+              if (notification.metrics.extentBefore == 0) {
+                print(
+                    '##123 => 滚动到头部 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection}');
+              }*/
+              //print('##123 => 停止滚动 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection} extentAfter: ${notification.metrics.extentAfter} extentBefore:${notification.metrics.extentBefore} viewportDimension:${notification.metrics.viewportDimension}');
+              final List<ViewportOffsetData> viewportOffsetDataList = _list.getViewportOffsetData(metrics.extentBefore, metrics.viewportDimension);
+
+              print("##123 => viewportOffsetDataList: $viewportOffsetDataList");
+            }
+            return false;
+          },
           child: SmartRefresher(
             enablePullDown: true,
             enablePullUp: true,
             onRefresh: _onRefresh,
             onLoading: _onLoading,
-            onOffsetChange: (isUp, offset) {
+            /*onOffsetChange: (isUp, offset) {
               print("###offset: $offset, isUp: $isUp");
-            },
+            },*/
             controller: _refreshController,
             //// WaterDropHeader、ClassicHeader、CustomHeader、LinkHeader、MaterialClassicHeader、WaterDropMaterialHeader
             header: ShimmerHeader(
@@ -255,31 +289,41 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   bool get wantKeepAlive => true;
 }
 
-typedef RemovedItemBuilder<E> = Widget Function(BuildContext context, int index, E item, Animation<double> animation);
+typedef RemovedItemBuilder<E> = Widget Function(
+    BuildContext context, int index, E item, Animation<double> animation);
 
-class ListModel<E> {
+class ListModel<E> with HeightMeasurer {
   ListModel({
     @required this.listKey,
     @required this.removedItemBuilder,
     Iterable<E> initialItems,
   })  : assert(listKey != null),
         assert(removedItemBuilder != null),
-        _items = new List<E>.from(initialItems ?? <E>[]);
+        _items = new List<E>.from(initialItems ?? <E>[]) {
+    initAllHeight(_items);
+  }
 
   final GlobalKey<SliverAnimatedListState> listKey;
   final RemovedItemBuilder removedItemBuilder;
   final List<E> _items;
+
 
   SliverAnimatedListState get _sliverAnimatedList => listKey.currentState;
 
   void insert(int index, E item) {
     _items.insert(index, item);
     _sliverAnimatedList.insertItem(index);
+    insertHeight(index, item);
   }
 
   void addAll(List<E> items) {
+    int addLength = items.length;
+    int lastIndex = _items.length;
     _items.addAll(items);
-    ((_sliverAnimatedList.context) as Element).markNeedsBuild();
+    addAllHeight(items);
+    while (addLength-- > 0) {
+      _sliverAnimatedList.insertItem(lastIndex++);
+    }
   }
 
   void update(List<E> items) {
@@ -292,9 +336,10 @@ class ListModel<E> {
     final E removedItem = _items.removeAt(index);
     if (removedItem != null) {
       _sliverAnimatedList.removeItem(index,
-              (BuildContext context, Animation<double> animation) {
-            return removedItemBuilder(context, index, removedItem, animation);
-          });
+          (BuildContext context, Animation<double> animation) {
+        return removedItemBuilder(context, index, removedItem, animation);
+      });
+
     }
     return removedItem;
   }
