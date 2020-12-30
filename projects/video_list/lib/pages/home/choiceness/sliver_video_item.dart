@@ -114,7 +114,7 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
     return Container(
       padding: EdgeInsets.only(left: 24.w, top: 18.w, bottom: 18.w),
       height: HeightMeasurer.itemVideoTitleHeightWithVerticalList,
-      color: Colors.yellow,
+      //color: Colors.yellow,
       alignment: Alignment.center,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

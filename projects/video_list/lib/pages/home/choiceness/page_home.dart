@@ -4,14 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/controllers/choiceness_controller.dart';
+import 'package:video_list/ui/views/static_video_view.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/models/choiceness_model.dart';
 import 'package:video_list/pages/home/choiceness/video_page_utils.dart';
 import 'package:video_list/pages/page_controller.dart';
 import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/utils/icons_utils.dart';
 import 'package:video_list/resources/res/dimens.dart';
-import 'package:video_list/ui/utils/shimmer_indicator.dart';
+import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/views/shimmer_indicator.dart';
 import 'package:video_list/ui/views/advert_view.dart';
+import 'package:video_list/ui/views/static_advert_view.dart';
 import 'page_header.dart';
 import 'app_bar.dart';
 import 'sliver_video_item.dart';
@@ -36,6 +38,8 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
   RefreshController _refreshController =
       RefreshController(initialRefresh: false);
+
+  ValueNotifier<int> _videoPlayNotifier = ValueNotifier<int>(-1);
 
   final GlobalKey<SliverAnimatedListState> _listKey =
       new GlobalKey<SliverAnimatedListState>();
@@ -126,18 +130,30 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     }
 
     if (data is VideoItems) {
-      child = Container(
-        color: Color.fromARGB(random.nextInt(100) + 155, random.nextInt(255), random.nextInt(255), random.nextInt(255)),
-        child: VideoItemWidget(data),
-      );
+      child = VideoItemWidget(data);
+      /*Container(
+        color: Color.fromARGB(random.nextInt(100) + 155, random.nextInt(255),
+            random.nextInt(255), random.nextInt(255)),
+        child: VideoItemWidget(data)*/
+
     } else if (data is AdvertItem) {
-      child = Container(
-        width: Dimens.design_screen_width.w,
-        height: HeightMeasurer.itemHeaderHeightWithVerticalList + HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList * 2,
-        padding: EdgeInsets.symmetric(vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
-        color: Colors.black26,
-        child: AdvertView(data),
-      );
+      final bool isCanPlay = data.canPlay;
+      child = Consumer<ValueNotifier<int>>(
+          builder: (BuildContext context, ValueNotifier<int> playNotifier, Widget child) {
+        return Padding(
+          padding: EdgeInsets.symmetric(
+              vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
+          child: NormalAdvertView(
+            width: Dimens.design_screen_width.w,
+            playState: playNotifier.value == index
+                ? PlayState.startAndPlay
+                : PlayState.startAndPause,
+            advertItem: data,
+            videoHeight: HeightMeasurer.advertItemHeight,
+            titleHeight: HeightMeasurer.itemVideoTitleHeightWithVerticalList,
+          ),
+        );
+      });
     }
     return child;
   }
@@ -170,6 +186,61 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     _refreshController.loadComplete();
   }
 
+  int _currentPlayIndex = -1;
+
+  bool _isPlayVideo(int index) {
+    assert(index != null && index >= 0 && index < _list._items.length);
+    final dynamic item = _list._items[index];
+    assert(item != null);
+    return item is AdvertItem && item.canPlay;
+  }
+
+  int _computerPlayVideo(List<ViewportOffsetData> viewportOffsetDataList) {
+    assert(viewportOffsetDataList != null);
+
+    if (viewportOffsetDataList.length == 1) {
+      final ViewportOffsetData viewportOffsetData = viewportOffsetDataList[0];
+      final int index = viewportOffsetData.index;
+
+      if (_isPlayVideo(index) &&
+          viewportOffsetData.visibleOffset ==
+              viewportOffsetData.height * 0.5) {
+        return index;
+      }
+
+    } else if (viewportOffsetDataList.length > 1) {
+      List<ViewportOffsetData> tmpViewportOffsetData = List.from(viewportOffsetDataList);
+      ViewportOffsetData first = tmpViewportOffsetData.removeAt(0);
+      ViewportOffsetData last = tmpViewportOffsetData.removeLast();
+
+      if (_isPlayVideo(first.index)) {
+        final double videoHeight = HeightMeasurer.advertItemHeight;
+        final double viewportVideoHeight = first.visibleOffset - HeightMeasurer.itemVideoTitleHeightWithVerticalList - HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
+        final double boundaryValue = 2 / 3;
+        if (viewportVideoHeight / videoHeight >= boundaryValue) {
+          return first.index;
+        }
+      }
+
+      for (ViewportOffsetData viewportOffsetData in tmpViewportOffsetData) {
+        if (_isPlayVideo(viewportOffsetData.index))
+          return viewportOffsetData.index;
+      }
+
+      if (_isPlayVideo(last.index)) {
+        final double videoHeight = HeightMeasurer.advertItemHeight;
+        final double viewportVideoHeight = last.visibleOffset - HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
+        final double boundaryValue = 0.5;
+        if (viewportVideoHeight / videoHeight >= boundaryValue) {
+          return last.index;
+        }
+      }
+
+    }
+
+    return -1;
+  }
+
   @override
   Widget build(BuildContext context) {
     print("choiceness build page");
@@ -178,6 +249,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       //create: (context) => widget.pageVisibleNotifier,
       providers: [
         ChangeNotifierProvider.value(value: widget.pageVisibleNotifier),
+        ChangeNotifierProvider.value(value: _videoPlayNotifier),
       ],
       child: Scaffold(
         appBar: PreferredSize(
@@ -196,31 +268,22 @@ class _ChoicenessPageState extends State<ChoicenessPage>
         body: NotificationListener(
           onNotification: (ScrollNotification notification) {
             final ScrollMetrics metrics = notification.metrics;
-            /*print("##123 => ${metrics.runtimeType}");
 
-            if (notification is ScrollStartNotification) {
-              print(
-                  '##123 => 滚动开始 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection}');
-            }
-            if (notification is ScrollUpdateNotification) {
-              print(
-                  '##123 => 滚动中 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection}');
-            }*/
-            if (notification is ScrollEndNotification && metrics.axis == Axis.vertical) {
-              /*print(
-                  '##123 => 停止滚动 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection} extentAfter: ${notification.metrics.extentAfter}');
-              if (notification.metrics.extentAfter == 0) {
-                print(
-                    '##123 => 滚动到底部 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection}');
+            if (notification is ScrollEndNotification &&
+                metrics.axis == Axis.vertical) {
+              final List<ViewportOffsetData> viewportOffsetDataList =
+                  _list.getViewportOffsetData(
+                      metrics.extentBefore, metrics.viewportDimension);
+
+              final int index = _computerPlayVideo(viewportOffsetDataList);
+
+              //-1代表都不播放
+              if (index != _currentPlayIndex) {
+                _currentPlayIndex = index;
+                _videoPlayNotifier.value = index;
               }
-              if (notification.metrics.extentBefore == 0) {
-                print(
-                    '##123 => 滚动到头部 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection}');
-              }*/
-              //print('##123 => 停止滚动 extentInside:${metrics.extentInside} axis:${metrics.axis} axisDirection:${metrics.axisDirection} extentAfter: ${notification.metrics.extentAfter} extentBefore:${notification.metrics.extentBefore} viewportDimension:${notification.metrics.viewportDimension}');
-              final List<ViewportOffsetData> viewportOffsetDataList = _list.getViewportOffsetData(metrics.extentBefore, metrics.viewportDimension);
 
-              print("##123 => viewportOffsetDataList: $viewportOffsetDataList");
+              print("##123 => viewportOffsetDataList: $viewportOffsetDataList  index:$index");
             }
             return false;
           },
@@ -307,7 +370,6 @@ class ListModel<E> with HeightMeasurer {
   final RemovedItemBuilder removedItemBuilder;
   final List<E> _items;
 
-
   SliverAnimatedListState get _sliverAnimatedList => listKey.currentState;
 
   void insert(int index, E item) {
@@ -339,7 +401,6 @@ class ListModel<E> with HeightMeasurer {
           (BuildContext context, Animation<double> animation) {
         return removedItemBuilder(context, index, removedItem, animation);
       });
-
     }
     return removedItem;
   }

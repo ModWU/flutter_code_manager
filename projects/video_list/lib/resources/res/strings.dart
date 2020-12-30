@@ -14,6 +14,7 @@ class Strings {
 
   //广告小部件
   static const advert_detail_txt = "了解详情";
+  static const advert_download_txt = "下载应用";
   static const advert_txt = "广告";
   static const advert_replay_txt = "重新播放";
 }

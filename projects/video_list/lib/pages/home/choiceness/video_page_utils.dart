@@ -40,7 +40,7 @@ class HeightMeasurer {
   static final double itemHeaderHeightWithVerticalList =
       Dimens.design_screen_width.w * 0.5;
   static final double itemVideoTitleHeightWithVerticalList = 120.h;
-  static final double itemVideoMainAxisSpaceWithVerticalList = 90.h;
+  static final double itemVideoMainAxisSpaceWithVerticalList = 4.h;
   static final double itemVideoCrossAxisSpaceWithVerticalList = 4.h;
   static final double itemVideoAspectRatioWithVerticalList = 1.0; //宽比高：1:1
   static final int itemVideoCrossAxisCountWithVerticalList = 2; //水平方向的数量
@@ -51,7 +51,8 @@ class HeightMeasurer {
     return _heightList[index];
   }
 
-  List<ViewportOffsetData> getViewportOffsetData(double extentBefore, double viewportDimension) {
+  List<ViewportOffsetData> getViewportOffsetData(
+      double extentBefore, double viewportDimension) {
     assert(extentBefore != null && extentBefore >= 0);
     assert(_heightList != null && _heightList.isNotEmpty);
     final List<ViewportOffsetData> list = List<ViewportOffsetData>();
@@ -64,14 +65,16 @@ class HeightMeasurer {
       //visibleWrap = VisibleWrap(i, _heightList[i], totalHeight - extentBefore);
       //先找头
       if (list.isEmpty && (extentBefore <= totalHeight)) {
-        list.add(ViewportOffsetData(i, _heightList[i], totalHeight - extentBefore));
+        list.add(
+            ViewportOffsetData(i, _heightList[i], totalHeight - extentBefore));
         isFindStart = true;
         continue;
       }
 
       //再找尾
       if (viewportAfter <= totalHeight) {
-        final double visibleOffset = _heightList[i] - (totalHeight - viewportAfter);
+        final double visibleOffset =
+            _heightList[i] - (totalHeight - viewportAfter);
         if (visibleOffset > 0)
           list.add(ViewportOffsetData(i, _heightList[i], visibleOffset));
         break;
@@ -152,7 +155,8 @@ class HeightMeasurer {
           final double itemHeight =
               itemWidth / itemVideoAspectRatioWithVerticalList;
 
-          totalHeight += (lineCount * itemHeight + itemVideoMainAxisSpaceWithVerticalList * (lineCount - 1));
+          totalHeight += (lineCount * itemHeight +
+              itemVideoMainAxisSpaceWithVerticalList * (lineCount - 1));
         }
       } else {
         totalHeight += itemHeightWithHorizontalList;
@@ -160,15 +164,14 @@ class HeightMeasurer {
 
       //判断底部是否有刷新
       if (item.bottom != null &&
-          (item.bottom.isHasRefresh ||
-              item.bottom.playTitle != null)) {
+          (item.bottom.isHasRefresh || item.bottom.playTitle != null)) {
         totalHeight += HeightMeasurer.bottomRefreshHeight;
       }
-
     } else if (item is AdvertItem) {
       //广告上下都有间距
-      totalHeight +=
-          advertItemHeight + itemVideoMainAxisSpaceWithVerticalList * 2;
+      totalHeight += advertItemHeight +
+          itemVideoTitleHeightWithVerticalList +
+          itemVideoMainAxisSpaceWithVerticalList * 2;
     }
 
     return totalHeight;
@@ -191,7 +194,7 @@ Widget buildVideoTitle(VideoItemTitle title) {
   return Container(
     padding: EdgeInsets.symmetric(horizontal: 28.w),
     height: HeightMeasurer.primaryTitleHeight,
-    color: Colors.green,
+    //color: Colors.green,
     //alignment: Alignment.center,
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

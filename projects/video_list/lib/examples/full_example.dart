@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:video_list/examples/video_indicator.dart';
 import 'package:video_player/video_player.dart';
 
 class FullVideoApp extends StatelessWidget {
@@ -179,7 +180,7 @@ class _ButterFlyAssetVideoState extends State<_ButterFlyAssetVideo> {
                 children: <Widget>[
                   VideoPlayer(_controller),
                   _PlayPauseOverlay(controller: _controller),
-                  VideoProgressIndicator(_controller, allowScrubbing: true),
+                  VideoProgressOwnerIndicator(_controller, allowScrubbing: true),
                 ],
               ),
             ),
@@ -242,9 +243,9 @@ class _BumbleBeeRemoteVideoState extends State<_BumbleBeeRemoteVideo> {
                 alignment: Alignment.bottomCenter,
                 children: <Widget>[
                   VideoPlayer(_controller),
-                  ClosedCaption(text: _controller.value.caption.text),
+                  //ClosedCaption(text: _controller.value.caption.text),
                   _PlayPauseOverlay(controller: _controller),
-                  VideoProgressIndicator(_controller, allowScrubbing: true),
+                  VideoProgressOwnerIndicator(_controller, allowScrubbing: true),
                 ],
               ),
             ),

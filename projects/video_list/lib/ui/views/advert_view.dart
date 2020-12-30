@@ -82,7 +82,7 @@ class _AdvertViewState extends State<AdvertView>
                     Padding(
                       padding: EdgeInsets.only(top: 18.h),
                       child: Text(
-                        widget.advertItem.name,
+                        widget.advertItem.nameDetails[0],
                         style: TextStyle(color: Colors.white, fontSize: 26.sp),
                       ),
                     ),

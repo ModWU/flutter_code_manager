@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'examples/basic_example.dart';
 import 'examples/full_example.dart';
+import 'examples/owner_example.dart';
 import 'pages/main_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'resources/export.dart';
@@ -15,6 +16,6 @@ void main() {
     runApp(HeartBeatApp());
   });
 
-  //runApp(VideoApp());
   //runApp(FullVideoApp());
+  //runApp(VideoOwnerApp());
 }

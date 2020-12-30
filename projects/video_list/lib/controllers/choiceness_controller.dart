@@ -99,6 +99,20 @@ class ChoicenessController {
     "http://5b0988e595225.cdn.sohucs.com/q_mini,c_zoom,w_640/images/20171007/f1cfa788964748a6b932b75c68954f26.gif",
   ];
 
+  static  final List<List<String>> nameDetailsList = [
+    ["疯狂小说"],
+    ["低成本", "高利润", "快回收"],
+    ["百事可乐"],
+    ["不面审", "借钱快", "随借随还"],
+    ["花椒直播"],
+    ["经典巨作", "正版授权", "高爆率快节奏"],
+    ["大众点评"],
+    ["高画质", "多关卡", "低延迟"],
+    ["王国纪元"],
+    ["基础教学", "单人对线"],
+    ["一汽-大众"],
+  ];
+
   static  final List<String> timeList = ["2020-09-26", "2021-01-02", "全24集", null];
 
   List getRandomHeaderData() {
@@ -133,7 +147,7 @@ class ChoicenessController {
     );
 
     AdvertItem headerImage6 = AdvertItem(
-      name: "疯读小说",
+      nameDetails: ["疯读小说"],
       introduce: "免费手机都不要，就是你不对了",
       isApplication: true,
       detailUrl: "https://www.baidu.com/",
@@ -171,6 +185,7 @@ class ChoicenessController {
       int layoutIndex = random.nextInt(VideoLayout.values.length);
       int bottomIndex = random.nextInt(bottoms.length);
       int itemsLength = random.nextInt(12) + 6;
+      int nameDetailsIndex = random.nextInt(nameDetailsList.length);
       double advertAssert = random.nextDouble();
       data.add(VideoItems(
           title: topTitles[titleIndex],
@@ -179,7 +194,7 @@ class ChoicenessController {
           bottom: bottoms[bottomIndex]));
       if (advertAssert > 0.7) {
         data.add(AdvertItem(
-          name: "疯读小说",
+          nameDetails: nameDetailsList[nameDetailsIndex],
           introduce: "免费手机都不要，就是你不对了",
           isApplication: true,
           detailUrl: "https://www.baidu.com/",
@@ -229,14 +244,15 @@ class ChoicenessController {
       int bottomIndex = random.nextInt(bottoms.length);
       int itemsLength = random.nextInt(12) + 6;
       double advertAssert = random.nextDouble();
+      int nameDetailsIndex = random.nextInt(nameDetailsList.length);
       videoData.add(VideoItems(
           title: topTitles[titleIndex],
           layout: VideoLayout.values[layoutIndex],
           items: getRandomVideoItemList(itemsLength),
           bottom: bottoms[bottomIndex]));
-      if (advertAssert > 0.7) {
+      if (advertAssert >= 0.5) {
         videoData.add(AdvertItem(
-          name: "疯读小说",
+          nameDetails: nameDetailsList[nameDetailsIndex],
           introduce: "免费手机都不要，就是你不对了",
           isApplication: true,
           detailUrl: "https://www.baidu.com/",
