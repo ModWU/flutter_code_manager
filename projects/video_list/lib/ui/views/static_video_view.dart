@@ -36,8 +36,7 @@ class VideoView extends StatefulWidget {
   final ContentStackBuilder contentStackBuilder;
 }
 
-class _VideoViewState extends State<VideoView>
-    with WidgetsBindingObserver {
+class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
   VideoPlayerController _videoController;
 
   @override
@@ -64,18 +63,18 @@ class _VideoViewState extends State<VideoView>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
       print(
-          "AdvertView didChangeAppLifecycleState -> paused 已经暂停了，用户不可见、不可操作ui");
+          "AdvertView didChangeAppLifecycleState ${this.hashCode} -> paused 已经暂停了，用户不可见、不可操作ui");
       _pauseControllerWithLifecycle();
     } else if (state == AppLifecycleState.resumed) {
-      print("AdvertView didChangeAppLifecycleState -> resumed 应用可见并可响应用户操作");
+      print("AdvertView didChangeAppLifecycleState ${this.hashCode} -> resumed 应用可见并可响应用户操作");
       _resumeControllerWithLifecycle();
     } else if (state == AppLifecycleState.detached) {
       print(
-          "AdvertView didChangeAppLifecycleState -> AppLifecycleState.detached 操作不了ui并且销毁");
-      _destroyController();
+          "AdvertView didChangeAppLifecycleState ${this.hashCode} -> AppLifecycleState.detached 操作不了ui并且销毁");
+      //_destroyController();
     } else if (state == AppLifecycleState.inactive) {
-      print("AdvertView didChangeAppLifecycleState -> inactive 用户可见，可以响应用户操作");
-      _pauseControllerWithLifecycle();
+      print("AdvertView didChangeAppLifecycleState ${this.hashCode} -> inactive 用户可见，可以响应用户操作");
+     // _pauseControllerWithLifecycle();
     }
   }
 
@@ -83,7 +82,7 @@ class _VideoViewState extends State<VideoView>
 
   void _pauseControllerWithLifecycle() {
     print(
-        "AdvertView _pauseController -> isPlaying: ${_videoController.value.isPlaying}");
+        "AdvertView _pauseControllerWithLifecycle -> isPlaying: ${_videoController.value.isPlaying}");
     if (_pauseControllerWithoutListener()) {
       _needReplay = true;
     }
@@ -99,12 +98,13 @@ class _VideoViewState extends State<VideoView>
 
   bool _pauseControllerWithoutListener() {
     bool isPause = false;
+
+    _videoController.removeListener(_controllerEvent);
+
     if (_videoController.value.isPlaying) {
       _videoController.pause();
       isPause = true;
     }
-
-    _videoController.removeListener(_controllerEvent);
     return isPause;
   }
 
@@ -118,6 +118,7 @@ class _VideoViewState extends State<VideoView>
   @override
   void dispose() {
     print('_AdvertViewState => dispose');
+    WidgetsBinding.instance.removeObserver(this);
     _destroyController();
     super.dispose();
   }
@@ -139,14 +140,16 @@ class _VideoViewState extends State<VideoView>
     assert(widget.playState != null);
     print(
         "AdvertView _handleStateAfterInit -> initState: ${initState.toString()}, playState: ${widget.playState.toString()}");
+    if (!_videoController.value.initialized)
+      return;
+
     switch (widget.playState) {
       case PlayState.startAndPause:
         if (initState != _InitState.just_already) {
           _videoController.seekTo(Duration.zero);
         }
 
-        if (_videoController.value.isPlaying)
-          _videoController.pause();
+        if (_videoController.value.isPlaying) _videoController.pause();
         break;
 
       case PlayState.startAndPlay:
@@ -154,8 +157,7 @@ class _VideoViewState extends State<VideoView>
           _videoController.seekTo(Duration.zero);
         }
 
-        if (!_videoController.value.isPlaying)
-          _videoController.play();
+        if (!_videoController.value.isPlaying) _videoController.play();
 
         break;
 
@@ -168,11 +170,11 @@ class _VideoViewState extends State<VideoView>
         break;
 
       case PlayState.end:
-        if (_videoController.value.position != _videoController.value.duration)
+        if (_videoController.value.position != _videoController.value.duration) {
           _videoController.seekTo(_videoController.value.duration);
+        }
 
-        if (_videoController.value.isPlaying)
-          _videoController.pause();
+        if (_videoController.value.isPlaying) _videoController.pause();
         break;
     }
   }
@@ -290,18 +292,17 @@ class _VideoViewState extends State<VideoView>
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> stackList = widget.contentStackBuilder?.call(context, _videoController);
+    final List<Widget> stackList =
+        widget.contentStackBuilder?.call(context, _videoController);
     return AspectRatio(
       aspectRatio: _videoController.value.aspectRatio,
       child: Stack(
         alignment: Alignment.center,
         children: [
           VideoPlayer(_videoController),
-          if (stackList != null)
-            ...stackList,
+          if (stackList != null) ...stackList,
         ],
       ),
     );
   }
-
 }

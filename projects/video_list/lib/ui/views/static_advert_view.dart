@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_list/examples/video_indicator.dart';
 import 'package:video_list/models/base_model.dart';
+import 'package:video_list/utils/network_utils.dart';
 import 'package:video_player/video_player.dart';
 import 'static_video_view.dart';
 import 'package:video_list/resources/export.dart';
 import 'package:flutter_screenutil/size_extension.dart';
+import 'package:connectivity/connectivity.dart';
+import 'dart:ui' as ui show ParagraphBuilder, PlaceholderAlignment;
 
 class NormalAdvertView extends StatefulWidget {
   NormalAdvertView(
@@ -33,7 +39,13 @@ class NormalAdvertView extends StatefulWidget {
 }
 
 class _NormalAdvertViewState extends State<NormalAdvertView>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, NetworkStateMiXin {
+
+  @override
+  void onNetworkChange() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -61,26 +73,122 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
       playState: widget.playState,
       contentStackBuilder:
           (BuildContext context, VideoPlayerController controller) {
-        return <Widget>[
-          _PlayPauseOverlay(controller: controller),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: VideoProgressOwnerIndicator(
-              controller,
-              allowScrubbing: false,
-              colors: VideoProgressColors(
-                playedColor: Colors.orangeAccent,
-                backgroundColor: Colors.black26,
-                bufferedColor: Colors.blueGrey,
-              ),
-            ),
-          ),
-        ];
+        assert(controller.value != null);
+
+        if (widget.playState == PlayState.startAndPause) {
+          return [
+            _PlayPauseOverlay(controller: controller),
+          ];
+        } else {
+          if (!controller.value.initialized) {
+            return [
+              _buildWaitingProgressIndicator(),
+            ];
+          } else {
+            final bool isEnd =
+                controller.value.position >= controller.value.duration;
+
+            if (isEnd) {
+              return null;
+            } else {
+              final bool isNearBuffering = _isNearBuffering(controller);
+              return isNearBuffering
+                  ? [
+                      _buildWaitingProgressIndicator(),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _buildProgressIndicator(controller),
+                      ),
+                    ]
+                  : [
+                      _PlayPauseOverlay(controller: controller),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _buildProgressIndicator(controller),
+                      ),
+                    ];
+            }
+          }
+        }
+
+        /*if (!controller.value.initialized) {
+          return [
+            _buildWaitingProgressIndicator(),
+          ];
+        } else {
+          final bool isEnd =
+              controller.value.position >= controller.value.duration;
+          if (isEnd) {
+            return null;
+          } else {
+            final bool isNearBuffering = true;//_isNearBuffering(controller);
+            return isNearBuffering
+                ? [
+                    _buildWaitingProgressIndicator(),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: _buildProgressIndicator(controller),
+                    ),
+                  ]
+                : [
+                    _PlayPauseOverlay(controller: controller),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: _buildProgressIndicator(controller),
+                    ),
+                  ];
+          }
+        }*/
       },
     );
   }
+
+  bool _isNearBuffering(VideoPlayerController controller) {
+    assert(controller != null);
+    assert(controller.value.initialized);
+    Duration maxBufferingDuration = Duration.zero;
+    ;
+    int maxBuffering = 0;
+    for (DurationRange range in controller.value.buffered) {
+      final int end = range.end.inMilliseconds;
+      if (end > maxBuffering) {
+        maxBuffering = end;
+        maxBufferingDuration = range.end;
+      }
+    }
+
+    return controller.value.position >= maxBufferingDuration;
+  }
+
+  Widget _buildWaitingProgressIndicator() {
+    return CircularProgressIndicator(
+      backgroundColor: Colors.black12,
+      strokeWidth: 2.4,
+      valueColor: AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
+    );
+  }
+
+  Widget _buildProgressIndicator(VideoPlayerController controller) {
+    return VideoProgressOwnerIndicator(
+      controller,
+      allowScrubbing: false,
+      padding: EdgeInsets.zero,
+      colors: VideoProgressColors(
+        playedColor: Colors.orangeAccent,
+        backgroundColor: Colors.black26,
+        bufferedColor: Colors.blueGrey,
+      ),
+    );
+  }
+
 
   Widget _buildImageView() {
     assert(widget.advertItem.showImgUrl != null);
@@ -94,7 +202,9 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     return Container(
       height: widget.videoHeight,
       width: double.infinity,
-      child: widget.advertItem.canPlay ? _buildVideoView() : _buildImageView(),
+      child: hasNetwork
+          ? (widget.advertItem.canPlay ? _buildVideoView() : _buildImageView())
+          : buildNetworkErrorView(),
     );
   }
 
@@ -150,7 +260,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
               ),
             ),
             strutStyle: StrutStyle(
-              leading: 0.2,
+              leading: 0.4,
             ),
           ),
           RawChip(
@@ -164,6 +274,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(0.0),
             ),
+            onPressed: () {},
             label: Text(
               widget.advertItem.isApplication
                   ? Strings.advert_download_txt
@@ -208,11 +319,11 @@ class _PlayPauseOverlay extends StatelessWidget {
                   ),
                 ),
         ),
-        GestureDetector(
+        /* GestureDetector(
           onTap: () {
             controller.value.isPlaying ? controller.pause() : controller.play();
           },
-        ),
+        ),*/
       ],
     );
   }

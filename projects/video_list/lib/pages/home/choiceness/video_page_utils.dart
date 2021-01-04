@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:video_list/models/base_model.dart';
+import 'package:video_list/pages/home/choiceness/page_home.dart';
 import 'package:video_list/resources/res/dimens.dart';
 import '../../page_controller.dart';
 import '../../../ui/utils/icons_utils.dart' as utils;
@@ -55,8 +56,7 @@ class HeightMeasurer {
       double extentBefore, double viewportDimension) {
     assert(extentBefore != null && extentBefore >= 0);
     assert(_heightList != null && _heightList.isNotEmpty);
-    final List<ViewportOffsetData> list = List<ViewportOffsetData>();
-    print("getHeaderVisibleWrap => extentBefore: $extentBefore");
+    final List<ViewportOffsetData> list = [];
     final double viewportAfter = extentBefore + viewportDimension;
     double totalHeight = 0;
     bool isFindStart = false;
@@ -375,4 +375,90 @@ Widget _buildBottomIcon(IconData iconData, TextSpan textSpan,
       ],
     ),
   );
+}
+
+bool _isPlayVideo(ListModel list, int index) {
+  assert(index != null && index >= 0 && index < list.length);
+  final dynamic item = list[index];
+  assert(item != null);
+  return item is AdvertItem && item.canPlay;
+}
+
+int computerPauseVideoWhenScrollUpdate(int playIndex, ListModel list,
+    List<ViewportOffsetData> viewportOffsetDataList) {
+  assert(list != null);
+  assert(playIndex != null);
+  assert(viewportOffsetDataList != null);
+  if (playIndex < 0) return -1;
+
+  assert(playIndex < list.length);
+
+  if (viewportOffsetDataList.length > 0) {
+    final ViewportOffsetData first = viewportOffsetDataList.first;
+
+    print("computerPauseVideoWhenScrollUpdate => playIndex: $playIndex   first.index:${first.index}  first.visibleOffset: ${first.visibleOffset}  heightOff: ${first.height - HeightMeasurer.primaryTitleHeight}");
+    if ((playIndex == (first.index - 1) &&
+        first.visibleOffset <
+            (first.height - HeightMeasurer.primaryTitleHeight)) ||
+        (playIndex <= (first.index - 2))) {
+      return playIndex;
+    }
+
+    final ViewportOffsetData last = viewportOffsetDataList.last;
+    if (playIndex > last.index) {
+      return playIndex;
+    }
+  }
+
+  return -1;
+}
+
+int computerPlayVideoWhenScrollEnd(
+    ListModel list, List<ViewportOffsetData> viewportOffsetDataList) {
+  assert(list != null);
+  assert(viewportOffsetDataList != null);
+
+  if (viewportOffsetDataList.length == 1) {
+    final ViewportOffsetData viewportOffsetData = viewportOffsetDataList[0];
+    final int index = viewportOffsetData.index;
+
+    if (_isPlayVideo(list, index) &&
+        viewportOffsetData.visibleOffset == viewportOffsetData.height * 0.5) {
+      return index;
+    }
+  } else if (viewportOffsetDataList.length > 1) {
+    final List<ViewportOffsetData> tmpViewportOffsetData =
+        List.from(viewportOffsetDataList);
+    final ViewportOffsetData first = tmpViewportOffsetData.removeAt(0);
+
+    if (_isPlayVideo(list, first.index)) {
+      final double videoHeight = HeightMeasurer.advertItemHeight;
+      final double viewportVideoHeight = first.visibleOffset -
+          HeightMeasurer.itemVideoTitleHeightWithVerticalList -
+          HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
+      final double boundaryValue = 2 / 3;
+      if (viewportVideoHeight / videoHeight >= boundaryValue) {
+        return first.index;
+      }
+    }
+
+    final ViewportOffsetData last = tmpViewportOffsetData.removeLast();
+
+    for (ViewportOffsetData viewportOffsetData in tmpViewportOffsetData) {
+      if (_isPlayVideo(list, viewportOffsetData.index))
+        return viewportOffsetData.index;
+    }
+
+    if (_isPlayVideo(list, last.index)) {
+      final double videoHeight = HeightMeasurer.advertItemHeight;
+      final double viewportVideoHeight = last.visibleOffset -
+          HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
+      final double boundaryValue = 0.5;
+      if (viewportVideoHeight / videoHeight >= boundaryValue) {
+        return last.index;
+      }
+    }
+  }
+
+  return -1;
 }

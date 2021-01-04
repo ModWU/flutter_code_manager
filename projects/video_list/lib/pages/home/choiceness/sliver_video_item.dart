@@ -83,20 +83,47 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.network(
-          item.imgUrl, //"http://via.placeholder.com/288x188",
-          fit: BoxFit.cover,
-        ),
+        Image.network(item.imgUrl, //"http://via.placeholder.com/288x188",
+            fit: BoxFit.cover, errorBuilder:
+                (BuildContext context, Object error, StackTrace stackTrace) {
+          return SizedBox.shrink();
+        }),
         if (item.markType != null)
           Positioned(
             right: 8.w,
             top: 8.w,
             child: utils.getMarkContainer(item.markType),
           ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            width: double.infinity,
+            height: 20,
+            decoration: BoxDecoration(
+              //borderRadius: BorderRadius.all(Radius.circular(28)),
+              // border: Border.all(color: Color(0xFFFF0000), width: 0),
+              shape: BoxShape.rectangle,
+              color: Colors.black26,
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: FractionalOffset
+                    .topCenter, // 10% of the width, so there are ten blinds.
+                colors: [
+                  Colors.black,
+                  Colors.transparent,
+                ], // whitish to gray
+                tileMode:
+                    TileMode.repeated, // repeats the gradient over the canvas
+              ),
+            ),
+          ),
+        ),
         if (item.time != null)
           Positioned(
-            right: 8.w,
-            bottom: 8.w,
+            right: 6,
+            bottom: 6,
             child: Text(
               item.time,
               style: TextStyle(
@@ -205,7 +232,7 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
     );
   }
 
-  Widget buildVideoItem(VideoItem item, {double height}) {
+  /*Widget buildVideoItem(VideoItem item, {double height}) {
     return SizedBox(
       height: height,
       //width: 30,
@@ -219,6 +246,10 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
                 Image.network(
                   item.imgUrl, //"http://via.placeholder.com/288x188",
                   fit: BoxFit.cover,
+                  errorBuilder: (BuildContext context, Object error,
+                      StackTrace stackTrace) {
+                    return SizedBox.shrink();
+                  },
                 ),
                 if (item.markType != null)
                   Positioned(
@@ -226,10 +257,26 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
                     top: 8.w,
                     child: utils.getMarkContainer(item.markType),
                   ),
+                Container(
+                  width: 25.h,
+                  height: 25.h,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(28)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red, //底色,阴影颜色
+                        offset: Offset(0, 0), //阴影位置,从什么位置开始
+                        blurRadius: 1, // 阴影模糊层度
+                        spreadRadius: 0,
+                      ) //阴影模糊大小
+                    ],
+                  ),
+                  child: Container(),
+                ),
                 if (item.time != null)
                   Positioned(
-                    right: 8.w,
-                    bottom: 8.w,
+                    right: 8,
+                    bottom: 8,
                     child: Text(
                       item.time,
                       style: TextStyle(
@@ -288,7 +335,7 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
         ],
       ),
     );
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {

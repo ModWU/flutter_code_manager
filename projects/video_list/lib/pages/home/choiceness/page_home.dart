@@ -14,6 +14,7 @@ import 'package:video_list/resources/res/dimens.dart';
 import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/views/shimmer_indicator.dart';
 import 'package:video_list/ui/views/advert_view.dart';
 import 'package:video_list/ui/views/static_advert_view.dart';
+import 'package:video_list/utils/network_utils.dart';
 import 'page_header.dart';
 import 'app_bar.dart';
 import 'sliver_video_item.dart';
@@ -32,7 +33,7 @@ class ChoicenessPage extends StatefulWidget with PageVisibleMixin {
 }
 
 class _ChoicenessPageState extends State<ChoicenessPage>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, NetworkStateMiXin {
   static const _barLeadingLeft = 12.0;
   static const _appBarHeight = Dimens.action_bar_height - 10.0;
 
@@ -47,6 +48,21 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   //List _headerItems;
 
   ListModel _list;
+
+  @override
+  void onNetworkChange() {
+    if (_list._items == null || _list.length <= 0) return;
+    print("_ChoicenessPageState => onNetworkChange => hasNetwork: $hasNetwork");
+    if (hasNetwork) {
+      assert(PaintingBinding.instance.imageCache != null);
+      PaintingBinding.instance.imageCache.clear();
+      List newDataList =
+          ChoicenessController().updateChoicenessData(_list._items);
+      print(
+          "_ChoicenessPageState => onNetworkChange => newDataList length: ${newDataList.length}");
+      _list.update(newDataList);
+    }
+  }
 
   @override
   void initState() {
@@ -138,8 +154,8 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
     } else if (data is AdvertItem) {
       final bool isCanPlay = data.canPlay;
-      child = Consumer<ValueNotifier<int>>(
-          builder: (BuildContext context, ValueNotifier<int> playNotifier, Widget child) {
+      child = Consumer<ValueNotifier<int>>(builder: (BuildContext context,
+          ValueNotifier<int> playNotifier, Widget child) {
         return Padding(
           padding: EdgeInsets.symmetric(
               vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
@@ -186,61 +202,6 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     _refreshController.loadComplete();
   }
 
-  int _currentPlayIndex = -1;
-
-  bool _isPlayVideo(int index) {
-    assert(index != null && index >= 0 && index < _list._items.length);
-    final dynamic item = _list._items[index];
-    assert(item != null);
-    return item is AdvertItem && item.canPlay;
-  }
-
-  int _computerPlayVideo(List<ViewportOffsetData> viewportOffsetDataList) {
-    assert(viewportOffsetDataList != null);
-
-    if (viewportOffsetDataList.length == 1) {
-      final ViewportOffsetData viewportOffsetData = viewportOffsetDataList[0];
-      final int index = viewportOffsetData.index;
-
-      if (_isPlayVideo(index) &&
-          viewportOffsetData.visibleOffset ==
-              viewportOffsetData.height * 0.5) {
-        return index;
-      }
-
-    } else if (viewportOffsetDataList.length > 1) {
-      List<ViewportOffsetData> tmpViewportOffsetData = List.from(viewportOffsetDataList);
-      ViewportOffsetData first = tmpViewportOffsetData.removeAt(0);
-      ViewportOffsetData last = tmpViewportOffsetData.removeLast();
-
-      if (_isPlayVideo(first.index)) {
-        final double videoHeight = HeightMeasurer.advertItemHeight;
-        final double viewportVideoHeight = first.visibleOffset - HeightMeasurer.itemVideoTitleHeightWithVerticalList - HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
-        final double boundaryValue = 2 / 3;
-        if (viewportVideoHeight / videoHeight >= boundaryValue) {
-          return first.index;
-        }
-      }
-
-      for (ViewportOffsetData viewportOffsetData in tmpViewportOffsetData) {
-        if (_isPlayVideo(viewportOffsetData.index))
-          return viewportOffsetData.index;
-      }
-
-      if (_isPlayVideo(last.index)) {
-        final double videoHeight = HeightMeasurer.advertItemHeight;
-        final double viewportVideoHeight = last.visibleOffset - HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
-        final double boundaryValue = 0.5;
-        if (viewportVideoHeight / videoHeight >= boundaryValue) {
-          return last.index;
-        }
-      }
-
-    }
-
-    return -1;
-  }
-
   @override
   Widget build(BuildContext context) {
     print("choiceness build page");
@@ -269,21 +230,36 @@ class _ChoicenessPageState extends State<ChoicenessPage>
           onNotification: (ScrollNotification notification) {
             final ScrollMetrics metrics = notification.metrics;
 
-            if (notification is ScrollEndNotification &&
-                metrics.axis == Axis.vertical) {
-              final List<ViewportOffsetData> viewportOffsetDataList =
-                  _list.getViewportOffsetData(
-                      metrics.extentBefore, metrics.viewportDimension);
+            if (metrics.axis == Axis.vertical) {
+              if (notification is ScrollEndNotification) {
+                final List<ViewportOffsetData> viewportOffsetDataList =
+                    _list.getViewportOffsetData(
+                        metrics.extentBefore, metrics.viewportDimension);
 
-              final int index = _computerPlayVideo(viewportOffsetDataList);
+                final int index = VideoPageUtils.computerPlayVideoWhenScrollEnd(
+                    _list, viewportOffsetDataList);
 
-              //-1代表都不播放
-              if (index != _currentPlayIndex) {
-                _currentPlayIndex = index;
-                _videoPlayNotifier.value = index;
+                //-1代表都不播放
+                if (index != _videoPlayNotifier.value) {
+                  _videoPlayNotifier.value = index;
+                }
+
+                print(
+                    "##123 => viewportOffsetDataList: $viewportOffsetDataList  index:$index");
+              } else if (notification is ScrollUpdateNotification) {
+                final List<ViewportOffsetData> viewportOffsetDataList =
+                    _list.getViewportOffsetData(
+                        metrics.extentBefore, metrics.viewportDimension);
+
+                final int index =
+                    VideoPageUtils.computerPauseVideoWhenScrollUpdate(
+                        _videoPlayNotifier.value,
+                        _list,
+                        viewportOffsetDataList);
+                if (index > 0 && index == _videoPlayNotifier.value) {
+                  _videoPlayNotifier.value = -1;
+                }
               }
-
-              print("##123 => viewportOffsetDataList: $viewportOffsetDataList  index:$index");
             }
             return false;
           },

@@ -7,6 +7,7 @@ import 'package:video_list/resources/res/strings.dart';
 import 'home/home_page.dart';
 import 'live_streaming/live_streaming_page.dart';
 
+
 enum PageIndex {
   main_page,
   video_page,
