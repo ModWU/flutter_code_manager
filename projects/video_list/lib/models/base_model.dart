@@ -41,7 +41,8 @@ class AdvertItem {
       String introduce,
       List<String> nameDetails,
       bool isApplication = false})
-      : assert(videoUrl != null || showImgUrl != null),
+      : assert(videoUrl != null),
+        assert(showImgUrl != null),
         _iconUrl = iconUrl,
         _videoUrl = videoUrl,
         _introduce = introduce,

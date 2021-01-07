@@ -23,17 +23,16 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
     with AutomaticKeepAliveClientMixin {
   //double _bottomRefreshVerticalSpacing = 32.h;
 
-  void _initDimens() {}
 
   @override
   void initState() {
     super.initState();
-    _initDimens();
+    print("_VideoItemWidgetState => ${hashCode} initState");
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
+   print("_VideoItemWidgetState => ${hashCode} dispose");
     super.dispose();
   }
 
@@ -362,5 +361,5 @@ class _VideoItemWidgetState extends State<VideoItemWidget>
   }
 
   @override
-  bool get wantKeepAlive => true;
+  bool get wantKeepAlive => false;
 }

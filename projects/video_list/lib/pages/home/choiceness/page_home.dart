@@ -367,6 +367,7 @@ class ListModel<E> with HeightMeasurer {
   void update(List<E> items) {
     this._items.clear();
     this._items.addAll(items);
+    initAllHeight(items);
     ((_sliverAnimatedList.context) as Element).markNeedsBuild();
   }
 

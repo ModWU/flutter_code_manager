@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:video_list/examples/video_indicator.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/utils/network_utils.dart';
+import 'package:video_list/utils/view_utils.dart' as ViewUtils;
 import 'package:video_player/video_player.dart';
 import 'static_video_view.dart';
 import 'package:video_list/resources/export.dart';
@@ -40,7 +41,6 @@ class NormalAdvertView extends StatefulWidget {
 
 class _NormalAdvertViewState extends State<NormalAdvertView>
     with AutomaticKeepAliveClientMixin, NetworkStateMiXin {
-
   @override
   void onNetworkChange() {
     setState(() {});
@@ -75,97 +75,63 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
           (BuildContext context, VideoPlayerController controller) {
         assert(controller.value != null);
 
+        final List<Widget> children = [];
+
+        bool isEnd = false;
+
         if (widget.playState == PlayState.startAndPause) {
-          return [
+          children.addAll([
+            _buildShowImageView(),
             _PlayPauseOverlay(controller: controller),
-          ];
+          ]);
         } else {
           if (!controller.value.initialized) {
-            return [
+            children.addAll([
+              _buildShowImageView(),
               _buildWaitingProgressIndicator(),
-            ];
+            ]);
           } else {
-            final bool isEnd =
-                controller.value.position >= controller.value.duration;
+            isEnd = controller.value.position >= controller.value.duration;
 
-            if (isEnd) {
-              return null;
-            } else {
-              final bool isNearBuffering = _isNearBuffering(controller);
-              return isNearBuffering
-                  ? [
-                      _buildWaitingProgressIndicator(),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: _buildProgressIndicator(controller),
-                      ),
-                    ]
-                  : [
-                      _PlayPauseOverlay(controller: controller),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: _buildProgressIndicator(controller),
-                      ),
-                    ];
+            if (!isEnd) {
+              final bool isNearBuffering = _isNeedBuffering(controller);
+              print("isNearBuffering => $isNearBuffering");
+              children.addAll([
+                if (isNearBuffering)
+                  _buildWaitingProgressIndicator(),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _buildProgressIndicator(controller),
+                ),
+              ]);
             }
           }
         }
 
-        /*if (!controller.value.initialized) {
-          return [
-            _buildWaitingProgressIndicator(),
-          ];
-        } else {
-          final bool isEnd =
-              controller.value.position >= controller.value.duration;
-          if (isEnd) {
-            return null;
-          } else {
-            final bool isNearBuffering = true;//_isNearBuffering(controller);
-            return isNearBuffering
-                ? [
-                    _buildWaitingProgressIndicator(),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: _buildProgressIndicator(controller),
-                    ),
-                  ]
-                : [
-                    _PlayPauseOverlay(controller: controller),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: _buildProgressIndicator(controller),
-                    ),
-                  ];
-          }
-        }*/
+        if (isEnd)
+          children.add(_buildShowImageView());
+        children.add(_buildAdvertEnd(!isEnd));
+
+        return children;
       },
     );
   }
 
-  bool _isNearBuffering(VideoPlayerController controller) {
+  Duration _currentPlayPosition = Duration.zero;
+
+  bool _isNeedBuffering(VideoPlayerController controller) {
     assert(controller != null);
     assert(controller.value.initialized);
-    Duration maxBufferingDuration = Duration.zero;
-    ;
-    int maxBuffering = 0;
-    for (DurationRange range in controller.value.buffered) {
-      final int end = range.end.inMilliseconds;
-      if (end > maxBuffering) {
-        maxBuffering = end;
-        maxBufferingDuration = range.end;
-      }
-    }
+    print(
+        "_isNearBuffering => controller.value.position: ${controller.value.position}  controller.value.buffered: ${controller.value.buffered} isBuffering: ${controller.value.isBuffering}");
 
-    return controller.value.position >= maxBufferingDuration;
+    if (_currentPlayPosition == controller.value.position) return true;
+
+    _currentPlayPosition = controller.value.position;
+
+    return false;
   }
 
   Widget _buildWaitingProgressIndicator() {
@@ -189,12 +155,13 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     );
   }
 
-
-  Widget _buildImageView() {
+  Widget _buildShowImageView() {
     assert(widget.advertItem.showImgUrl != null);
     return Image.network(
       widget.advertItem.showImgUrl, //"http://via.placeholder.com/288x188",
       fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
     );
   }
 
@@ -203,7 +170,9 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
       height: widget.videoHeight,
       width: double.infinity,
       child: hasNetwork
-          ? (widget.advertItem.canPlay ? _buildVideoView() : _buildImageView())
+          ? (widget.advertItem.canPlay
+              ? _buildVideoView()
+              : _buildShowImageView())
           : buildNetworkErrorView(),
     );
   }
@@ -291,8 +260,23 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     );
   }
 
+  Widget _buildAdvertEnd(bool offstage) {
+    return Offstage(
+      offstage: offstage,
+      child: Center(
+        child: Text("OVER!!!!!!!!!!"),
+      ),
+    );
+  }
+
   @override
-  bool get wantKeepAlive => true;
+  void dispose() {
+    print("NormalAdvertView => ${hashCode} dispose");
+    super.dispose();
+  }
+
+  @override
+  bool get wantKeepAlive => false;
 }
 
 class _PlayPauseOverlay extends StatelessWidget {

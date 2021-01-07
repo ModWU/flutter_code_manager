@@ -123,6 +123,7 @@ class HeightMeasurer {
   }
 
   double _computerHeight(int index, dynamic item) {
+    print("_computerHeight => item.runtimeType: ${item.runtimeType}");
     assert(item is VideoItems || item is AdvertItem);
     double totalHeight = 0;
     if (item is VideoItems) {

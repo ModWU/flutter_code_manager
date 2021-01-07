@@ -110,14 +110,14 @@ class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
 
   @override
   void deactivate() {
-    print('_AdvertViewState => deactivate');
+    print('_VideoViewState => deactivate');
     _pauseControllerWithoutListener();
     super.deactivate();
   }
 
   @override
   void dispose() {
-    print('_AdvertViewState => dispose');
+    print('_VideoViewState => dispose');
     WidgetsBinding.instance.removeObserver(this);
     _destroyController();
     super.dispose();

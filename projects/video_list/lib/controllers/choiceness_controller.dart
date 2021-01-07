@@ -99,6 +99,13 @@ class ChoicenessController {
     "http://5b0988e595225.cdn.sohucs.com/q_mini,c_zoom,w_640/images/20171007/f1cfa788964748a6b932b75c68954f26.gif",
   ];
 
+  static  final List<String> advertCoverUrlList = [
+    "https://i.loli.net/2021/01/07/sAoav162jKGlXZn.jpg",
+    "https://i.loli.net/2021/01/07/umIKZWGs4w53bJo.jpg",
+    "https://i.loli.net/2021/01/07/EbjuMnYxSaW9N4q.jpg",
+    "https://i.loli.net/2021/01/07/smzZ8RNYOQq7JPC.jpg",
+  ];
+
   static  final List<List<String>> nameDetailsList = [
     ["疯狂小说"],
     ["低成本", "高利润", "快回收"],
@@ -153,7 +160,7 @@ class ChoicenessController {
       detailUrl: "https://www.baidu.com/",
       iconUrl: "https://i.loli.net/2020/10/09/GvLS47z2DXTRkcq.png",
       videoUrl: videoUrlList[random.nextInt(videoUrlList.length)],
-      showImgUrl: null,
+      showImgUrl: advertCoverUrlList[random.nextInt(advertCoverUrlList.length)],
     );
 
     List list = [
@@ -200,7 +207,7 @@ class ChoicenessController {
           detailUrl: "https://www.baidu.com/",
           iconUrl: "https://i.loli.net/2020/10/09/GvLS47z2DXTRkcq.png",
           videoUrl: videoUrlList[random.nextInt(videoUrlList.length)],
-          showImgUrl: null,
+          showImgUrl: advertCoverUrlList[random.nextInt(advertCoverUrlList.length)],
         ));
       }
     }
@@ -258,7 +265,7 @@ class ChoicenessController {
           detailUrl: "https://www.baidu.com/",
           iconUrl: "https://i.loli.net/2020/10/09/GvLS47z2DXTRkcq.png",
           videoUrl: videoUrlList[random.nextInt(videoUrlList.length)],
-          showImgUrl: null,
+          showImgUrl: advertCoverUrlList[random.nextInt(advertCoverUrlList.length)],
         ));
       }
     }
