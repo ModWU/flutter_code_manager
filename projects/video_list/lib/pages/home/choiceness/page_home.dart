@@ -40,7 +40,8 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   RefreshController _refreshController =
       RefreshController(initialRefresh: false);
 
-  ValueNotifier<int> _videoPlayNotifier = ValueNotifier<int>(-1);
+  ValueNotifier<VideoPlayInfo> _videoPlayNotifier =
+      ValueNotifier<VideoPlayInfo>(null);
 
   final GlobalKey<SliverAnimatedListState> _listKey =
       new GlobalKey<SliverAnimatedListState>();
@@ -56,11 +57,10 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     if (hasNetwork) {
       assert(PaintingBinding.instance.imageCache != null);
       PaintingBinding.instance.imageCache.clear();
-      List newDataList =
-          ChoicenessController().updateChoicenessData(_list._items);
-      print(
-          "_ChoicenessPageState => onNetworkChange => newDataList length: ${newDataList.length}");
-      _list.update(newDataList);
+      if (_videoPlayNotifier.value != null) {
+        _videoPlayNotifier.value.keepState = true;
+      }
+      _list.update(_list._items);
     }
   }
 
@@ -154,17 +154,27 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
     } else if (data is AdvertItem) {
       final bool isCanPlay = data.canPlay;
-      child = Consumer<ValueNotifier<int>>(builder: (BuildContext context,
-          ValueNotifier<int> playNotifier, Widget child) {
+      child = Consumer<ValueNotifier<VideoPlayInfo>>(builder:
+          (BuildContext context, ValueNotifier<VideoPlayInfo> playNotifier,
+              Widget child) {
         return Padding(
           padding: EdgeInsets.symmetric(
               vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
           child: NormalAdvertView(
             width: Dimens.design_screen_width.w,
-            playState: playNotifier.value == index
-                ? PlayState.startAndPlay
-                : PlayState.startAndPause,
+            playState: playNotifier.value == null ||
+                    playNotifier.value.playIndex != index
+                ? PlayState.startAndPause
+                : (playNotifier.value.keepState
+                    ? PlayState.continuePlay
+                    : PlayState.startAndPlay),
             advertItem: data,
+            onEnd: () {
+              if (playNotifier.value != null) {
+                print("play end!!!!!!");
+                playNotifier.value.isPlayEnd = true;
+              }
+            },
             videoHeight: HeightMeasurer.advertItemHeight,
             titleHeight: HeightMeasurer.itemVideoTitleHeightWithVerticalList,
           ),
@@ -236,28 +246,46 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                     _list.getViewportOffsetData(
                         metrics.extentBefore, metrics.viewportDimension);
 
-                final int index = VideoPageUtils.computerPlayVideoWhenScrollEnd(
-                    _list, viewportOffsetDataList);
-
                 //-1代表都不播放
-                if (index != _videoPlayNotifier.value) {
-                  _videoPlayNotifier.value = index;
+                if (_videoPlayNotifier.value != null) {
+                  if (!_videoPlayNotifier.value.isPlayEnd) {
+                    final int index =
+                        VideoPageUtils.computerPlayVideoWhenScrollEnd(
+                            _list, viewportOffsetDataList);
+                    if (index == -1) {
+                      _videoPlayNotifier.value = null;
+                    } else if (index != _videoPlayNotifier.value.playIndex) {
+                      _videoPlayNotifier.value = VideoPlayInfo(
+                        playIndex: index,
+                      );
+                    }
+                  }
+                } else {
+                  final int index =
+                      VideoPageUtils.computerPlayVideoWhenScrollEnd(
+                          _list, viewportOffsetDataList);
+                  //说明当前没有任何视频在播放
+                  if (index != -1) {
+                    _videoPlayNotifier.value = VideoPlayInfo(
+                      playIndex: index,
+                    );
+                  }
                 }
-
-                print(
-                    "##123 => viewportOffsetDataList: $viewportOffsetDataList  index:$index");
               } else if (notification is ScrollUpdateNotification) {
                 final List<ViewportOffsetData> viewportOffsetDataList =
                     _list.getViewportOffsetData(
                         metrics.extentBefore, metrics.viewportDimension);
 
-                final int index =
-                    VideoPageUtils.computerPauseVideoWhenScrollUpdate(
-                        _videoPlayNotifier.value,
-                        _list,
-                        viewportOffsetDataList);
-                if (index > 0 && index == _videoPlayNotifier.value) {
-                  _videoPlayNotifier.value = -1;
+                if (_videoPlayNotifier.value != null) {
+                  final int index =
+                      VideoPageUtils.computerPauseVideoWhenScrollUpdate(
+                          _videoPlayNotifier.value.playIndex,
+                          _list,
+                          viewportOffsetDataList);
+                  if (index > 0 &&
+                      index == _videoPlayNotifier.value.playIndex) {
+                    _videoPlayNotifier.value = null;
+                  }
                 }
               }
             }
@@ -365,9 +393,11 @@ class ListModel<E> with HeightMeasurer {
   }
 
   void update(List<E> items) {
-    this._items.clear();
-    this._items.addAll(items);
-    initAllHeight(items);
+    if (items != _items) {
+      this._items.clear();
+      this._items.addAll(items);
+      initAllHeight(items);
+    }
     ((_sliverAnimatedList.context) as Element).markNeedsBuild();
   }
 

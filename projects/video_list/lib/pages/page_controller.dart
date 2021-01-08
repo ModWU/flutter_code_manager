@@ -7,7 +7,6 @@ import 'package:video_list/resources/res/strings.dart';
 import 'home/home_page.dart';
 import 'live_streaming/live_streaming_page.dart';
 
-
 enum PageIndex {
   main_page,
   video_page,
@@ -126,7 +125,6 @@ class PageVisibleNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-
   bool get visible => _visible;
 }
 
@@ -145,4 +143,23 @@ class PageChangeNotifier with ChangeNotifier {
   }
 
   PageIndex get pageIndex => _pageIndex;
+}
+
+class VideoPlayInfo {
+  int playIndex;
+  bool keepState;
+  bool isPlayEnd;
+
+  VideoPlayInfo copyWith({int playIndex, bool isPlayEnd, bool keepState}) =>
+      VideoPlayInfo(
+        playIndex: playIndex ?? this.playIndex,
+        isPlayEnd: isPlayEnd ?? this.isPlayEnd,
+        keepState: keepState ?? this.keepState,
+      );
+
+  VideoPlayInfo(
+      {this.playIndex = -1, this.isPlayEnd = false, this.keepState = false})
+      : assert(playIndex != null),
+        assert(isPlayEnd != null),
+        assert(keepState != null);
 }

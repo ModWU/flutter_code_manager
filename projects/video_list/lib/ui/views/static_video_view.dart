@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:video_list/constants/error_code.dart';
+import 'package:video_list/utils/network_utils.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_list/utils/view_utils.dart' as ViewUtils;
 import 'dart:async';
 
 enum PlayState {
@@ -7,6 +10,7 @@ enum PlayState {
   startAndPause,
   resume,
   pause,
+  continuePlay,
   end,
 }
 
@@ -36,8 +40,12 @@ class VideoView extends StatefulWidget {
   final ContentStackBuilder contentStackBuilder;
 }
 
-class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
+class _VideoViewState extends State<VideoView>
+    with WidgetsBindingObserver, NetworkStateMiXin {
   VideoPlayerController _videoController;
+  bool _isPlayError = false;
+  bool _isNetworkConnectivityError = false;
+  bool _isPlayPrepare = false;
 
   @override
   void didUpdateWidget(VideoView oldWidget) {
@@ -66,15 +74,17 @@ class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
           "AdvertView didChangeAppLifecycleState ${this.hashCode} -> paused 已经暂停了，用户不可见、不可操作ui");
       _pauseControllerWithLifecycle();
     } else if (state == AppLifecycleState.resumed) {
-      print("AdvertView didChangeAppLifecycleState ${this.hashCode} -> resumed 应用可见并可响应用户操作");
+      print(
+          "AdvertView didChangeAppLifecycleState ${this.hashCode} -> resumed 应用可见并可响应用户操作");
       _resumeControllerWithLifecycle();
     } else if (state == AppLifecycleState.detached) {
       print(
           "AdvertView didChangeAppLifecycleState ${this.hashCode} -> AppLifecycleState.detached 操作不了ui并且销毁");
       //_destroyController();
     } else if (state == AppLifecycleState.inactive) {
-      print("AdvertView didChangeAppLifecycleState ${this.hashCode} -> inactive 用户可见，可以响应用户操作");
-     // _pauseControllerWithLifecycle();
+      print(
+          "AdvertView didChangeAppLifecycleState ${this.hashCode} -> inactive 用户可见，可以响应用户操作");
+      // _pauseControllerWithLifecycle();
     }
   }
 
@@ -109,6 +119,15 @@ class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
   }
 
   @override
+  void onNetworkChange() {
+    _isNetworkConnectivityError = !hasNetwork;
+    if (!_isNetworkConnectivityError) {
+      _isPlayError = false;
+      _initController();
+    }
+  }
+
+  @override
   void deactivate() {
     print('_VideoViewState => deactivate');
     _pauseControllerWithoutListener();
@@ -123,8 +142,26 @@ class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  Duration _playPosition = Duration.zero;
+
   void _controllerEvent() {
-    setState(() {});
+    setState(() {
+      if (_videoController.value.initialized &&
+          _videoController.value.position != Duration.zero) {
+        _playPosition = _videoController.value.position;
+        print("记录位置 _playPosition:$_playPosition");
+      }
+
+      if (_isPlayPrepare && _videoController.value.duration == null) {
+        print(
+            "播放错误 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration} initialized: ${_videoController.value.initialized}");
+        _isPlayError = true;
+        return;
+      }
+      print(
+          "正在播放 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration}");
+      if (_isPlayError) _isPlayError = false;
+    });
   }
 
   void _destroyController() {
@@ -140,16 +177,15 @@ class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
     assert(widget.playState != null);
     print(
         "AdvertView _handleStateAfterInit -> initState: ${initState.toString()}, playState: ${widget.playState.toString()}");
-    if (!_videoController.value.initialized)
-      return;
+    if (!_videoController.value.initialized) return;
 
     switch (widget.playState) {
       case PlayState.startAndPause:
         if (initState != _InitState.just_already) {
           _videoController.seekTo(Duration.zero);
         }
-
-        if (_videoController.value.isPlaying) _videoController.pause();
+        _videoController.pause();
+        //if (_videoController.value.isPlaying) _videoController.pause();
         break;
 
       case PlayState.startAndPlay:
@@ -161,25 +197,34 @@ class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
 
         break;
 
+      case PlayState.continuePlay:
+        print(
+            "AdvertView _handleStateAfterInit -> continuePlay -> playPosition: $_playPosition  currentPosition:${_videoController.value.position}");
+        _videoController.seekTo(_playPosition);
+        if (!_videoController.value.isPlaying) _videoController.play();
+        break;
+
       case PlayState.resume:
         if (!_videoController.value.isPlaying) _videoController.play();
         break;
 
       case PlayState.pause:
-        if (_videoController.value.isPlaying) _videoController.pause();
+        _videoController.pause();
         break;
 
       case PlayState.end:
-        if (_videoController.value.position != _videoController.value.duration) {
+        if (_videoController.value.position !=
+            _videoController.value.duration) {
           _videoController.seekTo(_videoController.value.duration);
         }
 
-        if (_videoController.value.isPlaying) _videoController.pause();
+        _videoController.pause();
         break;
     }
   }
 
   Future<_InitState> _initFinished(_) async {
+    _isPlayPrepare = true;
     return _InitState.just_already;
   }
 
@@ -237,61 +282,28 @@ class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
     _initController();
   }
 
-  /*Widget _buildAdvertRightTitle() {
-    return Positioned(
-        right: 0,
-        top: 0,
-        child: CircularUtils.getTextSpanContainer(
-            TextSpan(text: Strings.advert_txt, children: [
-              WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Colors.white,
-                  size: 26.sp,
-                ),
-                style: TextStyle(
-                  letterSpacing: -1,
-                ),
-              ),
-            ]), onTap: () {
-          print("点击${Strings.advert_txt}");
+  Widget _buildErrorWidget() {
+    if (_isPlayError ||
+        (!_videoController.value.initialized && _isNetworkConnectivityError)) {
+      return ViewUtils.buildNetworkErrorView(
+        width: double.infinity,
+        height: double.infinity,
+        errorCode:
+            "(${_isNetworkConnectivityError ? NetworkErrorCode.network_connectivity_error : NetworkErrorCode.video_play_error})",
+        onTap: () {
+          if (_isNetworkConnectivityError) {
+            checkConnectivity();
+          } else {
+            _initController();
+          }
         },
-            fontSize: 20.sp,
-            textColor: Colors.white,
-            backgroundColor: Color(0x33000000),
-            verticalSpace: 14.w, //14.w,
-            horizontalInvisibleSpace: 12.w,
-            verticalInvisibleSpace: 12.w,
-            invisibleSpaceClickable: true,
-            horizontalSpace: 18.w) //18.w),
-        );
-  }*/
+      );
+    }
 
-  Widget _buildAdvertRightTitle() {
-    return Chip(
-      label: Container(
-        color: Colors.red,
-        child: Text(
-          '老孟',
-          style: TextStyle(fontSize: 12),
-        ),
-      ),
-      labelPadding: EdgeInsets.zero,
-      padding: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
-      // padding: EdgeInsets.zero,
-      deleteIcon: Icon(
-        Icons.keyboard_arrow_down,
-        size: 18,
-      ),
-      //deleteIconColor: Colors.blue,
-      //deleteButtonTooltipMessage: '删除',
-    );
+    return null;
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildVideo() {
     final List<Widget> stackList =
         widget.contentStackBuilder?.call(context, _videoController);
     return AspectRatio(
@@ -304,5 +316,10 @@ class _VideoViewState extends State<VideoView> with WidgetsBindingObserver {
         ],
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _buildErrorWidget() ?? _buildVideo();
   }
 }

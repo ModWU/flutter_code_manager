@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:video_list/utils/view_utils.dart' as ViewUtils;
 
 mixin NetworkStateMiXin<T extends StatefulWidget> on State<T> {
   bool _isHasNetwork = true;
@@ -70,57 +71,6 @@ mixin NetworkStateMiXin<T extends StatefulWidget> on State<T> {
     }
 
     onNetworkStateChange(result);
-  }
-
-  Widget buildNetworkErrorView({double width = double.infinity, double height = double.infinity}) {
-    assert(width != null);
-    assert(height != null);
-
-    return Container(
-      height: height,
-      width: width,
-      color: Colors.black87,
-      alignment: Alignment.center,
-      padding: EdgeInsets.only(top: 12.0),
-      child: Text.rich(
-        TextSpan(children: [
-          TextSpan(
-              text: "视频加载失败，请稍后重试\n",
-              style: TextStyle(
-                  fontSize: 30.sp, color: Color.fromARGB(220, 255, 255, 255))),
-          TextSpan(
-              text: "(20300.10103)\n",
-              style: TextStyle(fontSize: 24.sp, color: Colors.grey)),
-          WidgetSpan(
-            child: GestureDetector(
-              onTap: () {
-                print("点击重试");
-                checkConnectivity();
-              },
-              child: Container(
-                decoration: new BoxDecoration(
-                  color: Colors.white12,
-                  //设置四周圆角 角度
-                  borderRadius: BorderRadius.all(Radius.circular(24.0)),
-                  //设置四周边框
-                  //border: new Border.all(width: 1, color: Colors.red),
-                ),
-                margin: EdgeInsets.only(top: 16.0),
-                padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 24.0),
-                child: Text(
-                  "点击重试",
-                  style: TextStyle(
-                    fontSize: 30.sp,
-                    color: Color.fromARGB(220, 255, 255, 255),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ]),
-        textAlign: TextAlign.center,
-      ),
-    );
   }
 
   @override

@@ -19,6 +19,7 @@ class NormalAdvertView extends StatefulWidget {
       this.titleHeight,
       this.videoHeight,
       this.width,
+      this.onEnd,
       this.advertItem})
       : assert(playState != null),
         assert(advertItem != null),
@@ -37,15 +38,12 @@ class NormalAdvertView extends StatefulWidget {
   final double videoHeight;
 
   final double width;
+
+  final VoidCallback onEnd;
 }
 
 class _NormalAdvertViewState extends State<NormalAdvertView>
-    with AutomaticKeepAliveClientMixin, NetworkStateMiXin {
-  @override
-  void onNetworkChange() {
-    setState(() {});
-  }
-
+    with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -64,7 +62,9 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     );
   }
 
-  void _onClickAdvert() {}
+  void _onClickAdvert() {
+    print("点击了Advert body");
+  }
 
   Widget _buildVideoView() {
     assert(widget.advertItem.videoUrl != null);
@@ -97,8 +97,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
               final bool isNearBuffering = _isNeedBuffering(controller);
               print("isNearBuffering => $isNearBuffering");
               children.addAll([
-                if (isNearBuffering)
-                  _buildWaitingProgressIndicator(),
+                if (isNearBuffering) _buildWaitingProgressIndicator(),
                 Positioned(
                   left: 0,
                   right: 0,
@@ -110,9 +109,18 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
           }
         }
 
-        if (isEnd)
-          children.add(_buildShowImageView());
-        children.add(_buildAdvertEnd(!isEnd));
+        if (isEnd) {
+          widget.onEnd?.call();
+          children.addAll([
+            _buildShowImageView(),
+            _buildCoverShape(),
+          ]);
+        }
+
+        children.addAll([
+          _buildAdvertEnd(!isEnd),
+          _buildAdvertHint(),
+        ]);
 
         return children;
       },
@@ -162,18 +170,66 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
+      loadingBuilder: (
+          BuildContext context,
+          Widget child,
+          ImageChunkEvent loadingProgress,
+      ) {
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Color(0xFFA9A9A9),
+          child: child
+        );
+      },
+    );
+  }
+
+  Widget _buildCoverShape() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Colors.black54,
     );
   }
 
   Widget _buildAdvertBody() {
     return Container(
-      height: widget.videoHeight,
-      width: double.infinity,
-      child: hasNetwork
-          ? (widget.advertItem.canPlay
-              ? _buildVideoView()
-              : _buildShowImageView())
-          : buildNetworkErrorView(),
+        height: widget.videoHeight,
+        width: double.infinity,
+        child: (widget.advertItem.canPlay
+            ? _buildVideoView()
+            : _buildShowImageView()));
+  }
+
+  Widget _buildAdvertHint() {
+    return Positioned(
+      top: 8.w,
+      right: 8.w,
+      child: ViewUtils.buildTextIcon(
+          text: Text(
+            Strings.advert_txt,
+            style: TextStyle(
+              fontSize: 18.sp,
+              color: Colors.white,
+            ),
+          ),
+          icon: Icon(
+            Icons.keyboard_arrow_down,
+            color: Colors.white,
+            size: 26.sp,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.black12,
+            borderRadius: BorderRadius.all(Radius.circular(4.w)),
+          ),
+          padding: EdgeInsets.symmetric(
+            vertical: 2.w,
+            horizontal: 4.w,
+          ),
+          onTap: () {
+            print("点击了广告");
+          }),
     );
   }
 
@@ -229,7 +285,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
               ),
             ),
             strutStyle: StrutStyle(
-              leading: 0.4,
+              leading: widget.advertItem.nameDetails.length > 1 ? 0.4 : 0.2,
             ),
           ),
           RawChip(
@@ -263,8 +319,80 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
   Widget _buildAdvertEnd(bool offstage) {
     return Offstage(
       offstage: offstage,
-      child: Center(
-        child: Text("OVER!!!!!!!!!!"),
+      child: Column(
+        //mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: 70.h),
+            child: GestureDetector(
+              onTap: () {
+                print("点击了图标");
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16.w),
+                child: Image.network(
+                  widget.advertItem.iconUrl,
+                  width: 80.w,
+                  height: 80.w,
+                ),
+              ),
+            ),
+          ),
+          Text(
+            widget.advertItem.iconName,
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: Colors.white,
+            ),
+            strutStyle: StrutStyle(
+              leading: 1.2,
+            ),
+          ),
+          ViewUtils.buildIconText(
+            text: Text(
+              Strings.advert_detail_txt,
+              style: TextStyle(
+                fontSize: 28.sp,
+                color: Colors.white,
+              ),
+            ),
+            decoration: BoxDecoration(
+              color: Colors.deepOrangeAccent,
+              //设置四周圆角 角度
+              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+              //设置四周边框
+              //border: new Border.all(width: 1, color: Colors.red),
+            ),
+            padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 12.0),
+            margin: EdgeInsets.only(top: 6.0),
+            onTap: () {
+              print("了解详情");
+            },
+          ),
+          Expanded(
+            child: Align(
+              alignment: Alignment(0.95, 0.2),
+              child: ViewUtils.buildIconText(
+                icon: Icon(
+                  Icons.replay,
+                  size: 34.w,
+                  color: Colors.white,
+                ),
+                text: Text(
+                  Strings.advert_replay_txt,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24.sp,
+                  ),
+                ),
+                gap: 10.w,
+                onTap: () {
+                  print("重新播放1");
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

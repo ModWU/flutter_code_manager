@@ -26,6 +26,7 @@ enum PlayType {
 
 class AdvertItem {
   List<String> _nameDetails;
+  String _iconName;
   String _iconUrl;
   String _showImgUrl;
   String _videoUrl;
@@ -35,6 +36,7 @@ class AdvertItem {
 
   AdvertItem(
       {String videoUrl,
+        String iconName,
       String iconUrl,
       String detailUrl,
       String showImgUrl,
@@ -43,6 +45,9 @@ class AdvertItem {
       bool isApplication = false})
       : assert(videoUrl != null),
         assert(showImgUrl != null),
+        assert(iconUrl != null),
+        assert(iconName != null),
+        _iconName = iconName,
         _iconUrl = iconUrl,
         _videoUrl = videoUrl,
         _introduce = introduce,
@@ -62,6 +67,8 @@ class AdvertItem {
   String get showImgUrl => _showImgUrl;
 
   String get iconUrl => _iconUrl;
+
+  String get iconName => _iconName;
 
   String get detailUrl => _detailUrl;
 

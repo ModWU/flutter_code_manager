@@ -17,4 +17,10 @@ class Strings {
   static const advert_download_txt = "下载应用";
   static const advert_txt = "广告";
   static const advert_replay_txt = "重新播放";
+
+  //click hint
+  static const click_again_text = "点击重试";
+
+  //error
+  static const video_network_error = "视频加载失败，请稍后重试";
 }

@@ -120,6 +120,17 @@ class ChoicenessController {
     ["一汽-大众"],
   ];
 
+  static  final List<String> iconNameList = [
+    "大众点评之神探狄仁杰",
+    "斑马app",
+    "书旗小说",
+    "传奇世界",
+    "爱时尚",
+    "阴阳师",
+    "荣耀大天使",
+    "美团配送",
+  ];
+
   static  final List<String> timeList = ["2020-09-26", "2021-01-02", "全24集", null];
 
   List getRandomHeaderData() {
@@ -155,6 +166,7 @@ class ChoicenessController {
 
     AdvertItem headerImage6 = AdvertItem(
       nameDetails: ["疯读小说"],
+      iconName: iconNameList[random.nextInt(iconNameList.length)],
       introduce: "免费手机都不要，就是你不对了",
       isApplication: true,
       detailUrl: "https://www.baidu.com/",
@@ -202,6 +214,7 @@ class ChoicenessController {
       if (advertAssert > 0.7) {
         data.add(AdvertItem(
           nameDetails: nameDetailsList[nameDetailsIndex],
+          iconName: iconNameList[random.nextInt(iconNameList.length)],
           introduce: "免费手机都不要，就是你不对了",
           isApplication: true,
           detailUrl: "https://www.baidu.com/",
@@ -215,8 +228,11 @@ class ChoicenessController {
     return data;
   }
 
-  List updateChoicenessData(List oldDataList) {
+  List updateChoicenessData(List oldDatas) {
+
+    List oldDataList = List.from(oldDatas);
     oldDataList.removeAt(0);
+
     List newDataList = [];
     newDataList.add(getRandomHeaderData());
 
@@ -260,6 +276,7 @@ class ChoicenessController {
       if (advertAssert >= 0.5) {
         videoData.add(AdvertItem(
           nameDetails: nameDetailsList[nameDetailsIndex],
+          iconName: iconNameList[random.nextInt(iconNameList.length)],
           introduce: "免费手机都不要，就是你不对了",
           isApplication: true,
           detailUrl: "https://www.baidu.com/",
