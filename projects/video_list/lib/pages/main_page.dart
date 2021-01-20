@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/pages/page_controller.dart';
+import 'package:video_list/ui/utils/triangle_arrow_decoration.dart';
 import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/utils/icons_utils.dart';
 import '../resources/export.dart';
 
@@ -48,7 +49,29 @@ class HeartBeatApp extends StatelessWidget {
         splashColor: Colors.transparent, // 点击时的高亮效果设置为透明，包括tab
         highlightColor: Colors.transparent, // 长按时的扩散效果设置为透明
       ),
-      home: _HeartBeatPage(),
+      home: /*Center(
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          padding: EdgeInsets.only(left: 0, top: 0),
+          decoration: TriangleArrowDecoration(
+            color: Colors.red,
+            triangleArrowDirection: TriangleArrowDirection.topRight,
+            arrowOffset: 12,
+            arrowHeight: 12,
+            arrowWidth: 12,
+            arrowBreadth: 0,
+            arrowSmoothness: 0,
+            borderRadius: BorderRadius.all(
+              Radius.elliptical(12, 12),
+            ),
+          ),
+          child: Container(
+            width: 200,
+            height: 200,
+            //color: Colors.yellow,
+          ),
+        ),
+      ),*/ _HeartBeatPage(),
     );
   }
 
@@ -123,7 +146,8 @@ class _HeartBeatState extends State<_HeartBeatPage>
           unselectedItemColor: Colors.black,
           onTap: (index) {
             //notifyChangePage(context, pageIndex: PageIndex.values[index]);
-            Provider.of<PageChangeNotifier>(context, listen: false).changeIndex(PageIndex.values[index]);
+            Provider.of<PageChangeNotifier>(context, listen: false)
+                .changeIndex(PageIndex.values[index]);
           },
         ),
         body: IndexedStack(

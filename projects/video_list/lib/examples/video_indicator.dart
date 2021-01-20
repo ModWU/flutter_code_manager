@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoProgressOwnerIndicator extends StatefulWidget {
@@ -42,39 +43,40 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
       _VideoProgressOwnerIndicatorState();
 }
 
+class _ProgressNotify extends ChangeNotifier {
+  double _bufferingValue;
+  double _positionValue;
+
+  double get bufferingValue => _bufferingValue;
+  double get positionValue => _positionValue;
+
+  _ProgressNotify({double bufferingValue = 0, double positionValue = 0})
+      : assert(bufferingValue != null),
+        assert(positionValue != null),
+        _bufferingValue = bufferingValue,
+        _positionValue = positionValue;
+
+  void changeBufferingValue(double value) {
+    if (bufferingValue == value) return;
+    _bufferingValue = value;
+    notifyListeners();
+  }
+
+  void changePositionValue(double value) {
+    if (_positionValue == value) return;
+    _positionValue = value;
+    notifyListeners();
+  }
+}
+
 class _VideoProgressOwnerIndicatorState
     extends State<VideoProgressOwnerIndicator> {
   _VideoProgressOwnerIndicatorState() {
-    listener = () {
+    _listener = () {
       if (!mounted) {
         return;
       }
-      setState(() {});
-    };
-  }
 
-  VoidCallback listener;
-
-  VideoPlayerController get controller => widget.controller;
-
-  VideoProgressColors get colors => widget.colors;
-
-  @override
-  void initState() {
-    super.initState();
-    controller.addListener(listener);
-  }
-
-  @override
-  void deactivate() {
-    controller.removeListener(listener);
-    super.deactivate();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Widget progressIndicator;
-    if (controller.value.initialized) {
       final int duration = controller.value.duration.inMilliseconds;
       final int position = controller.value.position.inMilliseconds;
 
@@ -86,21 +88,68 @@ class _VideoProgressOwnerIndicatorState
         }
       }
 
+      _progressNotify.changeBufferingValue(maxBuffering / duration);
+      _progressNotify.changePositionValue(position / duration);
+    };
+  }
+
+  VoidCallback _listener;
+
+  _ProgressNotify _progressNotify = _ProgressNotify();
+
+  VideoPlayerController get controller => widget.controller;
+
+  VideoProgressColors get colors => widget.colors;
+
+  @override
+  void initState() {
+    super.initState();
+    controller.addListener(_listener);
+  }
+
+  @override
+  void deactivate() {
+    controller.removeListener(_listener);
+    super.deactivate();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget progressIndicator;
+    if (controller.value.initialized) {
       progressIndicator = Stack(
         fit: StackFit.passthrough,
         children: <Widget>[
-          LinearProgressIndicator(
-            value: maxBuffering / duration,
-            valueColor: AlwaysStoppedAnimation<Color>(colors.bufferedColor),
-            minHeight: 1.8,
-            backgroundColor: colors.backgroundColor,
-            //backgroundColor: Colors.blue,
+          Selector(
+            builder:
+                (BuildContext context, double bufferingValue, Widget child) {
+              return LinearProgressIndicator(
+                value: bufferingValue,
+                valueColor: AlwaysStoppedAnimation<Color>(colors.bufferedColor),
+                minHeight: 1.8,
+                backgroundColor: colors.backgroundColor,
+                //backgroundColor: Colors.blue,
+              );
+            },
+            selector: (BuildContext context, _ProgressNotify progressNotify) {
+              //这个地方返回具体的值，对应builder中的data
+              return progressNotify.bufferingValue;
+            },
           ),
-          LinearProgressIndicator(
-            value: position / duration,
-            valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
-            minHeight: 1.8,
-            backgroundColor: Colors.transparent,
+          Selector(
+            builder:
+                (BuildContext context, double positionValue, Widget child) {
+              return LinearProgressIndicator(
+                value: positionValue,
+                valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
+                minHeight: 1.8,
+                backgroundColor: Colors.transparent,
+              );
+            },
+            selector: (BuildContext context, _ProgressNotify progressNotify) {
+              //这个地方返回具体的值，对应builder中的data
+              return progressNotify.positionValue;
+            },
           ),
         ],
       );
@@ -115,14 +164,22 @@ class _VideoProgressOwnerIndicatorState
       padding: widget.padding,
       child: progressIndicator,
     );
+
+    Widget child;
+
     if (widget.allowScrubbing) {
-      return _VideoScrubber(
+      child = _VideoScrubber(
         child: paddedProgressIndicator,
         controller: controller,
       );
     } else {
-      return paddedProgressIndicator;
+      child = paddedProgressIndicator;
     }
+
+    return ChangeNotifierProvider<_ProgressNotify>.value(
+      value: _progressNotify,
+      child: child,
+    );
   }
 }
 

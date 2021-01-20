@@ -20,7 +20,7 @@ import 'app_bar.dart';
 import 'sliver_video_item.dart';
 import 'package:video_list/resources/export.dart';
 import 'video_page_utils.dart' as VideoPageUtils;
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+//import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 
 class ChoicenessPage extends StatefulWidget with PageVisibleMixin {
@@ -37,8 +37,8 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   static const _barLeadingLeft = 12.0;
   static const _appBarHeight = Dimens.action_bar_height - 10.0;
 
-  RefreshController _refreshController =
-      RefreshController(initialRefresh: false);
+  /*RefreshController _refreshController =
+      RefreshController(initialRefresh: false);*/
 
   ValueNotifier<VideoPlayInfo> _videoPlayNotifier =
       ValueNotifier<VideoPlayInfo>(null);
@@ -75,7 +75,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   void dispose() {
     print("ChoicenessPage -> dispose()");
     _disposeResources();
-    _refreshController.dispose();
+    //_refreshController.dispose();
     super.dispose();
   }
 
@@ -122,23 +122,23 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
   Widget _buildRemovedItem(BuildContext context, int index, dynamic item,
       Animation<double> animation) {
-    if (index == 0) {
-      return ChoicenessHeader(item, widget.pageVisibleNotifier);
-    }
+    print("_buildRemovedItem: $index   size: ${_list.length}");
+    final Widget child = _buildItem(context, index, animation);
 
-    if (item is VideoItems) {
-      return VideoItemWidget(item);
-    } else if (item is AdvertItem) {
-      return AdvertView(item);
-    }
-    return null;
+    return SizeTransition(
+      sizeFactor: animation.drive(CurveTween(curve: Curves.easeIn)),
+      axisAlignment: -1.0,
+      child: FadeTransition(
+        opacity: animation,
+        child: child,
+      ),
+    );
   }
 
   Random random = Random();
 
   Widget _buildItem(
       BuildContext context, int index, Animation<double> animation) {
-    print("remove notifiy _buildItem: ${index}");
     final dynamic data = _list[index];
     Widget child;
     if (index == 0) {
@@ -147,11 +147,6 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
     if (data is VideoItems) {
       child = VideoItemWidget(data);
-      /*Container(
-        color: Color.fromARGB(random.nextInt(100) + 155, random.nextInt(255),
-            random.nextInt(255), random.nextInt(255)),
-        child: VideoItemWidget(data)*/
-
     } else if (data is AdvertItem) {
       final bool isCanPlay = data.canPlay;
       child = Consumer<ValueNotifier<VideoPlayInfo>>(builder:
@@ -175,6 +170,11 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 playNotifier.value.isPlayEnd = true;
               }
             },
+            onLoseAttention: () {
+              var element = _list.removeAt(index);
+              print("remove11111: $element");
+              assert(element != null);
+            },
             videoHeight: HeightMeasurer.advertItemHeight,
             titleHeight: HeightMeasurer.itemVideoTitleHeightWithVerticalList,
           ),
@@ -194,7 +194,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       _initResources();
     });
 */
-    _refreshController.refreshCompleted();
+    //_refreshController.refreshCompleted();
     //_dataRefreshNotifier.value += 1;
     /*setState(() {
 
@@ -209,7 +209,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
     _list.addAll(newDataList);
 
-    _refreshController.loadComplete();
+    //_refreshController.loadComplete();
   }
 
   @override
@@ -291,14 +291,24 @@ class _ChoicenessPageState extends State<ChoicenessPage>
             }
             return false;
           },
-          child: SmartRefresher(
+          child: CustomScrollView(
+            shrinkWrap: true,
+            physics: const BouncingScrollPhysics(),
+            slivers: <Widget>[
+              SliverAnimatedList(
+                key: _listKey,
+                initialItemCount: _list.length,
+                itemBuilder: _buildItem,
+              ),
+            ],
+          ), /*SmartRefresher(
             enablePullDown: true,
             enablePullUp: true,
             onRefresh: _onRefresh,
             onLoading: _onLoading,
-            /*onOffsetChange: (isUp, offset) {
+            */ /*onOffsetChange: (isUp, offset) {
               print("###offset: $offset, isUp: $isUp");
-            },*/
+            },*/ /*
             controller: _refreshController,
             //// WaterDropHeader、ClassicHeader、CustomHeader、LinkHeader、MaterialClassicHeader、WaterDropMaterialHeader
             header: ShimmerHeader(
@@ -346,7 +356,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 ),
               ],
             ),
-          ),
+          ),*/
         ), //ChoicenessHeader(widget.pageIndex, widget.tabIndex, _headerImages),
       ),
     );
@@ -402,14 +412,20 @@ class ListModel<E> with HeightMeasurer {
   }
 
   E removeAt(int index) {
-    final E removedItem = _items.removeAt(index);
-    if (removedItem != null) {
+    final E waitingRemovedItem = _items[index];
+    if (waitingRemovedItem != null) {
       _sliverAnimatedList.removeItem(index,
           (BuildContext context, Animation<double> animation) {
-        return removedItemBuilder(context, index, removedItem, animation);
-      });
+        final Widget widget =
+            removedItemBuilder(context, index, waitingRemovedItem, animation);
+        final E removedItem = _items.removeAt(index);
+        assert(removedItem != null);
+        assert(removedItem == waitingRemovedItem);
+        removeHeight(index);
+        return widget;
+      }, duration: const Duration(milliseconds: 300));
     }
-    return removedItem;
+    return waitingRemovedItem;
   }
 
   int get length => _items.length;

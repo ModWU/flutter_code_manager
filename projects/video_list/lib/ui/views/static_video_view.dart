@@ -303,6 +303,7 @@ class _VideoViewState extends State<VideoView>
     return null;
   }
 
+
   Widget _buildVideo() {
     final List<Widget> stackList =
         widget.contentStackBuilder?.call(context, _videoController);

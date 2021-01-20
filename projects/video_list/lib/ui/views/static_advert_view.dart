@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_list/examples/video_indicator.dart';
 import 'package:video_list/models/base_model.dart';
+import 'package:video_list/ui/popup/popup_view.dart';
+import 'package:video_list/ui/utils/triangle_arrow_decoration.dart';
 import 'package:video_list/utils/network_utils.dart';
 import 'package:video_list/utils/view_utils.dart' as ViewUtils;
 import 'package:video_player/video_player.dart';
 import 'static_video_view.dart';
 import 'package:video_list/resources/export.dart';
 import 'package:flutter_screenutil/size_extension.dart';
+import 'dart:ui';
+import 'dart:math' as Math;
 import 'package:connectivity/connectivity.dart';
 import 'dart:ui' as ui show ParagraphBuilder, PlaceholderAlignment;
 
@@ -18,6 +22,7 @@ class NormalAdvertView extends StatefulWidget {
       {this.playState = PlayState.startAndPause,
       this.titleHeight,
       this.videoHeight,
+      this.onLoseAttention,
       this.width,
       this.onEnd,
       this.advertItem})
@@ -40,6 +45,8 @@ class NormalAdvertView extends StatefulWidget {
   final double width;
 
   final VoidCallback onEnd;
+
+  final VoidCallback onLoseAttention;
 }
 
 class _NormalAdvertViewState extends State<NormalAdvertView>
@@ -171,16 +178,15 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
       width: double.infinity,
       height: double.infinity,
       loadingBuilder: (
-          BuildContext context,
-          Widget child,
-          ImageChunkEvent loadingProgress,
+        BuildContext context,
+        Widget child,
+        ImageChunkEvent loadingProgress,
       ) {
         return Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: Color(0xFFA9A9A9),
-          child: child
-        );
+            width: double.infinity,
+            height: double.infinity,
+            color: Color(0xFFA9A9A9),
+            child: child);
       },
     );
   }
@@ -203,10 +209,116 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
   }
 
   Widget _buildAdvertHint() {
+    final double top = 8.w;
+    final double right = 8.w;
+    final double popupRight = 16.w;
+    final double popupLeft = 32.w;
     return Positioned(
-      top: 8.w,
-      right: 8.w,
-      child: ViewUtils.buildTextIcon(
+      top: top,
+      right: right,
+      child: PopupMenuView(
+        itemBuilder: (context) {
+          return <PopupViewEntry<String>>[
+            PopupViewItem<String>(
+              value: '${widget.advertItem}',
+              height: 58.h,
+              child: Padding(
+                padding: EdgeInsets.only(left: 38.w, top: 32.w, bottom: 32.w),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_forever,
+                      color: Colors.grey,
+                      size: 38.sp,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(left: 18.w),
+                      child: Text(
+                        Strings.advert_bored_text,
+                        style: TextStyle(fontSize: 28.sp),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ];
+        },
+        onSelected: (v) {
+          //controller.removeListener(listener);
+          //controller.pause();
+          widget.onLoseAttention?.call();
+        },
+        width: Dimens.design_screen_width.w,
+        barrierColor: Colors.black26,
+        reverseTransitionDuration: Duration.zero,
+        //transitionDuration: Duration(milliseconds: 3000),
+        //elevation: 50,
+        //padding: EdgeInsets.all(0),
+        menuScreenPadding:
+            EdgeInsets.only(left: popupLeft, right: popupRight, top: 0),
+        outerBuilder: (BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+            RenderBox targetBox) {
+          assert(targetBox.size != null);
+          assert(targetBox.size.width != null);
+          final double radius = 6;
+          final double arrowWidth = 18.w;
+          final double arrowHeight = 12.w; //arrowWidth * Math.sin(Math.pi / 3);
+
+          final double finishOffset = popupRight - right;
+          final double needOffset = targetBox.size.width * 0.5 -
+              finishOffset -
+              radius -
+              arrowWidth / 2;
+          print("needOffset: $needOffset");
+          final CurveTween opacity =
+              CurveTween(curve: const Interval(0.0, 1.0 / 3.0));
+          return LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final double width = constraints.maxWidth;
+              final double height = constraints.maxHeight;
+              print("====> width: $width, height: $height");
+              final double scaleAlignmentFactor = 1.0 -
+                  (arrowWidth * 0.5 + radius + needOffset) / (width * 0.5);
+              return AnimatedBuilder(
+                animation: animation,
+                builder: (BuildContext context, Widget child) {
+                  return Transform.scale(
+                    scale: animation.value,
+                    alignment: Alignment(scaleAlignmentFactor, -1.0),
+                    child: Opacity(
+                      opacity: opacity.evaluate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Container(
+                  clipBehavior: Clip.antiAlias,
+                  padding: EdgeInsets.only(left: 0, top: arrowHeight),
+                  decoration: TriangleArrowDecoration(
+                    color: Colors.white,
+                    triangleArrowDirection: TriangleArrowDirection.topRight,
+                    arrowOffset: needOffset,
+                    arrowHeight: arrowHeight,
+                    arrowWidth: arrowWidth,
+                    arrowSmoothness: 1.5.w,
+                    arrowBreadth: 0.2.w,
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(radius),
+                    ),
+                  ),
+                  child: child,
+                ),
+              );
+            },
+          );
+        },
+        //color: Colors.blue,
+        coverTarget: false,
+        child: ViewUtils.buildTextIcon(
           text: Text(
             Strings.advert_txt,
             style: TextStyle(
@@ -225,11 +337,10 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
           ),
           padding: EdgeInsets.symmetric(
             vertical: 2.w,
-            horizontal: 4.w,
+            horizontal: 6.w,
           ),
-          onTap: () {
-            print("点击了广告");
-          }),
+        ),
+      ),
     );
   }
 

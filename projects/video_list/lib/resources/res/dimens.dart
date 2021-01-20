@@ -8,5 +8,4 @@ class Dimens {
   //单位：dp
   static const double action_bar_height = 46.0 + 8.0;
 
-
 }

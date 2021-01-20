@@ -21,6 +21,9 @@ class Strings {
   //click hint
   static const click_again_text = "点击重试";
 
+  //pop
+  static const advert_bored_text = "不感兴趣";
+
   //error
   static const video_network_error = "视频加载失败，请稍后重试";
 }
