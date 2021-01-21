@@ -2,21 +2,21 @@
  * Author: Jpeng
  * Email: peng8350@gmail.com
  * Time:  2019-07-08 10:51
- *//*
+ */
 
 import 'package:flutter/material.dart' as prefix0;
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:flutter/material.dart'
     hide RefreshIndicator, RefreshIndicatorState;
 import 'package:shimmer/shimmer.dart';
-*/
+
 /*
    use to implements indicaotr
    https://github.com/hnvn/flutter_shimmer
    how to use?
    in ui/example/customindicator/shimmer_indicaotr.dart,
    it will show you how to use
- *//*
+ */
 
 
 class ShimmerHeader extends RefreshIndicator {
@@ -154,4 +154,4 @@ class _ShimmerFooterState extends LoadIndicatorState<ShimmerFooter> {
           );
   }
 }
-*/
+

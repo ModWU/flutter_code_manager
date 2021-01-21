@@ -11,6 +11,7 @@ enum PlayState {
   resume,
   pause,
   continuePlay,
+  keepState,
   end,
 }
 
@@ -145,7 +146,11 @@ class _VideoViewState extends State<VideoView>
   Duration _playPosition = Duration.zero;
 
   void _controllerEvent() {
-    setState(() {
+
+    WidgetsBinding.instance.addPostFrameCallback((_){
+      if (!mounted)
+        return;
+
       if (_videoController.value.initialized &&
           _videoController.value.position != Duration.zero) {
         _playPosition = _videoController.value.position;
@@ -156,12 +161,18 @@ class _VideoViewState extends State<VideoView>
         print(
             "播放错误 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration} initialized: ${_videoController.value.initialized}");
         _isPlayError = true;
-        return;
+      } else {
+        print(
+            "正在播放 hasError:${_videoController.value
+                .hasError} error:${_videoController.value
+                .errorDescription} position:${_videoController.value
+                .position} duration: ${_videoController.value.duration}");
+        if (_isPlayError) _isPlayError = false;
       }
-      print(
-          "正在播放 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration}");
-      if (_isPlayError) _isPlayError = false;
+
+      setState(() {});
     });
+
   }
 
   void _destroyController() {
@@ -220,6 +231,9 @@ class _VideoViewState extends State<VideoView>
 
         _videoController.pause();
         break;
+
+      case PlayState.keepState:
+      default:
     }
   }
 
@@ -302,7 +316,6 @@ class _VideoViewState extends State<VideoView>
 
     return null;
   }
-
 
   Widget _buildVideo() {
     final List<Widget> stackList =

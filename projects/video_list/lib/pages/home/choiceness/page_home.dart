@@ -20,8 +20,8 @@ import 'app_bar.dart';
 import 'sliver_video_item.dart';
 import 'package:video_list/resources/export.dart';
 import 'video_page_utils.dart' as VideoPageUtils;
-//import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:flutter_screenutil/size_extension.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class ChoicenessPage extends StatefulWidget with PageVisibleMixin {
   ChoicenessPage();
@@ -37,8 +37,8 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   static const _barLeadingLeft = 12.0;
   static const _appBarHeight = Dimens.action_bar_height - 10.0;
 
-  /*RefreshController _refreshController =
-      RefreshController(initialRefresh: false);*/
+  RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
 
   ValueNotifier<VideoPlayInfo> _videoPlayNotifier =
       ValueNotifier<VideoPlayInfo>(null);
@@ -58,7 +58,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       assert(PaintingBinding.instance.imageCache != null);
       PaintingBinding.instance.imageCache.clear();
       if (_videoPlayNotifier.value != null) {
-        _videoPlayNotifier.value.keepState = true;
+        _videoPlayNotifier.value.playState = PlayState.continuePlay;
       }
       _list.update(_list._items);
     }
@@ -75,7 +75,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   void dispose() {
     print("ChoicenessPage -> dispose()");
     _disposeResources();
-    //_refreshController.dispose();
+    _refreshController.dispose();
     super.dispose();
   }
 
@@ -123,22 +123,15 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   Widget _buildRemovedItem(BuildContext context, int index, dynamic item,
       Animation<double> animation) {
     print("_buildRemovedItem: $index   size: ${_list.length}");
-    final Widget child = _buildItem(context, index, animation);
-
-    return SizeTransition(
-      sizeFactor: animation.drive(CurveTween(curve: Curves.easeIn)),
-      axisAlignment: -1.0,
-      child: FadeTransition(
-        opacity: animation,
-        child: child,
-      ),
-    );
+    if (_videoPlayNotifier.value != null) {
+      _videoPlayNotifier.value.playState = PlayState.keepState;
+    }
+    return _buildItem(context, index, animation);
   }
 
   Random random = Random();
 
-  Widget _buildItem(
-      BuildContext context, int index, Animation<double> animation) {
+  Widget _buildDetailItem(BuildContext context, int index) {
     final dynamic data = _list[index];
     Widget child;
     if (index == 0) {
@@ -151,28 +144,27 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       final bool isCanPlay = data.canPlay;
       child = Consumer<ValueNotifier<VideoPlayInfo>>(builder:
           (BuildContext context, ValueNotifier<VideoPlayInfo> playNotifier,
-              Widget child) {
+          Widget child) {
+        print(
+            "==========>index: $index => playNotifier: $playNotifier, playNotifier.value: ${playNotifier.value}, playNotifier.value.playState: ${playNotifier.value?.playState}, playNotifier.value.playIndex: ${playNotifier.value?.playIndex}");
         return Padding(
           padding: EdgeInsets.symmetric(
               vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
           child: NormalAdvertView(
             width: Dimens.design_screen_width.w,
             playState: playNotifier.value == null ||
-                    playNotifier.value.playIndex != index
+                playNotifier.value.playIndex != index
                 ? PlayState.startAndPause
-                : (playNotifier.value.keepState
-                    ? PlayState.continuePlay
-                    : PlayState.startAndPlay),
+                : playNotifier.value.playState,
             advertItem: data,
             onEnd: () {
               if (playNotifier.value != null) {
                 print("play end!!!!!!");
-                playNotifier.value.isPlayEnd = true;
+                playNotifier.value.playState = PlayState.end;
               }
             },
             onLoseAttention: () {
               var element = _list.removeAt(index);
-              print("remove11111: $element");
               assert(element != null);
             },
             videoHeight: HeightMeasurer.advertItemHeight,
@@ -182,6 +174,18 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       });
     }
     return child;
+  }
+
+  Widget _buildItem(
+      BuildContext context, int index, Animation<double> animation) {
+    return SizeTransition(
+      sizeFactor: animation.drive(CurveTween(curve: Curves.easeIn)),
+      axisAlignment: 1.0,
+      child: FadeTransition(
+        opacity: animation,
+        child: _buildDetailItem(context, index),
+      ),
+    );
   }
 
   Future<Null> _onRefresh() async {
@@ -194,7 +198,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       _initResources();
     });
 */
-    //_refreshController.refreshCompleted();
+    _refreshController.refreshCompleted();
     //_dataRefreshNotifier.value += 1;
     /*setState(() {
 
@@ -209,7 +213,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
     _list.addAll(newDataList);
 
-    //_refreshController.loadComplete();
+    _refreshController.loadComplete();
   }
 
   @override
@@ -248,7 +252,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
                 //-1代表都不播放
                 if (_videoPlayNotifier.value != null) {
-                  if (!_videoPlayNotifier.value.isPlayEnd) {
+                  if (!(_videoPlayNotifier.value.playState == PlayState.end)) {
                     final int index =
                         VideoPageUtils.computerPlayVideoWhenScrollEnd(
                             _list, viewportOffsetDataList);
@@ -257,6 +261,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                     } else if (index != _videoPlayNotifier.value.playIndex) {
                       _videoPlayNotifier.value = VideoPlayInfo(
                         playIndex: index,
+                        playState: PlayState.startAndPlay,
                       );
                     }
                   }
@@ -268,20 +273,24 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                   if (index != -1) {
                     _videoPlayNotifier.value = VideoPlayInfo(
                       playIndex: index,
+                      playState: PlayState.startAndPlay,
                     );
                   }
                 }
               } else if (notification is ScrollUpdateNotification) {
                 final List<ViewportOffsetData> viewportOffsetDataList =
                     _list.getViewportOffsetData(
-                        metrics.extentBefore, metrics.viewportDimension);
+                  metrics.extentBefore,
+                  metrics.viewportDimension,
+                );
 
                 if (_videoPlayNotifier.value != null) {
                   final int index =
                       VideoPageUtils.computerPauseVideoWhenScrollUpdate(
-                          _videoPlayNotifier.value.playIndex,
-                          _list,
-                          viewportOffsetDataList);
+                    _videoPlayNotifier.value.playIndex,
+                    _list,
+                    viewportOffsetDataList,
+                  );
                   if (index > 0 &&
                       index == _videoPlayNotifier.value.playIndex) {
                     _videoPlayNotifier.value = null;
@@ -291,24 +300,14 @@ class _ChoicenessPageState extends State<ChoicenessPage>
             }
             return false;
           },
-          child: CustomScrollView(
-            shrinkWrap: true,
-            physics: const BouncingScrollPhysics(),
-            slivers: <Widget>[
-              SliverAnimatedList(
-                key: _listKey,
-                initialItemCount: _list.length,
-                itemBuilder: _buildItem,
-              ),
-            ],
-          ), /*SmartRefresher(
+          child: SmartRefresher(
             enablePullDown: true,
             enablePullUp: true,
             onRefresh: _onRefresh,
             onLoading: _onLoading,
-            */ /*onOffsetChange: (isUp, offset) {
+            onOffsetChange: (isUp, offset) {
               print("###offset: $offset, isUp: $isUp");
-            },*/ /*
+            },
             controller: _refreshController,
             //// WaterDropHeader、ClassicHeader、CustomHeader、LinkHeader、MaterialClassicHeader、WaterDropMaterialHeader
             header: ShimmerHeader(
@@ -356,7 +355,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 ),
               ],
             ),
-          ),*/
+          ),
         ), //ChoicenessHeader(widget.pageIndex, widget.tabIndex, _headerImages),
       ),
     );
@@ -386,19 +385,22 @@ class ListModel<E> with HeightMeasurer {
 
   SliverAnimatedListState get _sliverAnimatedList => listKey.currentState;
 
+
+  //插入不进行任何动画
   void insert(int index, E item) {
     _items.insert(index, item);
-    _sliverAnimatedList.insertItem(index);
+    _sliverAnimatedList.insertItem(index, duration: Duration.zero);
     insertHeight(index, item);
   }
 
+  //插入不进行任何动画
   void addAll(List<E> items) {
     int addLength = items.length;
     int lastIndex = _items.length;
     _items.addAll(items);
     addAllHeight(items);
     while (addLength-- > 0) {
-      _sliverAnimatedList.insertItem(lastIndex++);
+      _sliverAnimatedList.insertItem(lastIndex++, duration: Duration.zero);
     }
   }
 

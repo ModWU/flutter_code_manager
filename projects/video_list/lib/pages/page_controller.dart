@@ -4,6 +4,7 @@ import 'package:video_list/pages/personal_center/personal_center_page.dart';
 import 'package:video_list/pages/video/video_page.dart';
 import 'package:video_list/pages/vip/vip_page.dart';
 import 'package:video_list/resources/res/strings.dart';
+import 'package:video_list/ui/views/static_video_view.dart';
 import 'home/home_page.dart';
 import 'live_streaming/live_streaming_page.dart';
 
@@ -147,19 +148,15 @@ class PageChangeNotifier with ChangeNotifier {
 
 class VideoPlayInfo {
   int playIndex;
-  bool keepState;
-  bool isPlayEnd;
+  PlayState playState;
 
-  VideoPlayInfo copyWith({int playIndex, bool isPlayEnd, bool keepState}) =>
-      VideoPlayInfo(
+  VideoPlayInfo copyWith({int playIndex, PlayState playState}) => VideoPlayInfo(
         playIndex: playIndex ?? this.playIndex,
-        isPlayEnd: isPlayEnd ?? this.isPlayEnd,
-        keepState: keepState ?? this.keepState,
+        playState: playState ?? this.playState,
       );
 
   VideoPlayInfo(
-      {this.playIndex = -1, this.isPlayEnd = false, this.keepState = false})
+      {this.playIndex = -1, this.playState = PlayState.startAndPause})
       : assert(playIndex != null),
-        assert(isPlayEnd != null),
-        assert(keepState != null);
+        assert(playState != null);
 }

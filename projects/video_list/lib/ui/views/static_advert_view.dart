@@ -245,8 +245,6 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
           ];
         },
         onSelected: (v) {
-          //controller.removeListener(listener);
-          //controller.pause();
           widget.onLoseAttention?.call();
         },
         width: Dimens.design_screen_width.w,
@@ -506,6 +504,12 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    print("NormalAdvertView => ${hashCode} initState");
+    super.initState();
   }
 
   @override
