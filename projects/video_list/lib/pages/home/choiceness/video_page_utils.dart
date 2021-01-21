@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/pages/home/choiceness/page_home.dart';
 import 'package:video_list/resources/res/dimens.dart';
+import 'package:video_list/ui/popup/popup_view.dart';
+import 'package:video_list/ui/views/static_video_view.dart';
 import '../../page_controller.dart';
 import '../../../ui/utils/icons_utils.dart' as utils;
 import 'package:flutter_screenutil/screenutil.dart';
@@ -397,10 +399,11 @@ int computerPauseVideoWhenScrollUpdate(int playIndex, ListModel list,
   if (viewportOffsetDataList.length > 0) {
     final ViewportOffsetData first = viewportOffsetDataList.first;
 
-    print("computerPauseVideoWhenScrollUpdate => playIndex: $playIndex   first.index:${first.index}  first.visibleOffset: ${first.visibleOffset}  heightOff: ${first.height - HeightMeasurer.primaryTitleHeight}");
+    print(
+        "computerPauseVideoWhenScrollUpdate => playIndex: $playIndex   first.index:${first.index}  first.visibleOffset: ${first.visibleOffset}  heightOff: ${first.height - HeightMeasurer.primaryTitleHeight}");
     if ((playIndex == (first.index - 1) &&
-        first.visibleOffset <
-            (first.height - HeightMeasurer.primaryTitleHeight)) ||
+            first.visibleOffset <
+                (first.height - HeightMeasurer.primaryTitleHeight)) ||
         (playIndex <= (first.index - 2))) {
       return playIndex;
     }
@@ -462,4 +465,59 @@ int computerPlayVideoWhenScrollEnd(
   }
 
   return -1;
+}
+
+//头永远不会被移除
+VideoPlayInfo computerLastVideoPopupDirection(
+    ListModel list,
+    List<ViewportOffsetData> viewportOffsetDataList,
+    VideoPlayInfo playInfo,
+    double videoPopupViewport) {
+  assert(list != null);
+  assert(viewportOffsetDataList != null);
+  assert(videoPopupViewport != null);
+  assert(videoPopupViewport > 0);
+  if (viewportOffsetDataList.length <= 0) return playInfo;
+
+  final ViewportOffsetData last = viewportOffsetDataList.last;
+  assert(last != null);
+
+  final int index = last.index;
+
+  assert(list.length > index);
+
+  if (!_isPlayVideo(list, index)) return playInfo;
+
+  PopupDirection _defaultDirection = PopupDirection.bottom;
+  if (playInfo != null) {
+    if (playInfo.popupDirections != null &&
+        playInfo.popupDirections.containsKey(index)) {
+      _defaultDirection = playInfo.popupDirections[index];
+    }
+  }
+  final Map<int, PopupDirection> _directions = playInfo?.popupDirections ?? {};
+  print("_direction map type: ${_directions.runtimeType}");
+  if (last.visibleOffset >= videoPopupViewport) {
+    if (_defaultDirection != PopupDirection.bottom) {
+      _directions[index] = PopupDirection.bottom;
+
+      return VideoPlayInfo(
+        playIndex: playInfo?.playIndex ?? -1,
+        playState: PlayState.keepState,
+        popupDirections: _directions,
+      );
+    }
+  } else {
+    if (_defaultDirection != PopupDirection.top) {
+      _directions[index] = PopupDirection.top;
+
+      return VideoPlayInfo(
+        playIndex: playInfo?.playIndex ?? -1,
+        playState: PlayState.keepState,
+        popupDirections: _directions,
+      );
+    }
+  }
+
+  return playInfo;
 }

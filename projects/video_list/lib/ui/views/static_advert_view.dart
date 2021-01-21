@@ -22,17 +22,26 @@ class NormalAdvertView extends StatefulWidget {
       {this.playState = PlayState.startAndPause,
       this.titleHeight,
       this.videoHeight,
+      this.popupDirection = PopupDirection.bottom,
       this.onLoseAttention,
       this.width,
       this.onEnd,
       this.advertItem})
       : assert(playState != null),
         assert(advertItem != null),
+        assert(popupDirection != null),
         assert(titleHeight != null && titleHeight > 0),
         assert(videoHeight != null && videoHeight > 0),
         assert(width == null || width > 0);
 
   State<StatefulWidget> createState() => _NormalAdvertViewState();
+
+  static double advertButtonTopPadding = 8.w;
+  static double advertButtonHeight = 30.h;
+  static double popupViewHeight = 112.h;
+
+  //advertButton.topPadding + advertButton.height + popupView.height
+  static double needVisibleHeight = advertButtonTopPadding + advertButtonHeight + popupViewHeight;
 
   final PlayState playState;
 
@@ -47,10 +56,13 @@ class NormalAdvertView extends StatefulWidget {
   final VoidCallback onEnd;
 
   final VoidCallback onLoseAttention;
+
+  final PopupDirection popupDirection;
 }
 
 class _NormalAdvertViewState extends State<NormalAdvertView>
     with AutomaticKeepAliveClientMixin {
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -209,7 +221,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
   }
 
   Widget _buildAdvertHint() {
-    final double top = 8.w;
+    final double top = NormalAdvertView.advertButtonTopPadding;
     final double right = 8.w;
     final double popupRight = 16.w;
     final double popupLeft = 32.w;
@@ -221,7 +233,6 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
           return <PopupViewEntry<String>>[
             PopupViewItem<String>(
               value: '${widget.advertItem}',
-              height: 58.h,
               child: Padding(
                 padding: EdgeInsets.only(left: 38.w, top: 32.w, bottom: 32.w),
                 child: Row(
@@ -262,6 +273,8 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
             RenderBox targetBox) {
           assert(targetBox.size != null);
           assert(targetBox.size.width != null);
+          final bool popupDirectionBottom =
+              widget.popupDirection == PopupDirection.bottom;
           final double radius = 6;
           final double arrowWidth = 18.w;
           final double arrowHeight = 12.w; //arrowWidth * Math.sin(Math.pi / 3);
@@ -271,7 +284,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
               finishOffset -
               radius -
               arrowWidth / 2;
-          print("needOffset: $needOffset");
+          print("widget.popupDirection: ${widget.popupDirection}");
           final CurveTween opacity =
               CurveTween(curve: const Interval(0.0, 1.0 / 3.0));
           return LayoutBuilder(
@@ -286,7 +299,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
                 builder: (BuildContext context, Widget child) {
                   return Transform.scale(
                     scale: animation.value,
-                    alignment: Alignment(scaleAlignmentFactor, -1.0),
+                    alignment: Alignment(scaleAlignmentFactor, popupDirectionBottom ? -1.0 : 1.0),
                     child: Opacity(
                       opacity: opacity.evaluate(animation),
                       child: child,
@@ -295,10 +308,17 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
                 },
                 child: Container(
                   clipBehavior: Clip.antiAlias,
-                  padding: EdgeInsets.only(left: 0, top: arrowHeight),
+                  height: NormalAdvertView.popupViewHeight,
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.only(
+                      left: 0,
+                      top: popupDirectionBottom ? arrowHeight : 0,
+                      bottom: !popupDirectionBottom ? arrowHeight : 0),
                   decoration: TriangleArrowDecoration(
                     color: Colors.white,
-                    triangleArrowDirection: TriangleArrowDirection.topRight,
+                    triangleArrowDirection: popupDirectionBottom
+                        ? TriangleArrowDirection.topRight
+                        : TriangleArrowDirection.bottomRight,
                     arrowOffset: needOffset,
                     arrowHeight: arrowHeight,
                     arrowWidth: arrowWidth,
@@ -316,7 +336,34 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
         },
         //color: Colors.blue,
         coverTarget: false,
-        child: ViewUtils.buildTextIcon(
+        popupDirection: widget.popupDirection,
+        child: Container(
+          height: NormalAdvertView.advertButtonHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal: 6.w,
+          ),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.black12,
+            borderRadius: BorderRadius.all(Radius.circular(4.w)),
+          ),
+          child: Row(
+            children: [
+              Text(
+                Strings.advert_txt,
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  color: Colors.white,
+                ),
+              ),
+              Icon(
+                Icons.keyboard_arrow_down,
+                color: Colors.white,
+                size: 26.sp,
+              ),
+            ],
+          ),
+        ),/*ViewUtils.buildTextIcon(
           text: Text(
             Strings.advert_txt,
             style: TextStyle(
@@ -337,7 +384,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
             vertical: 2.w,
             horizontal: 6.w,
           ),
-        ),
+        ),*/
       ),
     );
   }

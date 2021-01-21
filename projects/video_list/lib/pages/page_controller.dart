@@ -4,6 +4,7 @@ import 'package:video_list/pages/personal_center/personal_center_page.dart';
 import 'package:video_list/pages/video/video_page.dart';
 import 'package:video_list/pages/vip/vip_page.dart';
 import 'package:video_list/resources/res/strings.dart';
+import 'package:video_list/ui/popup/popup_view.dart';
 import 'package:video_list/ui/views/static_video_view.dart';
 import 'home/home_page.dart';
 import 'live_streaming/live_streaming_page.dart';
@@ -149,14 +150,23 @@ class PageChangeNotifier with ChangeNotifier {
 class VideoPlayInfo {
   int playIndex;
   PlayState playState;
+  Map<int, PopupDirection> popupDirections;
 
-  VideoPlayInfo copyWith({int playIndex, PlayState playState}) => VideoPlayInfo(
+  VideoPlayInfo copyWith({
+    int playIndex,
+    PlayState playState,
+    Map<int, PopupDirection> popupDirections,
+  }) =>
+      VideoPlayInfo(
         playIndex: playIndex ?? this.playIndex,
         playState: playState ?? this.playState,
+        popupDirections: popupDirections ?? this.popupDirections,
       );
 
   VideoPlayInfo(
-      {this.playIndex = -1, this.playState = PlayState.startAndPause})
+      {this.playIndex = -1,
+      this.playState = PlayState.startAndPause,
+      this.popupDirections})
       : assert(playIndex != null),
         assert(playState != null);
 }

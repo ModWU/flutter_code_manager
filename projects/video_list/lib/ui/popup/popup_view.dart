@@ -39,6 +39,13 @@ typedef PopupViewItemSelected<T> = void Function(T value);
 /// Used by [PopupMenuButton.onCanceled].
 typedef PopupViewCanceled = void Function();
 
+enum PopupDirection {
+  top,
+  bottom,
+  //left,
+  //right,
+}
+
 abstract class PopupViewEntry<T> extends StatefulWidget {
   /// Abstract const constructor. This constructor enables subclasses to provide
   /// const constructors so that they can be used in const expressions.
@@ -194,6 +201,7 @@ class PopupMenuView<T> extends StatefulWidget {
     Key key,
     this.barrierColor,
     this.barrierDismissible = true,
+    this.popupDirection = PopupDirection.bottom,
     this.width,
     this.itemBuilder,
     this.outerBuilder,
@@ -217,6 +225,7 @@ class PopupMenuView<T> extends StatefulWidget {
     this.color,
     this.enableFeedback,
   })  : assert(barrierDismissible != null),
+        assert(popupDirection != null),
         assert(menuScreenPadding != null),
         assert(transitionDuration != null),
         assert(reverseTransitionDuration != null),
@@ -336,6 +345,8 @@ class PopupMenuView<T> extends StatefulWidget {
 
   final PopupAnimationBuilder popupAnimationBuilder;
 
+  final PopupDirection popupDirection;
+
   @override
   PopupMenuViewState<T> createState() => PopupMenuViewState<T>();
 }
@@ -399,6 +410,7 @@ class PopupMenuViewState<T> extends State<PopupMenuView<T>> {
       showView<T>(
         context: context,
         elevation: widget.elevation ?? popupMenuTheme.elevation,
+        popupDirection: widget.popupDirection,
         items: items,
         targetBox: button,
         keepPopupPadding: widget.keepPopupPadding,
@@ -625,6 +637,7 @@ Future<T> showView<T>({
   BuildContext context,
   RelativeRect position,
   List<PopupViewEntry<T>> items,
+  PopupDirection popupDirection,
   PopupViewOuterBuilder outerBuilder,
   Duration transitionDuration = _kMenuDuration,
   Duration reverseTransitionDuration = _kMenuDuration,
@@ -644,6 +657,7 @@ Future<T> showView<T>({
   bool useRootNavigator = false,
 }) {
   assert(context != null);
+  assert(popupDirection != null);
   assert(targetBox != null);
   assert(position != null);
   assert(useRootNavigator != null);
@@ -672,6 +686,7 @@ Future<T> showView<T>({
   return navigator.push(_PopupViewRoute<T>(
     position: position,
     items: items,
+    popupDirection: popupDirection,
     targetBox: targetBox,
     outerBuilder: outerBuilder,
     transitionDuration: transitionDuration,
@@ -699,6 +714,7 @@ class _PopupViewRoute<T> extends PopupRoute<T> {
     this.position,
     this.items,
     this.outerBuilder,
+    this.popupDirection = PopupDirection.bottom,
     Duration transitionDuration = _kMenuDuration,
     Duration reverseTransitionDuration = _kMenuDuration,
     this.popupAnimationBuilder,
@@ -717,6 +733,7 @@ class _PopupViewRoute<T> extends PopupRoute<T> {
     this.color,
     this.capturedThemes,
   })  : assert(barrierDismissible != null),
+        assert(popupDirection != null),
         assert(menuScreenPadding != null),
         assert(coverTarget != null),
         assert(transitionDuration != null),
@@ -745,6 +762,7 @@ class _PopupViewRoute<T> extends PopupRoute<T> {
   final bool keepPopupPadding;
   final Duration _transitionDuration;
   final Duration _reverseTransitionDuration;
+  final PopupDirection popupDirection;
 
   @override
   Animation<double> createAnimation() {
@@ -812,6 +830,7 @@ class _PopupViewRoute<T> extends PopupRoute<T> {
               selectedItemIndex,
               Directionality.of(context),
               menuScreenPadding: menuScreenPadding,
+              popupDirection: popupDirection,
               coverTarget: coverTarget,
             ),
             child: themeChild,
@@ -983,8 +1002,10 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
     this.selectedItemIndex,
     this.textDirection, {
     this.menuScreenPadding = _kMenuScreenPadding,
+    this.popupDirection = PopupDirection.bottom,
     this.coverTarget = false,
-  })  : assert(coverTarget != null),
+  })  : assert(popupDirection != null),
+        assert(coverTarget != null),
         assert(menuScreenPadding != null);
 
   // Rectangle of underlying button, relative to the overlay's dimensions.
@@ -1004,6 +1025,8 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
   final EdgeInsets menuScreenPadding;
 
   final bool coverTarget;
+
+  final PopupDirection popupDirection;
 
   // We put the child wherever position specifies, so long as it will fit within
   // the specified parent size padded (inset) by 8. If necessary, we adjust the
@@ -1025,11 +1048,15 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
     final Size targetSize =
         Size(position.right - position.left, position.bottom - position.top);
 
-    return Offset(
-        menuScreenPadding.left,
-        position.top +
-            menuScreenPadding.top +
-            (coverTarget ? 0 : targetSize.height));
+    double topOffset = position.top + menuScreenPadding.top;
+
+    if (popupDirection == PopupDirection.bottom) {
+      topOffset += (coverTarget ? 0 : targetSize.height);
+    } else if (popupDirection == PopupDirection.top) {
+      topOffset -= (childSize.height + (coverTarget ? -targetSize.height : 0));
+    }
+
+    return Offset(menuScreenPadding.left, topOffset);
   }
 
   bool _menuScreenPaddingEqual(EdgeInsets oldMenuScreenPadding) {

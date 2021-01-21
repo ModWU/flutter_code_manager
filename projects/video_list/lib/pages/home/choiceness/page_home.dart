@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/controllers/choiceness_controller.dart';
+import 'package:video_list/ui/popup/popup_view.dart';
 import 'package:video_list/ui/views/static_video_view.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/models/choiceness_model.dart';
@@ -144,19 +145,24 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       final bool isCanPlay = data.canPlay;
       child = Consumer<ValueNotifier<VideoPlayInfo>>(builder:
           (BuildContext context, ValueNotifier<VideoPlayInfo> playNotifier,
-          Widget child) {
+              Widget child) {
         print(
             "==========>index: $index => playNotifier: $playNotifier, playNotifier.value: ${playNotifier.value}, playNotifier.value.playState: ${playNotifier.value?.playState}, playNotifier.value.playIndex: ${playNotifier.value?.playIndex}");
+        assert(playNotifier.value == null || playNotifier.value?.playIndex != null);
         return Padding(
           padding: EdgeInsets.symmetric(
               vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
           child: NormalAdvertView(
             width: Dimens.design_screen_width.w,
             playState: playNotifier.value == null ||
-                playNotifier.value.playIndex != index
+                    playNotifier.value.playIndex != index
                 ? PlayState.startAndPause
                 : playNotifier.value.playState,
             advertItem: data,
+            popupDirection: playNotifier.value?.popupDirections == null ||
+                    !playNotifier.value.popupDirections.containsKey(index)
+                ? PopupDirection.bottom
+                : playNotifier.value.popupDirections[index],
             onEnd: () {
               if (playNotifier.value != null) {
                 print("play end!!!!!!");
@@ -277,6 +283,9 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                     );
                   }
                 }
+
+                _videoPlayNotifier.value = VideoPageUtils.computerLastVideoPopupDirection(
+                    _list, viewportOffsetDataList, _videoPlayNotifier.value, NormalAdvertView.needVisibleHeight);
               } else if (notification is ScrollUpdateNotification) {
                 final List<ViewportOffsetData> viewportOffsetDataList =
                     _list.getViewportOffsetData(
@@ -384,7 +393,6 @@ class ListModel<E> with HeightMeasurer {
   final List<E> _items;
 
   SliverAnimatedListState get _sliverAnimatedList => listKey.currentState;
-
 
   //插入不进行任何动画
   void insert(int index, E item) {
