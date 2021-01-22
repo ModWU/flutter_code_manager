@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:video_list/examples/video_indicator.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/ui/popup/popup_view.dart';
@@ -17,18 +18,25 @@ import 'dart:math' as Math;
 import 'package:connectivity/connectivity.dart';
 import 'dart:ui' as ui show ParagraphBuilder, PlaceholderAlignment;
 
+Duration _kDetailHighlightDuration = const Duration(seconds: 5);
+
+typedef OnDetailHighlight = void Function(bool highlight);
+
 class NormalAdvertView extends StatefulWidget {
   NormalAdvertView(
       {this.playState = PlayState.startAndPause,
       this.titleHeight,
       this.videoHeight,
       this.popupDirection = PopupDirection.bottom,
+      this.detailHighlight = false,
       this.onLoseAttention,
+      this.onDetailHighlight,
       this.width,
       this.onEnd,
       this.advertItem})
       : assert(playState != null),
         assert(advertItem != null),
+        assert(detailHighlight != null),
         assert(popupDirection != null),
         assert(titleHeight != null && titleHeight > 0),
         assert(videoHeight != null && videoHeight > 0),
@@ -41,7 +49,8 @@ class NormalAdvertView extends StatefulWidget {
   static double popupViewHeight = 112.h;
 
   //advertButton.topPadding + advertButton.height + popupView.height
-  static double needVisibleHeight = advertButtonTopPadding + advertButtonHeight + popupViewHeight;
+  static double needVisibleHeight =
+      advertButtonTopPadding + advertButtonHeight + popupViewHeight;
 
   final PlayState playState;
 
@@ -57,25 +66,32 @@ class NormalAdvertView extends StatefulWidget {
 
   final VoidCallback onLoseAttention;
 
+  final OnDetailHighlight onDetailHighlight;
+
   final PopupDirection popupDirection;
+
+  final bool detailHighlight;
 }
 
 class _NormalAdvertViewState extends State<NormalAdvertView>
     with AutomaticKeepAliveClientMixin {
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return GestureDetector(
-      onTap: _onClickAdvert,
-      child: Container(
-        width: widget.width ?? Dimens.design_screen_width.w,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildAdvertBody(),
-            _buildBottomTitle(),
-          ],
+    assert(_detailHighlightNotifier != null);
+    return ChangeNotifierProvider.value(
+      value: _detailHighlightNotifier,
+      child: GestureDetector(
+        onTap: _onClickAdvert,
+        child: Container(
+          width: widget.width ?? Dimens.design_screen_width.w,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildAdvertBody(),
+              _buildBottomTitle(),
+            ],
+          ),
         ),
       ),
     );
@@ -97,6 +113,8 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
         final List<Widget> children = [];
 
         bool isEnd = false;
+
+        print("current current playState: ${widget.playState}");
 
         if (widget.playState == PlayState.startAndPause) {
           children.addAll([
@@ -152,13 +170,19 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     assert(controller != null);
     assert(controller.value.initialized);
     print(
-        "_isNearBuffering => controller.value.position: ${controller.value.position}  controller.value.buffered: ${controller.value.buffered} isBuffering: ${controller.value.isBuffering}");
+        "_isNearBuffering => controller.value.position: ${controller.value.position}  controller.value.buffered: ${controller.value.buffered} isBuffering: ${controller.value.isBuffering} isPlaying: ${controller.value.isPlaying}");
 
-    if (_currentPlayPosition == controller.value.position) return true;
+    final int position = controller.value.position.inSeconds;
 
-    _currentPlayPosition = controller.value.position;
+    int maxBuffering = 0;
+    for (DurationRange range in controller.value.buffered) {
+      final int end = range.end.inSeconds;
+      if (end > maxBuffering) {
+        maxBuffering = end;
+      }
+    }
 
-    return false;
+    return position >= maxBuffering;
   }
 
   Widget _buildWaitingProgressIndicator() {
@@ -219,6 +243,9 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
             ? _buildVideoView()
             : _buildShowImageView()));
   }
+
+  Timer _detailHighlightAnimationTimer;
+  ValueNotifier<bool> _detailHighlightNotifier = ValueNotifier(false);
 
   Widget _buildAdvertHint() {
     final double top = NormalAdvertView.advertButtonTopPadding;
@@ -299,7 +326,8 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
                 builder: (BuildContext context, Widget child) {
                   return Transform.scale(
                     scale: animation.value,
-                    alignment: Alignment(scaleAlignmentFactor, popupDirectionBottom ? -1.0 : 1.0),
+                    alignment: Alignment(scaleAlignmentFactor,
+                        popupDirectionBottom ? -1.0 : 1.0),
                     child: Opacity(
                       opacity: opacity.evaluate(animation),
                       child: child,
@@ -363,7 +391,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
               ),
             ],
           ),
-        ),/*ViewUtils.buildTextIcon(
+        ), /*ViewUtils.buildTextIcon(
           text: Text(
             Strings.advert_txt,
             style: TextStyle(
@@ -444,28 +472,45 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
               leading: widget.advertItem.nameDetails.length > 1 ? 0.4 : 0.2,
             ),
           ),
-          RawChip(
-            avatar: Icon(
-              Icons.workspaces_outline,
-              color: Colors.grey,
-              size: 32.sp,
-            ),
-            padding: EdgeInsets.zero,
-            labelPadding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(0.0),
-            ),
-            onPressed: () {},
-            label: Text(
-              widget.advertItem.isApplication
-                  ? Strings.advert_download_txt
-                  : Strings.advert_detail_txt,
-              style: TextStyle(
-                fontSize: 26.sp,
-                color: Colors.grey,
-              ),
-            ),
-            backgroundColor: Colors.transparent,
+          Consumer<ValueNotifier<bool>>(
+            builder: (context, detailHighlightNotifier, _) {
+              print(
+                  "${this.hashCode} detailHighlightNotifier.value: ${detailHighlightNotifier.value}");
+
+              return ViewUtils.buildIconTextWithAnimation(
+                icon: Icon(
+                  Icons.workspaces_outline,
+                  size: 30.sp,
+                ),
+                text: Text(
+                  widget.advertItem.isApplication
+                      ? Strings.advert_download_txt
+                      : Strings.advert_detail_txt,
+                  style: TextStyle(
+                    fontSize: 25.sp,
+                    fontWeight: FontWeight.w100,
+                  ),
+                ),
+                animationIconTheme: IconThemeData(
+                  color: detailHighlightNotifier.value
+                      ? Color(0xFFFF6633)
+                      : Colors.grey,
+                ),
+                animationTextStyle: TextStyle(
+                  color: detailHighlightNotifier.value
+                      ? Color(0xFFFF6633)
+                      : Colors.grey,
+                ),
+                gap: 8.w,
+                curve: Curves.ease,
+                duration: Duration(
+                  milliseconds: (detailHighlightNotifier.value ? 500 : 0),
+                ),
+                onTap: () {
+                  print("底部");
+                },
+              );
+            },
           ),
         ],
       ),
@@ -554,9 +599,52 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
   }
 
   @override
+  void didUpdateWidget(covariant NormalAdvertView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _handleDetailTxtAnimation(oldWidget);
+  }
+
+  void _handleDetailTxtAnimation(NormalAdvertView oldWidget) {
+    assert(oldWidget != null);
+    if (_detailHighlightAnimationTimer != null)
+      _detailHighlightAnimationTimer.cancel();
+
+    if (_detailHighlightNotifier.value != widget.detailHighlight) {
+      if (!widget.detailHighlight) {
+        widget.onDetailHighlight?.call(false);
+        _detailHighlightNotifier.value = false;
+      } else {
+        _detailHighlightAnimationTimer = Timer(_kDetailHighlightDuration, () {
+          //callback function
+          print('afterTimer=' + DateTime.now().toString()); // 5s之后
+          widget.onDetailHighlight?.call(true);
+          _detailHighlightNotifier.value = widget.detailHighlight;
+          _detailHighlightAnimationTimer = null;
+        });
+      }
+    }
+  }
+
+  void _initDetailHighlightNotifier() {
+    if (widget.detailHighlight) {
+      _detailHighlightAnimationTimer = Timer(_kDetailHighlightDuration, () {
+        //callback function
+        print('afterTimer=' + DateTime.now().toString()); // 5s之后
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onDetailHighlight?.call(true);
+          _detailHighlightNotifier.value = widget.detailHighlight;
+        });
+
+      });
+    }
+
+  }
+
+  @override
   void initState() {
-    print("NormalAdvertView => ${hashCode} initState");
     super.initState();
+    print("NormalAdvertView => ${hashCode} initState");
+    _initDetailHighlightNotifier();
   }
 
   @override

@@ -146,10 +146,8 @@ class _VideoViewState extends State<VideoView>
   Duration _playPosition = Duration.zero;
 
   void _controllerEvent() {
-
-    WidgetsBinding.instance.addPostFrameCallback((_){
-      if (!mounted)
-        return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
 
       if (_videoController.value.initialized &&
           _videoController.value.position != Duration.zero) {
@@ -163,16 +161,12 @@ class _VideoViewState extends State<VideoView>
         _isPlayError = true;
       } else {
         print(
-            "正在播放 hasError:${_videoController.value
-                .hasError} error:${_videoController.value
-                .errorDescription} position:${_videoController.value
-                .position} duration: ${_videoController.value.duration}");
+            "正在播放 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration}");
         if (_isPlayError) _isPlayError = false;
       }
 
       setState(() {});
     });
-
   }
 
   void _destroyController() {
@@ -187,7 +181,7 @@ class _VideoViewState extends State<VideoView>
   Future<void> _handleStateAfterInit(_InitState initState) async {
     assert(widget.playState != null);
     print(
-        "AdvertView _handleStateAfterInit -> initState: ${initState.toString()}, playState: ${widget.playState.toString()}");
+        "AdvertView _handleStateAfterInit -> initState: ${initState.toString()}, playState: ${widget.playState.toString()}, isPlaying: ${_videoController.value.isPlaying}");
     if (!_videoController.value.initialized) return;
 
     switch (widget.playState) {
@@ -230,6 +224,7 @@ class _VideoViewState extends State<VideoView>
         }
 
         _videoController.pause();
+
         break;
 
       case PlayState.keepState:

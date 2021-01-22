@@ -147,26 +147,61 @@ class PageChangeNotifier with ChangeNotifier {
   PageIndex get pageIndex => _pageIndex;
 }
 
+class DetailHighlightInfo {
+  bool _startDetailHighlight;
+  bool _finishDetailHighlight;
+
+  bool get startDetailHighlight => _startDetailHighlight;
+  bool get finishDetailHighlight => _finishDetailHighlight;
+
+  set startDetailHighlight(bool value) {
+    assert(value != null);
+    if (value == _startDetailHighlight) return;
+    _startDetailHighlight = value;
+  }
+
+  set finishDetailHighlight(bool value) {
+    assert(value != null);
+    if (value == _finishDetailHighlight) return;
+    _finishDetailHighlight = value;
+  }
+
+  DetailHighlightInfo(
+      {bool startDetailHighlight = false, bool finishDetailHighlight = false})
+      : assert(startDetailHighlight != null),
+        assert(finishDetailHighlight != null),
+        _startDetailHighlight = startDetailHighlight,
+        _finishDetailHighlight = finishDetailHighlight;
+
+  @override
+  String toString() {
+    return "DetailHighlightInfo {startDetailHighlight: $startDetailHighlight, finishDetailHighlight: $finishDetailHighlight}";
+  }
+}
+
 class VideoPlayInfo {
   int playIndex;
   PlayState playState;
+  Map<int, DetailHighlightInfo> detailHighlights;
   Map<int, PopupDirection> popupDirections;
 
   VideoPlayInfo copyWith({
     int playIndex,
     PlayState playState,
+    Map<int, DetailHighlightInfo> detailHighlights,
     Map<int, PopupDirection> popupDirections,
   }) =>
       VideoPlayInfo(
         playIndex: playIndex ?? this.playIndex,
         playState: playState ?? this.playState,
+        detailHighlights: detailHighlights ?? this.detailHighlights,
         popupDirections: popupDirections ?? this.popupDirections,
       );
 
   VideoPlayInfo(
       {this.playIndex = -1,
-      this.playState = PlayState.startAndPause,
+      this.playState,
+      this.detailHighlights,
       this.popupDirections})
-      : assert(playIndex != null),
-        assert(playState != null);
+      : assert(playIndex != null);
 }

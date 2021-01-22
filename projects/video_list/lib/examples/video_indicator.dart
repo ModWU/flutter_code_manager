@@ -2,6 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+import 'dart:async';
+import 'dart:math' as Math;
+
+const int _kBufferingMillisecond = 500;
+Duration _kBufferingSpeedDuration = const Duration(milliseconds: 200);
 
 class VideoProgressOwnerIndicator extends StatefulWidget {
   /// Construct an instance that displays the play/buffering status of the video
@@ -70,10 +75,14 @@ class _ProgressNotify extends ChangeNotifier {
 }
 
 class _VideoProgressOwnerIndicatorState
-    extends State<VideoProgressOwnerIndicator> {
+    extends State<VideoProgressOwnerIndicator> with TickerProviderStateMixin {
+  int _lastPosition;
+  Duration _oldPosition;
+  Tween<double> _progressTween;
+
   _VideoProgressOwnerIndicatorState() {
     _listener = () {
-      if (!mounted) {
+      if (!mounted || controller.value.duration == null) {
         return;
       }
 
@@ -89,7 +98,13 @@ class _VideoProgressOwnerIndicatorState
       }
 
       _progressNotify.changeBufferingValue(maxBuffering / duration);
-      _progressNotify.changePositionValue(position / duration);
+
+      /* if (controller.value.position > Duration.zero) {
+        */ /*progressTimer ??= Timer.periodic(
+            Duration(milliseconds: _kBufferingMillisecond), (Timer timer) {
+
+        });*/ /*
+      }*/
     };
   }
 
@@ -101,10 +116,101 @@ class _VideoProgressOwnerIndicatorState
 
   VideoProgressColors get colors => widget.colors;
 
+  AnimationController _progressController;
+  Animation _progressAnimation;
+
+  AnimationController _progressDelayController;
+
+  Tween<double> _constructTween(double beginValue, double endValue) {
+    assert(beginValue != null);
+    assert(endValue != null);
+    return Tween<double>(begin: beginValue, end: endValue);
+  }
+
+  void _onProgressChange() {
+    if (_progressTween == null) return;
+    final double progressValue = _progressTween.evaluate(_progressAnimation);
+    _progressNotify.changePositionValue(progressValue);
+  }
+
+  void _onProgressDelayAnimation() {
+    print("_lastPosition - _lastPosition222: $_lastPosition");
+    if (controller.value.duration == null ||
+        controller.value.position <= Duration.zero) {
+      _progressDelayController.forward(from: 0);
+      return;
+    }
+
+    final int duration = controller.value.duration.inMilliseconds;
+    final int position = controller.value.position.inMilliseconds;
+
+    double beginValue, endValue;
+
+    if (position == duration) {
+      _progressDelayController.stop(canceled: true);
+
+      beginValue = _lastPosition / duration;
+      endValue = position / duration;
+      _lastPosition = duration;
+    } else {
+      _progressDelayController.forward(from: 0);
+
+      beginValue = _lastPosition / duration;
+      endValue = (_lastPosition + _kBufferingMillisecond) / duration;
+      _lastPosition += _kBufferingMillisecond;
+    }
+
+    if (beginValue != null && endValue != null && beginValue != endValue) {
+      _progressTween = _constructTween(beginValue, endValue);
+      _progressController
+        ..value = 0.0
+        ..forward();
+    }
+
+    _oldPosition = controller.value.position;
+
+    if ((_lastPosition - _oldPosition.inMilliseconds).abs() >
+        _kBufferingMillisecond * 0.5) {
+      _lastPosition = _oldPosition.inMilliseconds;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+
+    _lastPosition = controller.value?.position?.inMilliseconds ?? 0;
+    _oldPosition = controller.value?.position ?? Duration.zero;
+
+    _progressController = AnimationController(
+      duration: _kBufferingSpeedDuration,
+      vsync: this,
+    );
+
+    _progressAnimation =
+        CurvedAnimation(parent: _progressController, curve: Curves.linear);
+    _progressController.addListener(_onProgressChange);
     controller.addListener(_listener);
+
+    //使用AnimationController不使用Timer的目的是和屏幕刷新保持一致
+    _progressDelayController = AnimationController(
+      duration: const Duration(milliseconds: _kBufferingMillisecond),
+      vsync: this,
+    )
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _onProgressDelayAnimation();
+        }
+      })
+      ..forward();
+  }
+
+  @override
+  void dispose() {
+    _progressDelayController.dispose();
+    _progressController.dispose();
+
+    super.dispose();
   }
 
   @override

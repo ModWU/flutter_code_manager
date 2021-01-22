@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'package:video_list/constants/error_code.dart';
 import 'package:video_list/resources/res/strings.dart';
+import 'package:video_list/ui/animations/implicit_animations.dart';
 
 Widget buildIconText(
         {Icon icon,
         Text text,
         double gap,
         BoxDecoration decoration,
+        Color backgroundColor,
         EdgeInsetsGeometry padding,
         EdgeInsetsGeometry margin,
+        Matrix4 transform,
         GestureTapCallback onTap}) =>
     _buildIconAndText(
       icon: icon,
@@ -17,18 +20,59 @@ Widget buildIconText(
       gap: gap,
       reserve: false,
       decoration: decoration,
+      backgroundColor: backgroundColor,
       padding: padding,
       margin: margin,
+      transform: transform,
       onTap: onTap,
     );
+
+Widget buildIconTextWithAnimation({
+  Icon icon,
+  Text text,
+  double gap,
+  BoxDecoration decoration,
+  Duration duration = const Duration(milliseconds: 500),
+  TextStyle animationTextStyle,
+  IconThemeData animationIconTheme,
+  Curve curve = Curves.linear,
+  VoidCallback onEnd,
+  EdgeInsetsGeometry padding,
+  EdgeInsetsGeometry margin,
+  Matrix4 transform,
+  Color backgroundColor,
+  GestureTapCallback onTap,
+}) {
+  assert(duration != null);
+  assert(curve != null);
+  return _buildIconAndText(
+    icon: icon,
+    text: text,
+    gap: gap,
+    reserve: false,
+    decoration: decoration,
+    backgroundColor: backgroundColor,
+    animationTextStyle: animationTextStyle,
+    animationIconTheme: animationIconTheme,
+    duration: duration,
+    curve: curve,
+    onEnd: onEnd,
+    padding: padding,
+    margin: margin,
+    transform: transform,
+    onTap: onTap,
+  );
+}
 
 Widget buildTextIcon(
         {Icon icon,
         Text text,
         double gap,
         BoxDecoration decoration,
+        Color backgroundColor,
         EdgeInsetsGeometry padding,
         EdgeInsetsGeometry margin,
+        Matrix4 transform,
         GestureTapCallback onTap}) =>
     _buildIconAndText(
       icon: icon,
@@ -36,20 +80,52 @@ Widget buildTextIcon(
       gap: gap,
       reserve: true,
       decoration: decoration,
+      backgroundColor: backgroundColor,
       padding: padding,
       margin: margin,
+      transform: transform,
       onTap: onTap,
     );
 
-Widget _buildIconAndText(
-    {Icon icon,
-    Text text,
-    double gap,
-    bool reserve = false,
-    BoxDecoration decoration,
-    EdgeInsetsGeometry padding,
-    EdgeInsetsGeometry margin,
-    GestureTapCallback onTap}) {
+Widget buildTextIconWithAnimation({
+  Icon icon,
+  Text text,
+  double gap,
+  BoxDecoration decoration,
+  Duration duration = const Duration(milliseconds: 500),
+  TextStyle animationTextStyle,
+  IconThemeData animationIconTheme,
+  Curve curve = Curves.linear,
+  VoidCallback onEnd,
+  EdgeInsetsGeometry padding,
+  EdgeInsetsGeometry margin,
+  Matrix4 transform,
+  Color backgroundColor,
+  GestureTapCallback onTap,
+}) {
+  assert(duration != null);
+  assert(curve != null);
+  return _buildIconAndText(
+    icon: icon,
+    text: text,
+    gap: gap,
+    reserve: true,
+    decoration: decoration,
+    backgroundColor: backgroundColor,
+    animationTextStyle: animationTextStyle,
+    animationIconTheme: animationIconTheme,
+    duration: duration,
+    curve: curve,
+    onEnd: onEnd,
+    padding: padding,
+    margin: margin,
+    transform: transform,
+    onTap: onTap,
+  );
+}
+
+List<Widget> _buildChildrenWithIconAndText(
+    {Icon icon, Text text, double gap, bool reserve = false}) {
   assert(icon != null || text != null);
   assert(reserve != null);
 
@@ -77,41 +153,114 @@ Widget _buildIconAndText(
   } else {
     children = [text];
   }
-
-  return buildDecorationChildren(
-    children,
-    decoration: decoration,
-    padding: padding,
-    margin: margin,
-    onTap: onTap,
-  );
+  return children;
 }
 
-Widget buildDecorationChildren(List<Widget> children,
-    {BoxDecoration decoration,
+Widget _buildIconAndText(
+    {Icon icon,
+    Text text,
+    double gap,
+    bool reserve = false,
+    BoxDecoration decoration,
+    Color backgroundColor,
+    Duration duration,
+    Curve curve,
+    VoidCallback onEnd,
+    Matrix4 transform,
+    TextStyle animationTextStyle,
+    IconThemeData animationIconTheme,
     EdgeInsetsGeometry padding,
     EdgeInsetsGeometry margin,
     GestureTapCallback onTap}) {
-  assert(children != null && children.isNotEmpty);
+  assert(icon != null || text != null);
+  assert(reserve != null);
+  assert(
+      backgroundColor == null || decoration == null,
+      'Cannot provide both a color and a decoration\n'
+      'To provide both, use "decoration: BoxDecoration(color: color)".');
 
-  Widget innerChild;
+  Widget child;
+
+  final List<Widget> children = _buildChildrenWithIconAndText(
+      icon: icon, text: text, gap: gap, reserve: reserve);
+  assert(children != null);
+
   if (children.length > 1) {
-    innerChild = Row(
+    child = Row(
       mainAxisSize: MainAxisSize.min,
       children: children,
     );
   } else {
-    innerChild = children[0];
+    child = children[0];
   }
 
-  final Widget child = decoration != null || margin != null
-      ? Container(
-          decoration: decoration,
-          padding: padding,
-          margin: margin,
-          child: innerChild,
-        )
-      : innerChild;
+  final bool isHasAnimation = onEnd != null || duration != null;
+
+  if (isHasAnimation &&
+      (animationTextStyle != null || animationIconTheme != null)) {
+    child = AnimatedDefaultIconTextStyle(
+      style: animationTextStyle,
+      iconTheme: animationIconTheme,
+      duration: duration ?? Duration.zero,
+      curve: curve ?? Curves.linear,
+      onEnd: onEnd,
+      child: child,
+    );
+  }
+
+  return buildDecorationChild(
+    child,
+    decoration: decoration,
+    padding: padding,
+    margin: margin,
+    backgroundColor: backgroundColor,
+    duration: duration,
+    curve: curve,
+    onEnd: onEnd,
+    transform: transform,
+    onTap: onTap,
+  );
+}
+
+Widget buildDecorationChild(Widget child,
+    {EdgeInsetsGeometry padding,
+    EdgeInsetsGeometry margin,
+    BoxDecoration decoration,
+    Duration duration,
+    Curve curve,
+    VoidCallback onEnd,
+    Matrix4 transform,
+    Color backgroundColor,
+    GestureTapCallback onTap}) {
+  assert(child != null);
+  assert(
+      backgroundColor == null || decoration == null,
+      'Cannot provide both a color and a decoration\n'
+      'To provide both, use "decoration: BoxDecoration(color: color)".');
+
+  final bool isHasAnimation = onEnd != null || duration != null;
+  if (isHasAnimation) {
+    child = AnimatedContainer(
+      transform: transform,
+      duration: duration ?? Duration.zero,
+      curve: curve ?? Curves.linear,
+      onEnd: onEnd,
+      decoration: decoration,
+      color: backgroundColor,
+      padding: padding,
+      margin: margin,
+      child: child,
+    );
+  } else {
+    child = Container(
+      decoration: decoration,
+      color: backgroundColor,
+      padding: padding,
+      transform: transform,
+      margin: margin,
+      child: child,
+    );
+  }
 
   return onTap != null
       ? GestureDetector(
@@ -123,9 +272,9 @@ Widget buildDecorationChildren(List<Widget> children,
 
 Widget buildNetworkErrorView(
     {double width = double.infinity,
-      double height = double.infinity,
-      String errorCode = "(${NetworkErrorCode.network_connectivity_error})",
-      GestureTapCallback onTap}) {
+    double height = double.infinity,
+    String errorCode = "(${NetworkErrorCode.network_connectivity_error})",
+    GestureTapCallback onTap}) {
   assert(width != null);
   assert(height != null);
   assert(errorCode != null);

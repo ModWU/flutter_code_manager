@@ -147,35 +147,58 @@ class _ChoicenessPageState extends State<ChoicenessPage>
           (BuildContext context, ValueNotifier<VideoPlayInfo> playNotifier,
               Widget child) {
         print(
-            "==========>index: $index => playNotifier: $playNotifier, playNotifier.value: ${playNotifier.value}, playNotifier.value.playState: ${playNotifier.value?.playState}, playNotifier.value.playIndex: ${playNotifier.value?.playIndex}");
-        assert(playNotifier.value == null || playNotifier.value?.playIndex != null);
+            "==========>index: $index => playNotifier: $playNotifier, playNotifier.value: ${playNotifier.value}, detailHighlights: ${playNotifier.value?.detailHighlights}");
+        assert(
+            playNotifier.value == null || playNotifier.value.playIndex != null);
+        bool startDetailHighlight = false;
+
+        if (playNotifier.value?.detailHighlights != null &&
+            playNotifier.value.detailHighlights.containsKey(index)) {
+          assert(
+              playNotifier.value.detailHighlights[index].startDetailHighlight !=
+                  null);
+          startDetailHighlight =
+              playNotifier.value.detailHighlights[index].startDetailHighlight;
+        }
+
         return Padding(
           padding: EdgeInsets.symmetric(
               vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
-          child: NormalAdvertView(
-            width: Dimens.design_screen_width.w,
-            playState: playNotifier.value == null ||
-                    playNotifier.value.playIndex != index
-                ? PlayState.startAndPause
-                : playNotifier.value.playState,
-            advertItem: data,
-            popupDirection: playNotifier.value?.popupDirections == null ||
-                    !playNotifier.value.popupDirections.containsKey(index)
-                ? PopupDirection.bottom
-                : playNotifier.value.popupDirections[index],
-            onEnd: () {
-              if (playNotifier.value != null) {
-                print("play end!!!!!!");
-                playNotifier.value.playState = PlayState.end;
-              }
-            },
-            onLoseAttention: () {
-              var element = _list.removeAt(index);
-              assert(element != null);
-            },
-            videoHeight: HeightMeasurer.advertItemHeight,
-            titleHeight: HeightMeasurer.itemVideoTitleHeightWithVerticalList,
-          ),
+          child: StatefulBuilder(builder: (context, StateSetter setState) {
+            return NormalAdvertView(
+              width: Dimens.design_screen_width.w,
+              playState: playNotifier.value?.playState == null ||
+                      playNotifier.value.playIndex != index
+                  ? PlayState.startAndPause
+                  : playNotifier.value.playState,
+              advertItem: data,
+              popupDirection: playNotifier.value?.popupDirections == null ||
+                      !playNotifier.value.popupDirections.containsKey(index)
+                  ? PopupDirection.bottom
+                  : playNotifier.value.popupDirections[index],
+              detailHighlight: startDetailHighlight,
+              onDetailHighlight: (bool highlight) {
+                if (playNotifier.value?.detailHighlights != null) {
+                  DetailHighlightInfo detailHighlightInfo =
+                      playNotifier.value.detailHighlights[index];
+                  if (detailHighlightInfo != null)
+                    detailHighlightInfo.finishDetailHighlight = highlight;
+                }
+              },
+              onEnd: () {
+                if (playNotifier.value != null) {
+                  print("play end!!!!!!");
+                  playNotifier.value.playState = PlayState.end;
+                }
+              },
+              onLoseAttention: () {
+                var element = _list.removeAt(index);
+                assert(element != null);
+              },
+              videoHeight: HeightMeasurer.advertItemHeight,
+              titleHeight: HeightMeasurer.itemVideoTitleHeightWithVerticalList,
+            );
+          }),
         );
       });
     }
@@ -255,37 +278,12 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 final List<ViewportOffsetData> viewportOffsetDataList =
                     _list.getViewportOffsetData(
                         metrics.extentBefore, metrics.viewportDimension);
-
-                //-1代表都不播放
-                if (_videoPlayNotifier.value != null) {
-                  if (!(_videoPlayNotifier.value.playState == PlayState.end)) {
-                    final int index =
-                        VideoPageUtils.computerPlayVideoWhenScrollEnd(
-                            _list, viewportOffsetDataList);
-                    if (index == -1) {
-                      _videoPlayNotifier.value = null;
-                    } else if (index != _videoPlayNotifier.value.playIndex) {
-                      _videoPlayNotifier.value = VideoPlayInfo(
-                        playIndex: index,
-                        playState: PlayState.startAndPlay,
-                      );
-                    }
-                  }
-                } else {
-                  final int index =
-                      VideoPageUtils.computerPlayVideoWhenScrollEnd(
-                          _list, viewportOffsetDataList);
-                  //说明当前没有任何视频在播放
-                  if (index != -1) {
-                    _videoPlayNotifier.value = VideoPlayInfo(
-                      playIndex: index,
-                      playState: PlayState.startAndPlay,
-                    );
-                  }
-                }
-
-                _videoPlayNotifier.value = VideoPageUtils.computerLastVideoPopupDirection(
-                    _list, viewportOffsetDataList, _videoPlayNotifier.value, NormalAdvertView.needVisibleHeight);
+                _videoPlayNotifier.value =
+                    VideoPageUtils.computerVideoStateValueWhenScrollEnd(
+                        _list,
+                        viewportOffsetDataList,
+                        _videoPlayNotifier.value,
+                        NormalAdvertView.needVisibleHeight);
               } else if (notification is ScrollUpdateNotification) {
                 final List<ViewportOffsetData> viewportOffsetDataList =
                     _list.getViewportOffsetData(
@@ -293,18 +291,11 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                   metrics.viewportDimension,
                 );
 
-                if (_videoPlayNotifier.value != null) {
-                  final int index =
-                      VideoPageUtils.computerPauseVideoWhenScrollUpdate(
-                    _videoPlayNotifier.value.playIndex,
-                    _list,
-                    viewportOffsetDataList,
-                  );
-                  if (index > 0 &&
-                      index == _videoPlayNotifier.value.playIndex) {
-                    _videoPlayNotifier.value = null;
-                  }
-                }
+                _videoPlayNotifier.value =
+                    VideoPageUtils.computerVideoStateValueWhenScrollUpdate(
+                        _list,
+                        viewportOffsetDataList,
+                        _videoPlayNotifier.value);
               }
             }
             return false;
