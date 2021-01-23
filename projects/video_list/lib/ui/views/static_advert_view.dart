@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:video_list/examples/video_indicator.dart';
+import 'video_indicator.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/ui/popup/popup_view.dart';
 import 'package:video_list/ui/utils/triangle_arrow_decoration.dart';
@@ -171,18 +171,27 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     assert(controller.value.initialized);
     print(
         "_isNearBuffering => controller.value.position: ${controller.value.position}  controller.value.buffered: ${controller.value.buffered} isBuffering: ${controller.value.isBuffering} isPlaying: ${controller.value.isPlaying}");
+    final int totalValue = controller.value.duration?.inMilliseconds;
 
-    final int position = controller.value.position.inSeconds;
+    if (totalValue == null)
+      return false;
+
+    assert(controller.value.position != null);
+
+    final int overflowValue = 500;
+    final int position = controller.value.position.inMilliseconds;
+    final int limitValue = overflowValue + position;
 
     int maxBuffering = 0;
     for (DurationRange range in controller.value.buffered) {
-      final int end = range.end.inSeconds;
+      final int end = range.end.inMilliseconds;
       if (end > maxBuffering) {
         maxBuffering = end;
       }
     }
 
-    return position >= maxBuffering;
+    return limitValue < totalValue &&
+        limitValue >= maxBuffering;
   }
 
   Widget _buildWaitingProgressIndicator() {
@@ -634,10 +643,8 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
           widget.onDetailHighlight?.call(true);
           _detailHighlightNotifier.value = widget.detailHighlight;
         });
-
       });
     }
-
   }
 
   @override

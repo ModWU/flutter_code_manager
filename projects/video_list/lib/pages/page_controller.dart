@@ -179,6 +179,8 @@ class DetailHighlightInfo {
   }
 }
 
+
+///没有将播放结束和正在播放的视频状态保存起来，有待优化
 class VideoPlayInfo {
   int playIndex;
   PlayState playState;

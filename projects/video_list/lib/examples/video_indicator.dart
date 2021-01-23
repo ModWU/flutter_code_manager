@@ -5,8 +5,8 @@ import 'package:video_player/video_player.dart';
 import 'dart:async';
 import 'dart:math' as Math;
 
-const int _kBufferingMillisecond = 500;
-Duration _kBufferingSpeedDuration = const Duration(milliseconds: 200);
+const int _kBufferingMillisecond = 1200;
+const int _kBufferingSpeedMillisecond = 200;
 
 class VideoProgressOwnerIndicator extends StatefulWidget {
   /// Construct an instance that displays the play/buffering status of the video
@@ -16,11 +16,11 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
   /// provided. [allowScrubbing] defaults to false, and [padding] will default
   /// to `top: 5.0`.
   VideoProgressOwnerIndicator(
-    this.controller, {
-    VideoProgressColors colors,
-    this.allowScrubbing,
-    this.padding = const EdgeInsets.only(top: 5.0),
-  }) : colors = colors ?? VideoProgressColors();
+      this.controller, {
+        VideoProgressColors colors,
+        this.allowScrubbing,
+        this.padding = const EdgeInsets.only(top: 5.0),
+      }) : colors = colors ?? VideoProgressColors();
 
   /// The [VideoPlayerController] that actually associates a video with this
   /// widget.
@@ -98,13 +98,6 @@ class _VideoProgressOwnerIndicatorState
       }
 
       _progressNotify.changeBufferingValue(maxBuffering / duration);
-
-      /* if (controller.value.position > Duration.zero) {
-        */ /*progressTimer ??= Timer.periodic(
-            Duration(milliseconds: _kBufferingMillisecond), (Timer timer) {
-
-        });*/ /*
-      }*/
     };
   }
 
@@ -134,7 +127,10 @@ class _VideoProgressOwnerIndicatorState
   }
 
   void _onProgressDelayAnimation() {
-    print("_lastPosition - _lastPosition222: $_lastPosition");
+    print("_lastPosition - _lastPosition333: $_lastPosition");
+    //final double overflowValue = _kBufferingMillisecond * 0.5;
+    int _endPosition =
+        _lastPosition + _kBufferingMillisecond + _kBufferingSpeedMillisecond;
     if (controller.value.duration == null ||
         controller.value.position <= Duration.zero) {
       _progressDelayController.forward(from: 0);
@@ -143,6 +139,10 @@ class _VideoProgressOwnerIndicatorState
 
     final int duration = controller.value.duration.inMilliseconds;
     final int position = controller.value.position.inMilliseconds;
+
+    if (_endPosition > position) {
+      _endPosition -= (_endPosition - position);
+    }
 
     double beginValue, endValue;
 
@@ -156,8 +156,8 @@ class _VideoProgressOwnerIndicatorState
       _progressDelayController.forward(from: 0);
 
       beginValue = _lastPosition / duration;
-      endValue = (_lastPosition + _kBufferingMillisecond) / duration;
-      _lastPosition += _kBufferingMillisecond;
+      endValue = _endPosition / duration;
+      _lastPosition = _endPosition;
     }
 
     if (beginValue != null && endValue != null && beginValue != endValue) {
@@ -169,10 +169,9 @@ class _VideoProgressOwnerIndicatorState
 
     _oldPosition = controller.value.position;
 
-    if ((_lastPosition - _oldPosition.inMilliseconds).abs() >
-        _kBufferingMillisecond * 0.5) {
+    /*if ((_lastPosition - _oldPosition.inMilliseconds).abs() > overflowValue) {
       _lastPosition = _oldPosition.inMilliseconds;
-    }
+    }*/
   }
 
   @override
@@ -182,13 +181,21 @@ class _VideoProgressOwnerIndicatorState
     _lastPosition = controller.value?.position?.inMilliseconds ?? 0;
     _oldPosition = controller.value?.position ?? Duration.zero;
 
+    if (_lastPosition > 0 && controller.value?.duration != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        assert(controller.value.duration != null);
+        _progressNotify.changePositionValue(
+            _lastPosition / controller.value.duration.inMilliseconds);
+      });
+    }
+
     _progressController = AnimationController(
-      duration: _kBufferingSpeedDuration,
+      duration: const Duration(milliseconds: _kBufferingSpeedMillisecond),
       vsync: this,
     );
 
     _progressAnimation =
-        CurvedAnimation(parent: _progressController, curve: Curves.linear);
+        CurvedAnimation(parent: _progressController, curve: Curves.easeIn);
     _progressController.addListener(_onProgressChange);
     controller.addListener(_listener);
 

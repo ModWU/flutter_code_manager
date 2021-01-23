@@ -37,8 +37,7 @@ class ChoicenessController {
 
   static final List<VideoBottom> bottoms = [
     VideoBottom(playTitle: "英雄联盟S10赛程"),
-    VideoBottom(
-        playTitle: "今儿啥火", playSign: VideoSign.hot, playDesc: "三分钟看热片"),
+    VideoBottom(playTitle: "今儿啥火", playSign: VideoSign.hot, playDesc: "三分钟看热片"),
     VideoBottom(playTitle: "更多电视剧"),
     VideoBottom(playTitle: "更多热播综艺"),
     VideoBottom(playTitle: "更多热播电影"),
@@ -46,7 +45,7 @@ class ChoicenessController {
     null,
   ];
 
-  static  final List<String> videoUrlList = [
+  static final List<String> videoUrlList = [
     "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
     "https://stream7.iqilu.com/10339/upload_transcode/202002/18/20200218114723HDu3hhxqIT.mp4",
     "https://stream7.iqilu.com/10339/upload_transcode/202002/18/20200218093206z8V1JuPlpe.mp4",
@@ -71,7 +70,7 @@ class ChoicenessController {
     "http://vfx.mtime.cn/Video/2019/03/09/mp4/190309153658147087.mp4",
   ];
 
-  static  final List<VideoItemTitle> titles = [
+  static final List<VideoItemTitle> titles = [
     VideoItemTitle(preTitle: "【热门】男子徒手搬开一个400斤大石头"),
     VideoItemTitle(preTitle: "陈翔六点半：这礼物太幸运，我就不该要！"),
     VideoItemTitle(preTitle: "脱口秀决赛", lastTitle: "学霸爱情", desc: "李雪琴：我还有王建国"),
@@ -93,20 +92,20 @@ class ChoicenessController {
         desc: "张翰深情对视杨超越：乖"),
   ];
 
-  static  final List<String> imgUrlList = [
+  static final List<String> imgUrlList = [
     "http://pic31.nipic.com/20130711/8952533_164845225000_2.jpg",
     "https://cn.bing.com/th?id=OIP.xq1C2fmnSw5DEoRMC86vJwD6D6&pid=Api&rs=1",
     "http://5b0988e595225.cdn.sohucs.com/q_mini,c_zoom,w_640/images/20171007/f1cfa788964748a6b932b75c68954f26.gif",
   ];
 
-  static  final List<String> advertCoverUrlList = [
+  static final List<String> advertCoverUrlList = [
     "https://i.loli.net/2021/01/07/sAoav162jKGlXZn.jpg",
     "https://i.loli.net/2021/01/07/umIKZWGs4w53bJo.jpg",
     "https://i.loli.net/2021/01/07/EbjuMnYxSaW9N4q.jpg",
     "https://i.loli.net/2021/01/07/smzZ8RNYOQq7JPC.jpg",
   ];
 
-  static  final List<List<String>> nameDetailsList = [
+  static final List<List<String>> nameDetailsList = [
     ["疯狂小说"],
     ["低成本", "高利润", "快回收"],
     ["百事可乐"],
@@ -120,7 +119,7 @@ class ChoicenessController {
     ["一汽-大众"],
   ];
 
-  static  final List<String> iconNameList = [
+  static final List<String> iconNameList = [
     "大众点评之神探狄仁杰",
     "斑马app",
     "书旗小说",
@@ -131,7 +130,12 @@ class ChoicenessController {
     "美团配送",
   ];
 
-  static  final List<String> timeList = ["2020-09-26", "2021-01-02", "全24集", null];
+  static final List<String> timeList = [
+    "2020-09-26",
+    "2021-01-02",
+    "全24集",
+    null
+  ];
 
   List getRandomHeaderData() {
     var random = new Random();
@@ -220,7 +224,8 @@ class ChoicenessController {
           detailUrl: "https://www.baidu.com/",
           iconUrl: "https://i.loli.net/2020/10/09/GvLS47z2DXTRkcq.png",
           videoUrl: videoUrlList[random.nextInt(videoUrlList.length)],
-          showImgUrl: advertCoverUrlList[random.nextInt(advertCoverUrlList.length)],
+          showImgUrl:
+              advertCoverUrlList[random.nextInt(advertCoverUrlList.length)],
         ));
       }
     }
@@ -229,7 +234,6 @@ class ChoicenessController {
   }
 
   List updateChoicenessData(List oldDatas) {
-
     List oldDataList = List.from(oldDatas);
     oldDataList.removeAt(0);
 
@@ -282,7 +286,8 @@ class ChoicenessController {
           detailUrl: "https://www.baidu.com/",
           iconUrl: "https://i.loli.net/2020/10/09/GvLS47z2DXTRkcq.png",
           videoUrl: videoUrlList[random.nextInt(videoUrlList.length)],
-          showImgUrl: advertCoverUrlList[random.nextInt(advertCoverUrlList.length)],
+          showImgUrl:
+              advertCoverUrlList[random.nextInt(advertCoverUrlList.length)],
         ));
       }
     }
@@ -311,7 +316,7 @@ class ChoicenessController {
         markType: imgUrlIndex.isOdd ? MarkType.values[markTypeIndex] : null,
         time: timeList[timeIndex],
         playType: play_fac == 0 ? PlayType.normal : PlayType.exclusive,
-        title: title_is_fac == 0 ? titles[title_fac] : null,
+        title: titles[title_fac],
       ));
     }
 

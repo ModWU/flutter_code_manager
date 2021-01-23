@@ -542,6 +542,8 @@ VideoPlayInfo _computerPlayVideoWhenScrollEnd(ListModel list,
     //final PlayState playState = index >= 0 ? (playInfo.playState == PlayState.end ? PlayState.startAndPlay : PlayState.resume) : PlayState.startAndPause;
 
     if (playInfo.playState != PlayState.end || index != playInfo.playIndex) {
+      //PlayState playState = playInfo.playState != PlayState.end ? (index >= 0 ? PlayState.resume : PlayState.startAndPause
+
       playInfo = VideoPlayInfo(
         playIndex: index,
         playState: index >= 0 ? PlayState.resume : PlayState.startAndPause,
