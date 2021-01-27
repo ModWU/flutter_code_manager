@@ -1,14 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/pages/page_controller.dart';
 import 'package:video_list/ui/utils/triangle_arrow_decoration.dart';
+import 'package:video_list/utils/view_utils.dart';
 import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/utils/icons_utils.dart';
 import '../resources/export.dart';
 
 class HeartBeatApp extends StatelessWidget {
-  Widget _buildApp(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: Strings.app_name,
       theme: ThemeData(
@@ -49,7 +52,8 @@ class HeartBeatApp extends StatelessWidget {
         splashColor: Colors.transparent, // 点击时的高亮效果设置为透明，包括tab
         highlightColor: Colors.transparent, // 长按时的扩散效果设置为透明
       ),
-      home: /*Center(
+      home:
+          /*Center(
         child: Container(
           clipBehavior: Clip.antiAlias,
           padding: EdgeInsets.only(left: 0, top: 0),
@@ -71,17 +75,18 @@ class HeartBeatApp extends StatelessWidget {
             //color: Colors.yellow,
           ),
         ),
-      ),*/ _HeartBeatPage(),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => PageChangeNotifier()),
-      ],
-      child: _buildApp(context),
+      ),*/
+          Builder(
+        builder: (BuildContext context) {
+          return MultiProvider(
+            providers: [
+              ChangeNotifierProvider(
+                  create: (context) => PageChangeNotifier(context)),
+            ],
+            child: _HeartBeatPage(),
+          );
+        },
+      ),
     );
   }
 }
@@ -91,46 +96,20 @@ class _HeartBeatPage extends StatefulWidget {
   State<StatefulWidget> createState() => _HeartBeatState();
 }
 
-class _HeartBeatState extends State<_HeartBeatPage>
-    with WidgetsBindingObserver {
+class _HeartBeatState extends State<_HeartBeatPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  /*//进入后台不可见，此时任何界面的更新都不会有效果，包括Provider
-  void _enterBackground() {
-    //Provider.of<PageChangeNotifier>(context, listen: false).visible = false;
-  }
-
-  //进入前台可见
-  void _enterForeground() {
-    //Provider.of<BackgroundToForegroundNotifier>(context, listen: false).notifyAll();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused) {
-      print("mainPage didChangeAppLifecycleState -> 进入后台");
-      _enterBackground();
-    }
-    if (state == AppLifecycleState.resumed) {
-      print("mainPage didChangeAppLifecycleState -> 进入前台");
-      _enterForeground();
-    }
-  }*/
-
   @override
   Widget build(BuildContext context) {
-    print("top top top build...");
+    print("statestatestatestate");
     ScreenUtil.init(context,
         designSize:
             Size(Dimens.design_screen_width, Dimens.design_screen_height),

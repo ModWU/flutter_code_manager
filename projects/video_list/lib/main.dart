@@ -8,6 +8,7 @@ import 'examples/owner_example.dart';
 import 'pages/main_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'resources/export.dart';
+import 'utils/view_utils.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +16,7 @@ void main() {
       .then((_) {
     runApp(HeartBeatApp());
   });
-
+  setStatusBarColor();
   //runApp(FullVideoApp());
   //runApp(VideoOwnerApp());
 }

@@ -1,26 +1,24 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:video_list/routes/base_video_page.dart';
+import 'secondary_video_view.dart';
 import 'video_indicator.dart';
 import 'package:video_list/models/base_model.dart';
 import 'package:video_list/ui/popup/popup_view.dart';
 import 'package:video_list/ui/utils/triangle_arrow_decoration.dart';
-import 'package:video_list/utils/network_utils.dart';
 import 'package:video_list/utils/view_utils.dart' as ViewUtils;
 import 'package:video_player/video_player.dart';
 import 'static_video_view.dart';
 import 'package:video_list/resources/export.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'dart:ui';
-import 'dart:math' as Math;
-import 'package:connectivity/connectivity.dart';
-import 'dart:ui' as ui show ParagraphBuilder, PlaceholderAlignment;
 
-Duration _kDetailHighlightDuration = const Duration(seconds: 5);
+Duration _kDetailHighlightDuration = const Duration(seconds: 2);
 
-typedef OnDetailHighlight = void Function(bool highlight);
+typedef DetailHighlightListener = void Function(bool highlight);
+
+typedef ClickListener = void Function(VideoPlayerController controller);
 
 class NormalAdvertView extends StatefulWidget {
   NormalAdvertView(
@@ -31,6 +29,8 @@ class NormalAdvertView extends StatefulWidget {
       this.detailHighlight = false,
       this.onLoseAttention,
       this.onDetailHighlight,
+      this.onClick,
+      this.onReplay,
       this.width,
       this.onEnd,
       this.advertItem})
@@ -66,7 +66,11 @@ class NormalAdvertView extends StatefulWidget {
 
   final VoidCallback onLoseAttention;
 
-  final OnDetailHighlight onDetailHighlight;
+  final ClickListener onClick;
+
+  final ClickListener onReplay;
+
+  final DetailHighlightListener onDetailHighlight;
 
   final PopupDirection popupDirection;
 
@@ -75,6 +79,8 @@ class NormalAdvertView extends StatefulWidget {
 
 class _NormalAdvertViewState extends State<NormalAdvertView>
     with AutomaticKeepAliveClientMixin {
+  VideoPlayerController _controller;
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -97,8 +103,10 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     );
   }
 
-  void _onClickAdvert() {
+  void _onClickAdvert() async {
     print("点击了Advert body");
+    assert(_controller != null);
+    widget.onClick?.call(_controller);
   }
 
   Widget _buildVideoView() {
@@ -106,6 +114,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     return VideoView(
       videoUrl: widget.advertItem.videoUrl,
       playState: widget.playState,
+      controller: _controller,
       contentStackBuilder:
           (BuildContext context, VideoPlayerController controller) {
         assert(controller.value != null);
@@ -116,7 +125,9 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
 
         print("current current playState: ${widget.playState}");
 
-        if (widget.playState == PlayState.startAndPause) {
+        if (widget.playState == PlayState.startAndPause ||
+            widget.playState == PlayState.pause ||
+            !controller.value.isPlaying) {
           children.addAll([
             _buildShowImageView(),
             _PlayPauseOverlay(controller: controller),
@@ -131,17 +142,23 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
             isEnd = controller.value.position >= controller.value.duration;
 
             if (!isEnd) {
-              final bool isNearBuffering = _isNeedBuffering(controller);
-              print("isNearBuffering => $isNearBuffering");
-              children.addAll([
-                if (isNearBuffering) _buildWaitingProgressIndicator(),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: _buildProgressIndicator(controller),
-                ),
-              ]);
+              final bool isHasBuffering = _isHasBuffering(controller);
+              if (isHasBuffering) {
+                final bool isNearBuffering = _isNeedBuffering(controller);
+                children.addAll([
+                  if (isNearBuffering) _buildWaitingProgressIndicator(),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _buildProgressIndicator(controller),
+                  ),
+                ]);
+              } else {
+                children.add(
+                  _buildWaitingProgressIndicator(),
+                );
+              }
             }
           }
         }
@@ -173,8 +190,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
         "_isNearBuffering => controller.value.position: ${controller.value.position}  controller.value.buffered: ${controller.value.buffered} isBuffering: ${controller.value.isBuffering} isPlaying: ${controller.value.isPlaying}");
     final int totalValue = controller.value.duration?.inMilliseconds;
 
-    if (totalValue == null)
-      return false;
+    if (totalValue == null) return false;
 
     assert(controller.value.position != null);
 
@@ -190,8 +206,22 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
       }
     }
 
-    return limitValue < totalValue &&
-        limitValue >= maxBuffering;
+    return limitValue < totalValue && limitValue >= maxBuffering;
+  }
+
+  bool _isHasBuffering(VideoPlayerController controller) {
+    assert(controller != null);
+    assert(controller.value.initialized);
+
+    int maxBuffering = 0;
+    for (DurationRange range in controller.value.buffered) {
+      final int end = range.end.inMilliseconds;
+      if (end > maxBuffering) {
+        maxBuffering = end;
+      }
+    }
+
+    return maxBuffering > 0;
   }
 
   Widget _buildWaitingProgressIndicator() {
@@ -208,7 +238,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
       allowScrubbing: false,
       padding: EdgeInsets.zero,
       colors: VideoProgressColors(
-        playedColor: Colors.orangeAccent,
+        playedColor: Color(0xFFFF6633),
         backgroundColor: Colors.black26,
         bufferedColor: Colors.blueGrey,
       ),
@@ -320,7 +350,6 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
               finishOffset -
               radius -
               arrowWidth / 2;
-          print("widget.popupDirection: ${widget.popupDirection}");
           final CurveTween opacity =
               CurveTween(curve: const Interval(0.0, 1.0 / 3.0));
           return LayoutBuilder(
@@ -400,28 +429,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
               ),
             ],
           ),
-        ), /*ViewUtils.buildTextIcon(
-          text: Text(
-            Strings.advert_txt,
-            style: TextStyle(
-              fontSize: 18.sp,
-              color: Colors.white,
-            ),
-          ),
-          icon: Icon(
-            Icons.keyboard_arrow_down,
-            color: Colors.white,
-            size: 26.sp,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.black12,
-            borderRadius: BorderRadius.all(Radius.circular(4.w)),
-          ),
-          padding: EdgeInsets.symmetric(
-            vertical: 2.w,
-            horizontal: 6.w,
-          ),
-        ),*/
+        ),
       ),
     );
   }
@@ -597,7 +605,8 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
                 ),
                 gap: 10.w,
                 onTap: () {
-                  print("重新播放1");
+                  assert(_controller != null);
+                  widget.onReplay?.call(_controller);
                 },
               ),
             ),
@@ -652,11 +661,17 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     super.initState();
     print("NormalAdvertView => ${hashCode} initState");
     _initDetailHighlightNotifier();
+    assert(widget.advertItem.videoUrl != null);
+    _controller = VideoPlayerController.network(
+      widget.advertItem.videoUrl,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
   }
 
   @override
   void dispose() {
     print("NormalAdvertView => ${hashCode} dispose");
+    _controller.dispose();
     super.dispose();
   }
 

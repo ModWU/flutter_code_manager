@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'package:video_list/constants/error_code.dart';
 import 'package:video_list/resources/res/strings.dart';
@@ -322,4 +323,20 @@ Widget buildNetworkErrorView(
       textAlign: TextAlign.center,
     ),
   );
+}
+
+setStatusBarColor(
+    {Brightness brightness = Brightness.light,
+    Color statusBarColor = Colors.transparent}) {
+  assert(brightness != null);
+  assert(statusBarColor != null);
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+    //systemNavigationBarColor: Color(0xFF000000),
+    //systemNavigationBarDividerColor: null,
+    /// 注意安卓要想实现沉浸式的状态栏 需要底部设置透明色
+    statusBarColor: statusBarColor,
+    //systemNavigationBarIconBrightness: Brightness.light,
+    statusBarIconBrightness: brightness,
+    statusBarBrightness: brightness,
+  ));
 }

@@ -8,7 +8,7 @@ import '../../../ui/utils/icons_utils.dart' as utils;
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'dart:ui' as ui show PlaceholderAlignment;
-import 'video_page_utils.dart';
+import 'video_page_state.dart';
 
 class VideoItemWidget extends StatefulWidget {
   final VideoItems items;

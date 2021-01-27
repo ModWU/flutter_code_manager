@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_swiper/flutter_swiper.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:video_list/pages/home/choiceness/video_page_utils.dart';
+import 'package:video_list/pages/home/choiceness/video_page_state.dart';
 import '../../../ui/views/advert_view.dart';
 import '../../page_controller.dart';
 import '../../../resources/export.dart';

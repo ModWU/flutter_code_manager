@@ -129,16 +129,16 @@ class _VideoProgressOwnerIndicatorState
   void _onProgressDelayAnimation() {
     print("_lastPosition - _lastPosition333: $_lastPosition");
     //final double overflowValue = _kBufferingMillisecond * 0.5;
+    final int duration = controller.value.duration.inMilliseconds;
+    final int position = controller.value.position.inMilliseconds;
     int _endPosition =
         _lastPosition + _kBufferingMillisecond + _kBufferingSpeedMillisecond;
     if (controller.value.duration == null ||
-        controller.value.position <= Duration.zero) {
+        controller.value.position <= Duration.zero ||
+        position == _lastPosition) {
       _progressDelayController.forward(from: 0);
       return;
     }
-
-    final int duration = controller.value.duration.inMilliseconds;
-    final int position = controller.value.position.inMilliseconds;
 
     if (_endPosition > position) {
       _endPosition -= (_endPosition - position);

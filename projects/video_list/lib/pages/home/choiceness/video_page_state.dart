@@ -10,9 +10,7 @@ import 'package:video_list/ui/popup/popup_view.dart';
 import 'package:video_list/ui/views/static_video_view.dart';
 import '../../page_controller.dart';
 import '../../../ui/utils/icons_utils.dart' as utils;
-import 'package:flutter_screenutil/screenutil.dart';
 import 'package:flutter_screenutil/size_extension.dart';
-import 'dart:math' as math;
 
 double itemVerticalSpacing = 3.0.w, itemHorizontalSpacing = 6.0.w;
 
@@ -29,7 +27,85 @@ class ViewportOffsetData {
   }
 }
 
-class HeightMeasurer {
+mixin ItemStateManager on ChangeNotifier {
+  List<VideoStateMiXin> _states;
+
+  List<VideoStateMiXin> get states => _states;
+
+  void _stateListener() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
+  }
+
+  void initAllState(List items) {
+    assert(items != null && items.isNotEmpty);
+    _states?.clear();
+    _states ??= [];
+    //final List tmpItems = List.from(items);
+    //int startIndex = items.length;
+    for (int index = 0; index < items.length; index++) {
+      _states.add(_getItemState(index, items[index]));
+    }
+  }
+
+  VideoStateMiXin _getItemState(int index, dynamic item) {
+    assert(index != null);
+    assert(item != null);
+    VideoStateMiXin state;
+    if (item is AdvertItem) {
+      state = AdvertState(
+        playState: PlayState.startAndPause,
+        detailHighlightInfo: DetailHighlightInfo(
+            startDetailHighlight: false, finishDetailHighlight: false),
+        popupDirection: PopupDirection.bottom,
+      );
+    } else {
+      //不要等于空
+      state = VideoState();
+    }
+
+    if (state != null) {
+      state.addListener(_stateListener);
+    }
+    return state;
+  }
+
+  void insertState(int index, dynamic item) {
+    assert(_states != null);
+    assert(index != null && index >= 0 && index <= _states.length);
+    assert(item is VideoItems || item is AdvertItem);
+    var state = _getItemState(index, item);
+    _states.insert(index, state);
+  }
+
+  void removeState(int index) {
+    assert(_states != null);
+    assert(index != null && index >= 0 && index < _states.length);
+    var item = _states.removeAt(index);
+    assert(item != null);
+    item.removeListener(notifyListeners);
+  }
+
+  void addState(dynamic item) {
+    assert(_states != null);
+    assert(item is VideoItems || item is AdvertItem);
+    var state = _getItemState(_states.length, item);
+    _states.add(state);
+  }
+
+  void addAllState(List items) {
+    assert(_states != null);
+    assert(items != null && items.isNotEmpty);
+    int startIndex = _states.length;
+    for (int index = 0; index < items.length; index++) {
+      var state = _getItemState(startIndex + index, items[index]);
+      _states.add(state);
+    }
+  }
+}
+
+mixin HeightMeasurer {
   List<double> _heightList;
 
   static final double headItemHeight = 440.h;
@@ -387,99 +463,80 @@ bool _isPlayVideo(ListModel list, int index) {
   return item is AdvertItem && item.canPlay;
 }
 
-VideoPlayInfo computerVideoStateValueWhenScrollUpdate(ListModel list,
-    List<ViewportOffsetData> viewportOffsetDataList, VideoPlayInfo playInfo) {
+void computerVideoStateValueWhenScrollUpdate(
+    ListModel list, List<ViewportOffsetData> viewportOffsetDataList) {
   assert(list != null);
   assert(viewportOffsetDataList != null);
+  assert(viewportOffsetDataList.isNotEmpty);
 
-  if (playInfo != null) {
-    final int index = _computerPauseVideoIndexWhenScrollUpdate(
-      playInfo.playIndex,
-      list,
-      viewportOffsetDataList,
-    );
-    final Map<int, DetailHighlightInfo> detailHighlights =
-        playInfo.detailHighlights;
+  _computerPauseVideoWhenScrollUpdate(list, viewportOffsetDataList);
 
-    if (index >= 0 && index == playInfo.playIndex) {
-      playInfo = VideoPlayInfo(
-        playIndex: -1,
-        playState: PlayState.startAndPause,
-        detailHighlights: detailHighlights,
-        popupDirections: playInfo.popupDirections,
-      );
-    } else {
-      if (detailHighlights != null && detailHighlights.isNotEmpty) {
-        bool isChangeState = false;
-
-        detailHighlights.removeWhere((index, value) {
-          DetailHighlightInfo info = value;
-          assert(info != null);
-          assert(info.startDetailHighlight != null);
-          assert(info.finishDetailHighlight != null);
-          bool isRemove = false;
-          if (info.startDetailHighlight && !info.finishDetailHighlight) {
-            isChangeState = true;
-            isRemove = true;
-          } else if (info.startDetailHighlight && info.finishDetailHighlight) {
-            final int _index = _computerPauseVideoIndexWhenScrollUpdate(
-              index,
-              list,
-              viewportOffsetDataList,
-            );
-
-            if (_index >= 0 && _index == index) {
-              isChangeState = true;
-              isRemove = true;
-            }
-          }
-
-          return isRemove;
-        });
-
-        if (isChangeState) {
-          playInfo = VideoPlayInfo(
-            playIndex: playInfo.playIndex ?? -1,
-            playState: playInfo.playState,
-            detailHighlights: detailHighlights,
-            popupDirections: playInfo.popupDirections,
-          );
-        }
+  for (ViewportOffsetData viewportOffsetData in viewportOffsetDataList) {
+    final int index = viewportOffsetData.index;
+    assert(list.states != null);
+    assert(list.states.length > index);
+    final VideoStateMiXin state = list.states[index];
+    if (state is AdvertState) {
+      final AdvertState advertState = state;
+      assert(advertState.detailHighlightInfo != null);
+      if (advertState.detailHighlightInfo.startDetailHighlight &&
+          !advertState.detailHighlightInfo.finishDetailHighlight) {
+        advertState.detailHighlightInfo.startDetailHighlight = false;
       }
     }
   }
-
-  return playInfo;
 }
 
-int _computerPauseVideoIndexWhenScrollUpdate(int playIndex, ListModel list,
-    List<ViewportOffsetData> viewportOffsetDataList) {
+void _computerPauseVideoWhenScrollUpdate(
+    ListModel list, List<ViewportOffsetData> viewportOffsetDataList) {
   assert(list != null);
-  assert(playIndex != null);
   assert(viewportOffsetDataList != null);
-  if (playIndex < 0) return -1;
-
-  assert(playIndex < list.length);
+  final Map<int, VideoStateMiXin> waitingPauseStates = {};
 
   if (viewportOffsetDataList.length > 0) {
     final ViewportOffsetData first = viewportOffsetDataList.first;
 
-    //print(
-    //   "computerPauseVideoWhenScrollUpdate => playIndex: $playIndex   first.index:${first.index}  first.visibleOffset: ${first.visibleOffset}  heightOff: ${first.height - HeightMeasurer.primaryTitleHeight}");
-    if ((playIndex == (first.index - 1) &&
-            first.visibleOffset <
-                (first.height - HeightMeasurer.primaryTitleHeight)) ||
-        (playIndex <= (first.index - 2))) {
-      return playIndex;
+    if (first.index > 0 &&
+        first.visibleOffset <
+            (first.height - HeightMeasurer.primaryTitleHeight)) {
+      final int preIndex = first.index - 1;
+      final VideoStateMiXin state = list.states[preIndex];
+      assert(state != null);
+      if (state is AdvertState) {
+        waitingPauseStates[preIndex] = state;
+      }
     }
 
     final ViewportOffsetData last = viewportOffsetDataList.last;
-    if (playIndex > last.index) {
-      return playIndex;
+    final int lastIndex = last.index + 1;
+    if (lastIndex < list.length) {
+      final VideoStateMiXin state = list.states[lastIndex];
+      assert(state != null);
+      if (state is AdvertState) {
+        waitingPauseStates[lastIndex] = state;
+      }
     }
   }
 
-  return -1;
+  if (waitingPauseStates.isEmpty) return;
+
+  for (VideoStateMiXin state in waitingPauseStates.values) {
+    final AdvertState advertState = state;
+    assert(advertState?.playState != null);
+    if (advertState.playState.isPlaying() || advertState.playState.isEnd()) {
+      final PlayState playState = PlayState.startAndPause;
+      DetailHighlightInfo detailHighlightInfo;
+      assert(advertState.detailHighlightInfo != null);
+      if (advertState.detailHighlightInfo.startDetailHighlight) {
+        detailHighlightInfo = DetailHighlightInfo(
+            startDetailHighlight: false, finishDetailHighlight: false);
+      }
+      advertState.changeState(
+        playState: playState,
+        detailHighlightInfo: detailHighlightInfo,
+      );
+    }
+  }
 }
 
 int _computerPlayIndexWhenScrollEnd(
@@ -529,49 +586,45 @@ int _computerPlayIndexWhenScrollEnd(
   return -1;
 }
 
-VideoPlayInfo _computerPlayVideoWhenScrollEnd(ListModel list,
-    VideoPlayInfo playInfo, List<ViewportOffsetData> viewportOffsetDataList) {
+void _computerPlayVideoWhenScrollEnd(
+    ListModel list, List<ViewportOffsetData> viewportOffsetDataList) {
   assert(list != null);
   assert(viewportOffsetDataList != null);
 
   //播放状态一定要最后修改
-  if (playInfo != null) {
-    final int index =
-        _computerPlayIndexWhenScrollEnd(list, viewportOffsetDataList);
+  final int index =
+      _computerPlayIndexWhenScrollEnd(list, viewportOffsetDataList);
 
-    //final PlayState playState = index >= 0 ? (playInfo.playState == PlayState.end ? PlayState.startAndPlay : PlayState.resume) : PlayState.startAndPause;
+  assert(list.states != null);
 
-    if (playInfo.playState != PlayState.end || index != playInfo.playIndex) {
-      //PlayState playState = playInfo.playState != PlayState.end ? (index >= 0 ? PlayState.resume : PlayState.startAndPause
-
-      playInfo = VideoPlayInfo(
-        playIndex: index,
-        playState: index >= 0 ? PlayState.resume : PlayState.startAndPause,
-        detailHighlights: playInfo.detailHighlights,
-        popupDirections: playInfo.popupDirections,
-      );
+  if (index < 0) {
+    for (VideoStateMiXin state in list.states) {
+      assert(state != null);
+      if (!(state is AdvertState)) continue;
+      final AdvertState advertState = state;
+      assert(advertState.playState != null);
+      if (advertState.playState.isPlaying()) {
+        advertState.changeState(
+          playState: PlayState.startAndPause,
+        );
+      }
     }
   } else {
-    final int index =
-        _computerPlayIndexWhenScrollEnd(list, viewportOffsetDataList);
-    //说明当前没有任何视频在播放
-    if (index != -1) {
-      playInfo = VideoPlayInfo(
-        playIndex: index,
-        playState: PlayState.resume,
-        detailHighlights: playInfo.detailHighlights,
-        popupDirections: playInfo.popupDirections,
+    final VideoStateMiXin state = list.states[index];
+    assert(state is AdvertState);
+    final AdvertState advertState = state;
+    assert(advertState.playState != null);
+    if (!advertState.playState.isPlaying() && !advertState.playState.isEnd()) {
+      advertState.changeState(
+        playState: PlayState.startAndPlay,
       );
     }
   }
-
-  return playInfo;
 }
 
-VideoPlayInfo _computerVideoPopDirection(
+void _computerVideoPopDirection(
     ListModel list,
     List<ViewportOffsetData> viewportOffsetDataList,
-    VideoPlayInfo playInfo,
     double videoPopupViewport) {
   assert(viewportOffsetDataList != null && viewportOffsetDataList.length > 0);
 
@@ -582,106 +635,73 @@ VideoPlayInfo _computerVideoPopDirection(
 
   assert(list.length > index);
 
-  if (!_isPlayVideo(list, index)) return playInfo;
+  if (!_isPlayVideo(list, index)) return;
 
-  PopupDirection _defaultDirection = PopupDirection.bottom;
-  if (playInfo != null) {
-    if (playInfo.popupDirections != null &&
-        playInfo.popupDirections.containsKey(index)) {
-      _defaultDirection = playInfo.popupDirections[index];
-    }
-  }
-  final Map<int, PopupDirection> _directions = playInfo?.popupDirections ?? {};
+  final VideoStateMiXin state = list.states[index];
+  assert(state != null);
+  assert(state is AdvertState);
+  final AdvertState advertState = state;
+
   if (last.visibleOffset >= videoPopupViewport) {
-    if (_defaultDirection != PopupDirection.bottom) {
-      _directions[index] = PopupDirection.bottom;
-
-      return VideoPlayInfo(
-        playIndex: playInfo?.playIndex ?? -1,
-        playState: playInfo?.playState,
-        popupDirections: _directions,
+    if (advertState.popupDirection != PopupDirection.bottom) {
+      advertState.changeState(
+        popupDirection: PopupDirection.bottom,
       );
     }
   } else {
-    if (_defaultDirection != PopupDirection.top) {
-      _directions[index] = PopupDirection.top;
-
-      return VideoPlayInfo(
-        playIndex: playInfo?.playIndex ?? -1,
-        playState: playInfo?.playState,
-        popupDirections: _directions,
+    if (advertState.popupDirection != PopupDirection.top) {
+      advertState.changeState(
+        popupDirection: PopupDirection.top,
       );
     }
   }
-
-  return playInfo;
 }
 
-VideoPlayInfo _computerVideoDetailHighlight(
+void _computerVideoDetailHighlight(
     ListModel list,
     List<ViewportOffsetData> viewportOffsetDataList,
-    VideoPlayInfo playInfo,
     double videoPopupViewport) {
   assert(viewportOffsetDataList != null && viewportOffsetDataList.length > 0);
-
-  final Map<int, DetailHighlightInfo> _detailHighlights =
-      playInfo?.detailHighlights ?? {};
-
-  final VideoPlayInfo tmpPlayInfo = VideoPlayInfo(
-    playIndex: playInfo?.playIndex ?? -1,
-    popupDirections: playInfo?.popupDirections,
-    playState: playInfo?.playState,
-    detailHighlights: _detailHighlights,
-  );
 
   for (ViewportOffsetData offsetData in viewportOffsetDataList) {
     if (!_isPlayVideo(list, offsetData.index)) continue;
 
-    final bool _defaultDetailHighlight = playInfo?.detailHighlights != null
-        ? (playInfo.detailHighlights[offsetData.index]?.startDetailHighlight ??
-            false)
-        : false;
+    VideoStateMiXin state = list.states[offsetData.index];
+    assert(state != null);
+    assert(state is AdvertState);
+    final AdvertState advertState = state;
+    assert(advertState.detailHighlightInfo?.startDetailHighlight != null);
+    final bool _defaultDetailHighlight =
+        advertState.detailHighlightInfo.startDetailHighlight;
 
     if (offsetData.visibleOffset >= offsetData.height * 0.5) {
       if (!_defaultDetailHighlight) {
-        _detailHighlights[offsetData.index] =
-            DetailHighlightInfo(startDetailHighlight: true);
+        advertState.changeState(
+          detailHighlightInfo: DetailHighlightInfo(
+            startDetailHighlight: true,
+            finishDetailHighlight:
+                advertState.detailHighlightInfo.finishDetailHighlight,
+          ),
+        );
       }
     }
-    /* else if (_defaultDetailHighlight) {
-      _detailHighlights[offsetData.index] = false;
-    }*/
   }
-
-  return tmpPlayInfo;
 }
 
 //头永远不会被移除
-VideoPlayInfo computerVideoStateValueWhenScrollEnd(
+void computerVideoStateValueWhenScrollEnd(
     ListModel list,
     List<ViewportOffsetData> viewportOffsetDataList,
-    VideoPlayInfo playInfo,
     double videoPopupViewport) {
   assert(list != null);
   assert(viewportOffsetDataList != null);
   assert(videoPopupViewport != null);
   assert(videoPopupViewport > 0);
-  if (viewportOffsetDataList.length <= 0) return playInfo;
 
-  VideoPlayInfo newPlayInfo = _computerVideoPopDirection(
-      list, viewportOffsetDataList, playInfo, videoPopupViewport);
+  _computerVideoPopDirection(list, viewportOffsetDataList, videoPopupViewport);
 
-  newPlayInfo = _computerVideoDetailHighlight(
-      list, viewportOffsetDataList, newPlayInfo, videoPopupViewport);
+  _computerVideoDetailHighlight(
+      list, viewportOffsetDataList, videoPopupViewport);
 
-  print(
-      "computerVideoStateValueWhenScrollEnd => playState: ${newPlayInfo.playState}");
-
-  newPlayInfo = _computerPlayVideoWhenScrollEnd(
-      list, newPlayInfo, viewportOffsetDataList);
-
-  print(
-      "computerVideoStateValueWhenScrollEnd222 => playState: ${newPlayInfo.playState}");
-
-  return newPlayInfo;
+  _computerPlayVideoWhenScrollEnd(list, viewportOffsetDataList);
 }

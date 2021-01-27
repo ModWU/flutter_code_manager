@@ -136,6 +136,9 @@ mixin PageVisibleMixin on Widget {
 
 class PageChangeNotifier with ChangeNotifier {
   PageIndex _pageIndex = PageIndex.main_page;
+  final BuildContext context;
+
+  PageChangeNotifier(this.context) : assert(context != null);
 
   void changeIndex(PageIndex pageIndex) {
     assert(pageIndex != null);
@@ -145,6 +148,111 @@ class PageChangeNotifier with ChangeNotifier {
   }
 
   PageIndex get pageIndex => _pageIndex;
+}
+
+mixin VideoStateMiXin on ChangeNotifier {
+  VideoStateMiXin copyWith();
+  void changeState({PlayState playState});
+}
+
+//暂不实现
+class VideoState with ChangeNotifier, VideoStateMiXin {
+  @override
+  VideoStateMiXin copyWith() {
+    return this;
+  }
+
+  @override
+  void changeState({PlayState playState}) {}
+}
+
+class AdvertState with ChangeNotifier, VideoStateMiXin {
+  PlayState _playState;
+  DetailHighlightInfo _detailHighlightInfo;
+  PopupDirection _popupDirection;
+
+  PlayState get playState => _playState;
+  DetailHighlightInfo get detailHighlightInfo => _detailHighlightInfo;
+  PopupDirection get popupDirection => _popupDirection;
+
+  PlayState _keepPlayState() {
+    assert(_playState != null);
+    return _playState.keepPlayState();
+  }
+
+  @override
+  void changeState({
+    PlayState playState,
+    PopupDirection popupDirection,
+    DetailHighlightInfo detailHighlightInfo,
+  }) {
+    if (playState == _playState &&
+        popupDirection == _popupDirection &&
+        detailHighlightInfo == _detailHighlightInfo) return;
+    assert(playState != null ||
+        popupDirection != null ||
+        detailHighlightInfo != null);
+
+    if (playState != null)
+      _playState = playState;
+    else
+      _playState = _keepPlayState();
+
+    if (popupDirection != null) _popupDirection = popupDirection;
+
+    if (detailHighlightInfo != null) _detailHighlightInfo = detailHighlightInfo;
+
+    notifyListeners();
+  }
+
+  AdvertState({
+    PlayState playState,
+    DetailHighlightInfo detailHighlightInfo,
+    PopupDirection popupDirection,
+  })  : assert(playState != null),
+        assert(detailHighlightInfo != null),
+        assert(popupDirection != null),
+        _playState = playState,
+        _detailHighlightInfo = detailHighlightInfo,
+        _popupDirection = popupDirection;
+
+  @override
+  int get hashCode {
+    return hashValues(
+      _playState,
+      _detailHighlightInfo,
+      _popupDirection,
+    );
+  }
+
+  @override
+  AdvertState copyWith({
+    PlayState playState,
+    DetailHighlightInfo detailHighlightInfo,
+    PopupDirection popupDirection,
+  }) {
+    return AdvertState(
+      playState: playState ?? _playState,
+      detailHighlightInfo: detailHighlightInfo ?? _detailHighlightInfo,
+      popupDirection: popupDirection ?? _popupDirection,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    //以属性为主
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+    return other is AdvertState &&
+        other._playState == _playState &&
+        other._detailHighlightInfo == _detailHighlightInfo &&
+        other._popupDirection == _popupDirection;
+  }
+
+  @override
+  String toString() {
+    return "AdvertState {playState: $playState, detailHighlightInfo: $detailHighlightInfo, popupDirection: $popupDirection}";
+  }
 }
 
 class DetailHighlightInfo {
@@ -166,6 +274,14 @@ class DetailHighlightInfo {
     _finishDetailHighlight = value;
   }
 
+  DetailHighlightInfo copyWith(
+      {bool startDetailHighlight, bool finishDetailHighlight}) {
+    return DetailHighlightInfo(
+      startDetailHighlight: startDetailHighlight ?? _startDetailHighlight,
+      finishDetailHighlight: finishDetailHighlight ?? _finishDetailHighlight,
+    );
+  }
+
   DetailHighlightInfo(
       {bool startDetailHighlight = false, bool finishDetailHighlight = false})
       : assert(startDetailHighlight != null),
@@ -174,36 +290,24 @@ class DetailHighlightInfo {
         _finishDetailHighlight = finishDetailHighlight;
 
   @override
+  int get hashCode {
+    return hashValues(
+      _startDetailHighlight,
+      _finishDetailHighlight,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+    return other is DetailHighlightInfo &&
+        other._startDetailHighlight == _startDetailHighlight &&
+        other._finishDetailHighlight == _finishDetailHighlight;
+  }
+
+  @override
   String toString() {
     return "DetailHighlightInfo {startDetailHighlight: $startDetailHighlight, finishDetailHighlight: $finishDetailHighlight}";
   }
-}
-
-
-///没有将播放结束和正在播放的视频状态保存起来，有待优化
-class VideoPlayInfo {
-  int playIndex;
-  PlayState playState;
-  Map<int, DetailHighlightInfo> detailHighlights;
-  Map<int, PopupDirection> popupDirections;
-
-  VideoPlayInfo copyWith({
-    int playIndex,
-    PlayState playState,
-    Map<int, DetailHighlightInfo> detailHighlights,
-    Map<int, PopupDirection> popupDirections,
-  }) =>
-      VideoPlayInfo(
-        playIndex: playIndex ?? this.playIndex,
-        playState: playState ?? this.playState,
-        detailHighlights: detailHighlights ?? this.detailHighlights,
-        popupDirections: popupDirections ?? this.popupDirections,
-      );
-
-  VideoPlayInfo(
-      {this.playIndex = -1,
-      this.playState,
-      this.detailHighlights,
-      this.popupDirections})
-      : assert(playIndex != null);
 }

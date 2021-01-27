@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_list/pages/page_controller.dart';
 import '../../resources/export.dart';
 import 'package:provider/provider.dart';
@@ -10,9 +11,7 @@ import 'choiceness/tmp_page.dart';
 import 'home_page_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-
 class MainPage extends StatefulWidget {
-
   //MainPage() : super(PageIndex.main_page.pageId);
 
   @override
@@ -27,10 +26,11 @@ class MainPage extends StatefulWidget {
     };
   }*/
 
-
 }
 
-class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {//TickerProviderStateMixin
+class _MainPageState extends State<MainPage>
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  //TickerProviderStateMixin
 
   TabController _tabController;
 
@@ -62,9 +62,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     TmpPage("视频7"),
   ];
 
-
-
-
   @override
   void initState() {
     super.initState();
@@ -75,10 +72,10 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
-        if (!_isPageAnimation)
-          _pageController.jumpToPage(_tabController.index);
+        if (!_isPageAnimation) _pageController.jumpToPage(_tabController.index);
         //当切换顶部tab时
-        print("tab page change=> current:${_tabController.index}, previous:${_tabController.previousIndex}");
+        print(
+            "tab page change=> current:${_tabController.index}, previous:${_tabController.previousIndex}");
         _pageList[_tabController.previousIndex].pageVisibleNotifier.hidePage();
         _pageList[_tabController.index].pageVisibleNotifier.showPage();
       }
@@ -87,7 +84,8 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
 
     //当底部按钮切换时
     Provider.of<PageChangeNotifier>(context, listen: false).addListener(() {
-      PageIndex pageIndex = Provider.of<PageChangeNotifier>(context, listen: false).pageIndex;
+      PageIndex pageIndex =
+          Provider.of<PageChangeNotifier>(context, listen: false).pageIndex;
       int currentTabIndex = _tabController.index;
       if (pageIndex == PageIndex.main_page) {
         //通知当前tab页显示了
@@ -98,7 +96,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
         print("通知主页的当前tab隐藏: $currentTabIndex");
         _pageList[currentTabIndex].pageVisibleNotifier.hidePage();
       }
-
     });
     /*_pageController.addListener(() {
      // print("page:${_pageController.page}  offset:${ _pageController.offset}  _tabController:${_tabController.index}");
@@ -108,7 +105,6 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
      }
 
     });*/
-
   }
 
   @override
@@ -124,17 +120,15 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    print("_pageList: ${_pageList?.length}  _pageController:${_pageController} ");
+    print(
+        "_pageList: ${_pageList?.length}  _pageController:${_pageController} ");
     return MaterialApp(
       title: "home",
       theme: Theme.of(context).copyWith(),
       home: Scaffold(
         appBar: PreferredSize(
-          child: HeartBeatBar(
-              _dataList,
-              _tabController
-          ),
-          preferredSize: Size.fromHeight(Dimens.action_bar_height),//可以移动的边距
+          child: HeartBeatBar(_dataList, _tabController),
+          preferredSize: Size.fromHeight(Dimens.action_bar_height), //可以移动的边距
         ),
         body: PageView(
           children: _pageList,
@@ -153,5 +147,3 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
   // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 }
-
-

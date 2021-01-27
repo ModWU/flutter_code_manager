@@ -11,8 +11,33 @@ enum PlayState {
   resume,
   pause,
   continuePlay,
-  keepState,
   end,
+}
+
+extension PlayStateExtension on PlayState {
+  bool isPlaying() {
+    return this == PlayState.startAndPlay ||
+        this == PlayState.resume ||
+        this == PlayState.continuePlay;
+  }
+
+  PlayState keepPlayState() {
+    if (this == PlayState.startAndPlay) return PlayState.resume;
+
+    if (this == PlayState.startAndPause) return PlayState.pause;
+
+    return this;
+  }
+
+  bool isEnd() {
+    return this == PlayState.end;
+  }
+
+  bool isPause() {
+    return this == PlayState.pause ||
+        this == PlayState.startAndPause ||
+        this == PlayState.end;
+  }
 }
 
 enum _InitState {
@@ -28,9 +53,8 @@ class VideoView extends StatefulWidget {
     this.videoUrl,
     this.controller,
     this.contentStackBuilder,
-    this.playState = PlayState.startAndPause,
-  })  : assert(videoUrl != null || controller != null),
-        assert(playState != null);
+    this.playState,
+  }) : assert(videoUrl != null || controller != null);
 
   @override
   State<StatefulWidget> createState() => _VideoViewState();
@@ -47,6 +71,7 @@ class _VideoViewState extends State<VideoView>
   bool _isPlayError = false;
   bool _isNetworkConnectivityError = false;
   bool _isPlayPrepare = false;
+  PlayState _oldPlayState;
 
   @override
   void didUpdateWidget(VideoView oldWidget) {
@@ -100,6 +125,7 @@ class _VideoViewState extends State<VideoView>
   }
 
   void _resumeControllerWithLifecycle() {
+    _videoController.removeListener(_controllerEvent);
     _videoController.addListener(_controllerEvent);
     if (_needReplay) {
       _videoController.play();
@@ -157,8 +183,8 @@ class _VideoViewState extends State<VideoView>
 
       if (_isPlayPrepare && _videoController.value.duration == null) {
         print(
-            "播放错误 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration} initialized: ${_videoController.value.initialized}");
-        _isPlayError = true;
+            "播放错误 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration} initialized: ${_videoController.value.initialized} _isNetworkConnectivityError: $_isNetworkConnectivityError");
+        if (!_isNetworkConnectivityError) _isPlayError = true;
       } else {
         print(
             "正在播放 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration}");
@@ -179,10 +205,10 @@ class _VideoViewState extends State<VideoView>
   }
 
   Future<void> _handleStateAfterInit(_InitState initState) async {
-    assert(widget.playState != null);
+    if (widget.playState == null || !_videoController.value.initialized) return;
+
     print(
-        "AdvertView _handleStateAfterInit -> initState: ${initState.toString()}, playState: ${widget.playState.toString()}, isPlaying: ${_videoController.value.isPlaying}");
-    if (!_videoController.value.initialized) return;
+        "AdvertView _handleStateAfterInit -> initState: ${initState.toString()}, playState: ${widget.playState}, isPlaying: ${_videoController.value.isPlaying}");
 
     switch (widget.playState) {
       case PlayState.startAndPause:
@@ -226,8 +252,6 @@ class _VideoViewState extends State<VideoView>
         _videoController.pause();
 
         break;
-
-      case PlayState.keepState:
       default:
     }
   }
