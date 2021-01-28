@@ -180,6 +180,11 @@ class AdvertState with ChangeNotifier, VideoStateMiXin {
     return _playState.keepPlayState();
   }
 
+  void keepPlayState() {
+    assert(_playState != null);
+    _playState = _keepPlayState();
+  }
+
   @override
   void changeState({
     PlayState playState,
@@ -201,6 +206,9 @@ class AdvertState with ChangeNotifier, VideoStateMiXin {
     if (popupDirection != null) _popupDirection = popupDirection;
 
     if (detailHighlightInfo != null) _detailHighlightInfo = detailHighlightInfo;
+
+    print(
+        "changeState => _playState: $_playState, popupDirection: $popupDirection, detailHighlightInfo: $detailHighlightInfo");
 
     notifyListeners();
   }

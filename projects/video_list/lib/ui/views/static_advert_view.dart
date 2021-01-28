@@ -80,6 +80,7 @@ class NormalAdvertView extends StatefulWidget {
 class _NormalAdvertViewState extends State<NormalAdvertView>
     with AutomaticKeepAliveClientMixin {
   VideoPlayerController _controller;
+  bool _isPlayError = false;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +89,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     return ChangeNotifierProvider.value(
       value: _detailHighlightNotifier,
       child: GestureDetector(
-        onTap: _onClickAdvert,
+        onTap: _onAdvertClick,
         child: Container(
           width: widget.width ?? Dimens.design_screen_width.w,
           child: Column(
@@ -103,18 +104,40 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     );
   }
 
-  void _onClickAdvert() async {
-    print("点击了Advert body");
+  void _onAdvertClick() async {
+    print("点击了Advert body _isPlayError: $_isPlayError");
+    if (_isPlayError)
+      return;
     assert(_controller != null);
     widget.onClick?.call(_controller);
+  }
+
+  @override
+  void didUpdateWidget(NormalAdvertView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _handleDetailTxtAnimation(oldWidget);
+    if (_controller != null) {
+      final String oldVideoUrl = _controller.dataSource;
+      final String newVideoUrl = widget.advertItem.videoUrl; //优先以videoUrl为准
+
+      assert(newVideoUrl != null);
+      assert(oldVideoUrl != null);
+      if (newVideoUrl != oldVideoUrl) {
+        //重新初始化控制器,此处无需销毁控制器,VideoView中会处理
+        _initController(newVideoUrl);
+        assert(_controller != null);
+      }
+    }
   }
 
   Widget _buildVideoView() {
     assert(widget.advertItem.videoUrl != null);
     return VideoView(
-      videoUrl: widget.advertItem.videoUrl,
       playState: widget.playState,
       controller: _controller,
+      onError: (bool isHasError) {
+        _isPlayError = isHasError;
+      },
       contentStackBuilder:
           (BuildContext context, VideoPlayerController controller) {
         assert(controller.value != null);
@@ -126,8 +149,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
         print("current current playState: ${widget.playState}");
 
         if (widget.playState == PlayState.startAndPause ||
-            widget.playState == PlayState.pause ||
-            !controller.value.isPlaying) {
+            widget.playState == PlayState.pause) {
           children.addAll([
             _buildShowImageView(),
             _PlayPauseOverlay(controller: controller),
@@ -616,12 +638,6 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     );
   }
 
-  @override
-  void didUpdateWidget(covariant NormalAdvertView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _handleDetailTxtAnimation(oldWidget);
-  }
-
   void _handleDetailTxtAnimation(NormalAdvertView oldWidget) {
     assert(oldWidget != null);
     if (_detailHighlightAnimationTimer != null)
@@ -656,14 +672,26 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     }
   }
 
+  void _destroyController() {
+    if (_controller != null) {
+      if (_controller.value.isPlaying) _controller.pause();
+      _controller.dispose();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     print("NormalAdvertView => ${hashCode} initState");
     _initDetailHighlightNotifier();
     assert(widget.advertItem.videoUrl != null);
+    _initController(widget.advertItem.videoUrl);
+    assert(_controller != null);
+  }
+
+  void _initController(String videoUrl) {
     _controller = VideoPlayerController.network(
-      widget.advertItem.videoUrl,
+      videoUrl,
       videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
     );
   }
@@ -671,7 +699,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
   @override
   void dispose() {
     print("NormalAdvertView => ${hashCode} dispose");
-    _controller.dispose();
+    _destroyController();
     super.dispose();
   }
 

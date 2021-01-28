@@ -81,6 +81,16 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     print("ChoicenessPage -> initState()");
     super.initState();
     _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ScrollPosition position = _scrollController.position;
+      assert(position != null);
+      assert(position.hasViewportDimension);
+      _resumeStateWhenScrollEnd(
+        extentBefore: position.extentBefore,
+        viewportDimension: position.viewportDimension,
+      );
+    });
+
     _initResources();
   }
 
@@ -136,13 +146,30 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
   Widget _buildRemovedItem(BuildContext context, int index, dynamic item,
       Animation<double> animation) {
+    animation.addStatusListener((status) {
+      switch (status) {
+        case AnimationStatus.dismissed:
+          final ScrollPosition position = _scrollController.position;
+          assert(position != null);
+          assert(position.hasViewportDimension);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            assert(_scrollController != null);
+            assert(_scrollController.position != null);
+            final ScrollPosition scrollPosition = _scrollController.position;
+            _resumeStateWhenScrollEnd(
+              extentBefore: scrollPosition.extentBefore,
+              viewportDimension: scrollPosition.viewportDimension,
+            );
+          });
+          break;
+      }
+    });
+
     print(
-        "remove => _buildRemovedItem Video Selector build => index: $index list.length:${_list.length} state.length:${_list.states.length}");
+        "remove_wcc => _buildRemovedItem Video Selector build => index: $index list.length:${_list.length} state.length:${_list.states.length}");
     //assert(_list.states != null && _list.states.isNotEmpty);
     return _buildItem(context, index, animation);
   }
-
-  //Random random = Random();
 
   Widget _buildDetailItem(BuildContext context, int index) {
     final dynamic data = _list[index];
@@ -157,19 +184,21 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       final bool isCanPlay = data.canPlay;
       assert(_list.states[index] is AdvertState);
       //保存为持久性对象,避免list被修改造成下标错位
-      final AdvertState state = _list.states[index];
+      print(
+          "Video Selector build22222 => index: $index list.length:${_list.length} state.length:${_list.states.length}");
+      final AdvertState _state = _list.states[index];
       child = Selector<ListModel, VideoStateMiXin>(
         builder: (BuildContext context, VideoStateMiXin state, Widget child) {
-          print(
-              "Video Selector build => index: $index list.length:${_list.length} state.length:${_list.states.length}");
           assert(state != null);
           assert(state is AdvertState);
           final AdvertState advertState = state;
           assert(advertState.detailHighlightInfo != null);
+          print(
+              "3333Video Selector build => index: $index list.length:${_list.length} state.length:${_list.states.length} _state:${_state.hashCode} advertState.playState: ${_state.playState}");
           return Padding(
             padding: EdgeInsets.symmetric(
-                vertical:
-                    HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList),
+              vertical: HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList,
+            ),
             child: NormalAdvertView(
               width: Dimens.design_screen_width.w,
               playState: advertState.playState,
@@ -213,6 +242,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 _jumpToPlayVideoPage(index, controller);
               },
               onLoseAttention: () {
+                _state.keepPlayState();
                 var element = _list.removeAt(index);
                 assert(element != null);
               },
@@ -222,9 +252,9 @@ class _ChoicenessPageState extends State<ChoicenessPage>
           );
         },
         selector: (BuildContext context, ListModel stateManager) {
-          assert(state != null);
-          assert(state is AdvertState);
-          return state.copyWith();
+          assert(_state != null);
+          assert(_state is AdvertState);
+          return _state.copyWith();
         },
       );
     }
@@ -233,6 +263,8 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
   Widget _buildItem(
       BuildContext context, int index, Animation<double> animation) {
+    assert(index >= 0);
+    assert(index < _list.length);
     return SizeTransition(
       sizeFactor: animation.drive(CurveTween(curve: Curves.easeIn)),
       axisAlignment: 1.0,
@@ -241,6 +273,23 @@ class _ChoicenessPageState extends State<ChoicenessPage>
         child: _buildDetailItem(context, index),
       ),
     );
+  }
+
+  void _pausePlayingVideos() {
+    final ScrollPosition position = _scrollController.position;
+    assert(position != null);
+    assert(position.hasViewportDimension);
+    final List<ViewportOffsetData> viewportOffsetDataList =
+        _list.getViewportOffsetData(
+            position.extentBefore, position.viewportDimension);
+    assert(viewportOffsetDataList != null);
+    for (ViewportOffsetData viewportOffsetData in viewportOffsetDataList) {
+      assert(viewportOffsetData.index != null);
+      assert(_list.states != null);
+      VideoStateMiXin state = _list.states[viewportOffsetData.index];
+      if (state is AdvertState && state.playState.isPlaying())
+        state.changeState(playState: PlayState.startAndPause);
+    }
   }
 
   void _jumpToPlayVideoPage(int index, VideoPlayerController controller) {
@@ -252,12 +301,10 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     final AdvertState advertState = state;
 
     final BuildContext parentContext =
-        Provider.of<PageChangeNotifier>(context, listen: false)
-            .context;
+        Provider.of<PageChangeNotifier>(context, listen: false).context;
     assert(parentContext != null); //PageRouteBuilder
-
-    final Duration delayDuration =
-    const Duration(milliseconds: 300);
+    _pausePlayingVideos();
+    final Duration delayDuration = const Duration(milliseconds: 300);
     Navigator.push(
       parentContext,
       PageRouteBuilder(
@@ -271,8 +318,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
               begin: Offset(1.0, 0.0),
               end: Offset(0.0, 0.0),
             ).animate(
-              CurvedAnimation(
-                  parent: animation, curve: Curves.fastOutSlowIn),
+              CurvedAnimation(parent: animation, curve: Curves.fastOutSlowIn),
             ),
             child: BaseVideoPage(
               // 路由参数
@@ -296,14 +342,16 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 );
               },
               onDismissed: () {
-                assert(_scrollController != null);
-                assert(_scrollController.position != null);
-                final ScrollPosition scrollPosition =
-                    _scrollController.position;
-                _resumeStateWhenScrollEnd(
-                  extentBefore: scrollPosition.extentBefore,
-                  viewportDimension: scrollPosition.viewportDimension,
-                );
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  assert(_scrollController != null);
+                  assert(_scrollController.position != null);
+                  final ScrollPosition scrollPosition =
+                      _scrollController.position;
+                  _resumeStateWhenScrollEnd(
+                    extentBefore: scrollPosition.extentBefore,
+                    viewportDimension: scrollPosition.viewportDimension,
+                  );
+                });
               },
             ),
           );
@@ -344,6 +392,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
   void _resumeStateWhenScrollEnd(
       {double extentBefore, double viewportDimension}) {
+    print("##scroll => _resumeStateWhenScrollEnd!!!!!!!!");
     assert(_list != null);
     assert(extentBefore != null);
     assert(viewportDimension != null);
@@ -355,6 +404,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
   void _resumeStateWhenScrollUpdate(
       {double extentBefore, double viewportDimension}) {
+    print("##scroll => _resumeStateWhenScrollUpdate!!!!!!!!");
     assert(_list != null);
     assert(extentBefore != null);
     assert(viewportDimension != null);
@@ -395,8 +445,9 @@ class _ChoicenessPageState extends State<ChoicenessPage>
         body: NotificationListener(
           onNotification: (ScrollNotification notification) {
             final ScrollMetrics metrics = notification.metrics;
-
+            print("##scroll => ScrollNotification!!!!!!!!");
             if (metrics.axis == Axis.vertical) {
+              print("##scroll => ScrollNotification2!!!!!!!!");
               if (notification is ScrollEndNotification) {
                 _resumeStateWhenScrollEnd(
                   extentBefore: metrics.extentBefore,
@@ -534,7 +585,9 @@ class ListModel<E> with ChangeNotifier, ItemStateManager, HeightMeasurer {
           (BuildContext context, Animation<double> animation) {
         final Widget widget =
             removedItemBuilder(context, index, waitingRemovedItem, animation);
+        print("remove_wcc at index: $index length:${_items.length}");
         final E removedItem = _items.removeAt(index);
+
         assert(removedItem != null);
         assert(removedItem == waitingRemovedItem);
         removeHeight(index);

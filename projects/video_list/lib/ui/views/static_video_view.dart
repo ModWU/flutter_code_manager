@@ -24,7 +24,7 @@ extension PlayStateExtension on PlayState {
   PlayState keepPlayState() {
     if (this == PlayState.startAndPlay) return PlayState.resume;
 
-    if (this == PlayState.startAndPause) return PlayState.pause;
+    //if (this == PlayState.startAndPause) return PlayState.pause;
 
     return this;
   }
@@ -48,11 +48,14 @@ enum _InitState {
 typedef ContentStackBuilder = List<Widget> Function(
     BuildContext context, VideoPlayerController controller);
 
+typedef ErrorListener = void Function(bool isHasError);
+
 class VideoView extends StatefulWidget {
   VideoView({
     this.videoUrl,
     this.controller,
     this.contentStackBuilder,
+    this.onError,
     this.playState,
   }) : assert(videoUrl != null || controller != null);
 
@@ -62,6 +65,7 @@ class VideoView extends StatefulWidget {
   final String videoUrl;
   final VideoPlayerController controller;
   final PlayState playState;
+  final ErrorListener onError;
   final ContentStackBuilder contentStackBuilder;
 }
 
@@ -71,15 +75,27 @@ class _VideoViewState extends State<VideoView>
   bool _isPlayError = false;
   bool _isNetworkConnectivityError = false;
   bool _isPlayPrepare = false;
-  PlayState _oldPlayState;
+
+  String _getNewVideoUrl() {
+    final String oldVideoUrl = _videoController.dataSource;
+    assert(oldVideoUrl != null);
+
+    String newVideoUrl = widget.videoUrl; //优先以videoUrl为准
+
+    if ((newVideoUrl == null || newVideoUrl == oldVideoUrl) &&
+        widget.controller?.dataSource != null) {
+      newVideoUrl = widget.controller.dataSource;
+    }
+    return newVideoUrl;
+  }
 
   @override
   void didUpdateWidget(VideoView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_videoController != null) {
       final String oldVideoUrl = _videoController.dataSource;
-      final String newVideoUrl =
-          widget.controller?.dataSource ?? widget.videoUrl;
+      final String newVideoUrl = _getNewVideoUrl(); //优先以videoUrl为准
+
       assert(newVideoUrl != null);
       assert(oldVideoUrl != null);
       if (newVideoUrl != oldVideoUrl ||
@@ -171,12 +187,24 @@ class _VideoViewState extends State<VideoView>
 
   Duration _playPosition = Duration.zero;
 
+  Duration _getMaxBuffering() {
+    assert(_videoController != null);
+    assert(_videoController.value?.buffered != null);
+    Duration maxBuffering = Duration.zero;
+    for (DurationRange range in _videoController.value.buffered) {
+      final Duration end = range.end;
+      if (end > maxBuffering) {
+        maxBuffering = end;
+      }
+    }
+    return maxBuffering;
+  }
+
   void _controllerEvent() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || !_videoController.value.initialized) return;
 
-      if (_videoController.value.initialized &&
-          _videoController.value.position != Duration.zero) {
+      if (_videoController.value.position != Duration.zero) {
         _playPosition = _videoController.value.position;
         print("记录位置 _playPosition:$_playPosition");
       }
@@ -184,11 +212,22 @@ class _VideoViewState extends State<VideoView>
       if (_isPlayPrepare && _videoController.value.duration == null) {
         print(
             "播放错误 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration} initialized: ${_videoController.value.initialized} _isNetworkConnectivityError: $_isNetworkConnectivityError");
-        if (!_isNetworkConnectivityError) _isPlayError = true;
+        if (!_isNetworkConnectivityError && !_isPlayError) {
+          _isPlayError = true;
+        }
       } else {
         print(
-            "正在播放 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration}");
-        if (_isPlayError) _isPlayError = false;
+            "正在播放 hasError:${_videoController.value.hasError} error:${_videoController.value.errorDescription} position:${_videoController.value.position} duration: ${_videoController.value.duration} _isNetworkConnectivityError: $_isNetworkConnectivityError");
+        if (_isPlayError) {
+          _isPlayError = false;
+        } else if (_isNetworkConnectivityError) {
+          print(
+              "正在播放 _isNetworkConnectivityError true: _videoController.value.position: ${_videoController.value.position} maxBuffering: ${_getMaxBuffering()}");
+          //看缓冲状态
+          if (_videoController.value.position >=
+              (_getMaxBuffering() - const Duration(milliseconds: 500)))
+            _isPlayError = true;
+        }
       }
 
       setState(() {});
@@ -265,8 +304,7 @@ class _VideoViewState extends State<VideoView>
   void _initController() {
     if (_videoController != null) {
       final String oldVideoUrl = _videoController.dataSource;
-      final String newVideoUrl =
-          widget.controller?.dataSource ?? widget.videoUrl;
+      final String newVideoUrl = _getNewVideoUrl(); //优先以videoUrl为准
       if (oldVideoUrl == newVideoUrl &&
           (widget.controller == null ||
               widget.controller == _videoController)) {
@@ -318,6 +356,7 @@ class _VideoViewState extends State<VideoView>
   Widget _buildErrorWidget() {
     if (_isPlayError ||
         (!_videoController.value.initialized && _isNetworkConnectivityError)) {
+      widget.onError?.call(true);
       return ViewUtils.buildNetworkErrorView(
         width: double.infinity,
         height: double.infinity,
@@ -339,6 +378,7 @@ class _VideoViewState extends State<VideoView>
   Widget _buildVideo() {
     final List<Widget> stackList =
         widget.contentStackBuilder?.call(context, _videoController);
+    widget.onError?.call(false);
     return AspectRatio(
       aspectRatio: _videoController.value.aspectRatio,
       child: Stack(

@@ -17,13 +17,31 @@ double itemVerticalSpacing = 3.0.w, itemHorizontalSpacing = 6.0.w;
 class ViewportOffsetData {
   final double visibleOffset;
   final double height;
+  final double position;
+  final double extentBefore;
+  final double extentAfter;
+  final double viewportDimension;
   final int index;
 
-  const ViewportOffsetData(this.index, this.height, this.visibleOffset);
+  const ViewportOffsetData({
+    this.index,
+    this.height,
+    this.visibleOffset,
+    this.position,
+    this.extentBefore,
+    this.extentAfter,
+    this.viewportDimension,
+  })  : assert(index != null),
+        assert(visibleOffset != null),
+        assert(height != null),
+        assert(position != null),
+        assert(extentBefore != null),
+        assert(extentAfter != null),
+        assert(viewportDimension != null);
 
   @override
   String toString() {
-    return 'ViewportOffsetData{"index": $index, "height": $height, "visibleOffset": $visibleOffset}';
+    return 'ViewportOffsetData{"index": $index, "height": $height, "visibleOffset": $visibleOffset, "position": $position, "extentBefore": $extentBefore, "extentAfter": $extentAfter, "viewportDimension": $viewportDimension}';
   }
 }
 
@@ -31,12 +49,6 @@ mixin ItemStateManager on ChangeNotifier {
   List<VideoStateMiXin> _states;
 
   List<VideoStateMiXin> get states => _states;
-
-  void _stateListener() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners();
-    });
-  }
 
   void initAllState(List items) {
     assert(items != null && items.isNotEmpty);
@@ -47,6 +59,14 @@ mixin ItemStateManager on ChangeNotifier {
     for (int index = 0; index < items.length; index++) {
       _states.add(_getItemState(index, items[index]));
     }
+  }
+
+  void _stateListener() {
+    print("_stateListener");
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print("_stateListener222222");
+      notifyListeners();
+    });
   }
 
   VideoStateMiXin _getItemState(int index, dynamic item) {
@@ -139,12 +159,20 @@ mixin HeightMeasurer {
     double totalHeight = 0;
     bool isFindStart = false;
     for (int i = 0; i < _heightList.length; i++) {
+      final double position = totalHeight;
       totalHeight += _heightList[i];
       //visibleWrap = VisibleWrap(i, _heightList[i], totalHeight - extentBefore);
       //先找头
       if (list.isEmpty && (extentBefore <= totalHeight)) {
-        list.add(
-            ViewportOffsetData(i, _heightList[i], totalHeight - extentBefore));
+        list.add(ViewportOffsetData(
+          index: i,
+          height: _heightList[i],
+          visibleOffset: totalHeight - extentBefore,
+          position: position,
+          extentBefore: extentBefore,
+          extentAfter: viewportAfter,
+          viewportDimension: viewportDimension,
+        ));
         isFindStart = true;
         continue;
       }
@@ -154,12 +182,28 @@ mixin HeightMeasurer {
         final double visibleOffset =
             _heightList[i] - (totalHeight - viewportAfter);
         if (visibleOffset > 0)
-          list.add(ViewportOffsetData(i, _heightList[i], visibleOffset));
+          list.add(ViewportOffsetData(
+            index: i,
+            height: _heightList[i],
+            visibleOffset: visibleOffset,
+            position: position,
+            extentBefore: extentBefore,
+            extentAfter: viewportAfter,
+            viewportDimension: viewportDimension,
+          ));
         break;
       }
 
       if (isFindStart)
-        list.add(ViewportOffsetData(i, _heightList[i], _heightList[i]));
+        list.add(ViewportOffsetData(
+          index: i,
+          height: _heightList[i],
+          visibleOffset: _heightList[i],
+          position: position,
+          extentBefore: extentBefore,
+          extentAfter: viewportAfter,
+          viewportDimension: viewportDimension,
+        ));
     }
 
     return list;
@@ -481,7 +525,11 @@ void computerVideoStateValueWhenScrollUpdate(
       assert(advertState.detailHighlightInfo != null);
       if (advertState.detailHighlightInfo.startDetailHighlight &&
           !advertState.detailHighlightInfo.finishDetailHighlight) {
-        advertState.detailHighlightInfo.startDetailHighlight = false;
+        advertState.changeState(
+          detailHighlightInfo: advertState.detailHighlightInfo.copyWith(
+            startDetailHighlight: false,
+          ),
+        );
       }
     }
   }
@@ -496,14 +544,19 @@ void _computerPauseVideoWhenScrollUpdate(
   if (viewportOffsetDataList.length > 0) {
     final ViewportOffsetData first = viewportOffsetDataList.first;
 
-    if (first.index > 0 &&
-        first.visibleOffset <
-            (first.height - HeightMeasurer.primaryTitleHeight)) {
-      final int preIndex = first.index - 1;
-      final VideoStateMiXin state = list.states[preIndex];
-      assert(state != null);
-      if (state is AdvertState) {
-        waitingPauseStates[preIndex] = state;
+    if (first.index > 0) {
+      final VideoStateMiXin firstState = list.states[first.index];
+      assert(firstState != null);
+
+      if (firstState is AdvertState ||
+          (first.visibleOffset <
+              (first.height - HeightMeasurer.primaryTitleHeight))) {
+        final int preIndex = first.index - 1;
+        final VideoStateMiXin state = list.states[preIndex];
+        assert(state != null);
+        if (state is AdvertState) {
+          waitingPauseStates[preIndex] = state;
+        }
       }
     }
 
@@ -522,15 +575,21 @@ void _computerPauseVideoWhenScrollUpdate(
 
   for (VideoStateMiXin state in waitingPauseStates.values) {
     final AdvertState advertState = state;
+
+    PlayState playState;
     assert(advertState?.playState != null);
     if (advertState.playState.isPlaying() || advertState.playState.isEnd()) {
-      final PlayState playState = PlayState.startAndPause;
-      DetailHighlightInfo detailHighlightInfo;
-      assert(advertState.detailHighlightInfo != null);
-      if (advertState.detailHighlightInfo.startDetailHighlight) {
-        detailHighlightInfo = DetailHighlightInfo(
-            startDetailHighlight: false, finishDetailHighlight: false);
-      }
+      playState = PlayState.startAndPause;
+    }
+
+    DetailHighlightInfo detailHighlightInfo;
+    assert(advertState.detailHighlightInfo != null);
+    if (advertState.detailHighlightInfo.startDetailHighlight) {
+      detailHighlightInfo = DetailHighlightInfo(
+          startDetailHighlight: false, finishDetailHighlight: false);
+    }
+
+    if (playState != null || detailHighlightInfo != null) {
       advertState.changeState(
         playState: playState,
         detailHighlightInfo: detailHighlightInfo,
@@ -554,6 +613,40 @@ int _computerPlayIndexWhenScrollEnd(
         List.from(viewportOffsetDataList);
     final ViewportOffsetData first = tmpViewportOffsetData.removeAt(0);
 
+    final ViewportOffsetData last = tmpViewportOffsetData.removeLast();
+
+    //先找中间,找最接近中线的item
+    ViewportOffsetData bestViewportOffsetData;
+    double bestDeviation;
+    for (ViewportOffsetData viewportOffsetData in tmpViewportOffsetData) {
+      if (_isPlayVideo(list, viewportOffsetData.index)) {
+        final double itemBaseLine =
+            viewportOffsetData.position + viewportOffsetData.height * 0.5;
+        final double standardBaseLine = viewportOffsetData.extentBefore +
+            viewportOffsetData.viewportDimension * 0.5;
+
+        //差值deviation大于0,标准基线在下面;差值小于0,标准基线在上面
+        final double deviation = standardBaseLine - itemBaseLine;
+
+        bestDeviation ??= deviation;
+        bestViewportOffsetData ??= viewportOffsetData;
+
+        //替换规则
+        if (deviation.abs() < bestDeviation.abs()) {
+          bestViewportOffsetData = viewportOffsetData;
+          bestDeviation = bestDeviation;
+        } else if (deviation.abs() == bestDeviation.abs()) {
+          if (deviation != bestDeviation && deviation > 0) {
+            bestViewportOffsetData = viewportOffsetData;
+            bestDeviation = bestDeviation;
+          }
+        }
+      }
+    }
+
+    if (bestViewportOffsetData != null) return bestViewportOffsetData.index;
+
+    //再找第一个
     if (_isPlayVideo(list, first.index)) {
       final double videoHeight = HeightMeasurer.advertItemHeight;
       final double viewportVideoHeight = first.visibleOffset -
@@ -565,13 +658,7 @@ int _computerPlayIndexWhenScrollEnd(
       }
     }
 
-    final ViewportOffsetData last = tmpViewportOffsetData.removeLast();
-
-    for (ViewportOffsetData viewportOffsetData in tmpViewportOffsetData) {
-      if (_isPlayVideo(list, viewportOffsetData.index))
-        return viewportOffsetData.index;
-    }
-
+    //再找最后一个
     if (_isPlayVideo(list, last.index)) {
       final double videoHeight = HeightMeasurer.advertItemHeight;
       final double viewportVideoHeight = last.visibleOffset -
@@ -595,25 +682,32 @@ void _computerPlayVideoWhenScrollEnd(
   final int index =
       _computerPlayIndexWhenScrollEnd(list, viewportOffsetDataList);
 
+  print("_computerPlayVideoWhenScrollEnd => index: $index");
+
   assert(list.states != null);
 
-  if (index < 0) {
-    for (VideoStateMiXin state in list.states) {
-      assert(state != null);
-      if (!(state is AdvertState)) continue;
-      final AdvertState advertState = state;
-      assert(advertState.playState != null);
-      if (advertState.playState.isPlaying()) {
-        advertState.changeState(
-          playState: PlayState.startAndPause,
-        );
-      }
+  final VideoStateMiXin state = index < 0 ? null : list.states[index];
+
+  print("_computerPlayVideoWhenScrollEnd => state: $state");
+
+  for (VideoStateMiXin perState in list.states) {
+    assert(perState != null);
+    if (!(perState is AdvertState)) continue;
+    final AdvertState advertState = perState;
+    assert(advertState.playState != null);
+    if (advertState.playState.isPlaying() && (state != advertState)) {
+      advertState.changeState(
+        playState: PlayState.startAndPause,
+      );
     }
-  } else {
-    final VideoStateMiXin state = list.states[index];
+  }
+
+  if (state != null) {
     assert(state is AdvertState);
     final AdvertState advertState = state;
     assert(advertState.playState != null);
+    print(
+        "_computerPlayVideoWhenScrollEnd => playState: ${advertState.playState}, isPlaying: ${advertState.playState.isPlaying()} end: ${advertState.playState.isEnd()}");
     if (!advertState.playState.isPlaying() && !advertState.playState.isEnd()) {
       advertState.changeState(
         playState: PlayState.startAndPlay,
@@ -634,6 +728,17 @@ void _computerVideoPopDirection(
   final int index = last.index;
 
   assert(list.length > index);
+
+  for (ViewportOffsetData viewportOffsetData in viewportOffsetDataList) {
+    if (viewportOffsetData == last) continue;
+    final VideoStateMiXin state = list.states[viewportOffsetData.index];
+    assert(state != null);
+    if (!(state is AdvertState)) continue;
+    final AdvertState advertState = state;
+    advertState.changeState(
+      popupDirection: PopupDirection.bottom,
+    );
+  }
 
   if (!_isPlayVideo(list, index)) return;
 

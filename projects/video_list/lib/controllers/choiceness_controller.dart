@@ -272,12 +272,12 @@ class ChoicenessController {
       int itemsLength = random.nextInt(12) + 6;
       double advertAssert = random.nextDouble();
       int nameDetailsIndex = random.nextInt(nameDetailsList.length);
-      videoData.add(VideoItems(
+      /*videoData.add(VideoItems(
           title: topTitles[titleIndex],
           layout: VideoLayout.values[layoutIndex],
           items: getRandomVideoItemList(itemsLength),
-          bottom: bottoms[bottomIndex]));
-      if (advertAssert >= 0.5) {
+          bottom: bottoms[bottomIndex]));*/
+      //if (advertAssert >= 0.5) {
         videoData.add(AdvertItem(
           nameDetails: nameDetailsList[nameDetailsIndex],
           iconName: iconNameList[random.nextInt(iconNameList.length)],
@@ -289,7 +289,7 @@ class ChoicenessController {
           showImgUrl:
               advertCoverUrlList[random.nextInt(advertCoverUrlList.length)],
         ));
-      }
+      //}
     }
 
     return videoData;
