@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:video_list/utils/simple_utils.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:async';
 import 'dart:math' as Math;

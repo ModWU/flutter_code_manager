@@ -78,6 +78,9 @@ class _BaseVideoPageState extends State<BaseVideoPage> {
       child: SecondaryVideoView(
         url: widget.videoUrl,
         controller: _controller,
+        onBack: () {
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -110,10 +113,18 @@ class _BaseVideoPageState extends State<BaseVideoPage> {
           break;
       }
     });
+   /* SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight
+    ]);*/
   }
 
   @override
   void dispose() {
+    /*SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown
+    ]);*/
     if (widget.controller != _controller) {
       _controller.dispose();
     }

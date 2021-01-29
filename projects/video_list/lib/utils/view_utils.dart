@@ -5,6 +5,46 @@ import 'package:video_list/constants/error_code.dart';
 import 'package:video_list/resources/res/strings.dart';
 import 'package:video_list/ui/animations/implicit_animations.dart';
 
+Widget buildText(Text text,
+    {BoxDecoration decoration,
+      Color backgroundColor,
+      EdgeInsetsGeometry padding,
+      EdgeInsetsGeometry margin,
+      Matrix4 transform,
+      GestureTapCallback onTap}) {
+  assert(text != null);
+  return _buildIconAndText(
+    text: text,
+    reserve: false,
+    decoration: decoration,
+    backgroundColor: backgroundColor,
+    padding: padding,
+    margin: margin,
+    transform: transform,
+    onTap: onTap,
+  );
+}
+
+Widget buildIcon(Icon icon,
+    {BoxDecoration decoration,
+    Color backgroundColor,
+    EdgeInsetsGeometry padding,
+    EdgeInsetsGeometry margin,
+    Matrix4 transform,
+    GestureTapCallback onTap}) {
+  assert(icon != null);
+  return _buildIconAndText(
+    icon: icon,
+    reserve: false,
+    decoration: decoration,
+    backgroundColor: backgroundColor,
+    padding: padding,
+    margin: margin,
+    transform: transform,
+    onTap: onTap,
+  );
+}
+
 Widget buildIconText(
         {Icon icon,
         Text text,

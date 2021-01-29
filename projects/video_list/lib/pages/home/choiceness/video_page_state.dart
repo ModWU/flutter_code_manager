@@ -8,6 +8,7 @@ import 'package:video_list/pages/home/choiceness/page_home.dart';
 import 'package:video_list/resources/res/dimens.dart';
 import 'package:video_list/ui/popup/popup_view.dart';
 import 'package:video_list/ui/views/static_video_view.dart';
+import 'package:video_list/utils/simple_utils.dart';
 import '../../page_controller.dart';
 import '../../../ui/utils/icons_utils.dart' as utils;
 import 'package:flutter_screenutil/size_extension.dart';
@@ -62,10 +63,16 @@ mixin ItemStateManager on ChangeNotifier {
   }
 
   void _stateListener() {
-    print("_stateListener");
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      print("_stateListener222222");
+    print(
+        "_stateListener => WidgetsBinding.instance.hasScheduledFrame: ${WidgetsBinding.instance.hasScheduledFrame}");
+    addBuildAfterCallback(() {
+      //加Future的目的是防止热更新操作
+      /*Future(() {
+
+        notifyListeners();
+      });*/
       notifyListeners();
+
     });
   }
 
@@ -710,7 +717,7 @@ void _computerPlayVideoWhenScrollEnd(
         "_computerPlayVideoWhenScrollEnd => playState: ${advertState.playState}, isPlaying: ${advertState.playState.isPlaying()} end: ${advertState.playState.isEnd()}");
     if (!advertState.playState.isPlaying() && !advertState.playState.isEnd()) {
       advertState.changeState(
-        playState: PlayState.startAndPlay,
+        playState: PlayState.resume,
       );
     }
   }

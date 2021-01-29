@@ -18,6 +18,7 @@ import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/l
 import 'package:video_list/ui/views/advert_view.dart';
 import 'package:video_list/ui/views/static_advert_view.dart';
 import 'package:video_list/utils/network_utils.dart';
+import 'package:video_list/utils/simple_utils.dart';
 import 'package:video_list/utils/view_utils.dart';
 import 'package:video_player/video_player.dart';
 import 'page_header.dart';
@@ -39,7 +40,10 @@ class ChoicenessPage extends StatefulWidget with PageVisibleMixin {
 }
 
 class _ChoicenessPageState extends State<ChoicenessPage>
-    with AutomaticKeepAliveClientMixin, NetworkStateMiXin {
+    with
+        AutomaticKeepAliveClientMixin,
+        WidgetsBindingObserver,
+        NetworkStateMiXin {
   static const _barLeadingLeft = 12.0;
   static const _appBarHeight = Dimens.action_bar_height - 10.0;
 
@@ -77,26 +81,30 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      print("ChoicenessPage -> AppLifecycleState.resumed()");
+      _tryResumeVideo();
+    } else if (state == AppLifecycleState.paused) {
+      _pausePlayingVideos();
+    }
+  }
+
+  @override
   void initState() {
     print("ChoicenessPage -> initState()");
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController = ScrollController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ScrollPosition position = _scrollController.position;
-      assert(position != null);
-      assert(position.hasViewportDimension);
-      _resumeStateWhenScrollEnd(
-        extentBefore: position.extentBefore,
-        viewportDimension: position.viewportDimension,
-      );
-    });
-
     _initResources();
+    _tryResumeVideo();
   }
 
   @override
   void dispose() {
     print("ChoicenessPage -> dispose()");
+    WidgetsBinding.instance.removeObserver(this);
     _disposeResources();
     _refreshController.dispose();
     _scrollController.dispose();
@@ -113,15 +121,6 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       initialItems: dataList,
       removedItemBuilder: _buildRemovedItem,
     );
-
-    /*_headerItems = [];
-    _videoItems = [];
-
-    _headerItems.addAll(list.take(6));
-    list.removeRange(0, 6);
-    _videoItems.addAll(list);*/
-
-    //print("_initResources: videoItems size: ${_videoItems.length}");
   }
 
   void _appBarListener(ClickState state) {
@@ -149,18 +148,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     animation.addStatusListener((status) {
       switch (status) {
         case AnimationStatus.dismissed:
-          final ScrollPosition position = _scrollController.position;
-          assert(position != null);
-          assert(position.hasViewportDimension);
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            assert(_scrollController != null);
-            assert(_scrollController.position != null);
-            final ScrollPosition scrollPosition = _scrollController.position;
-            _resumeStateWhenScrollEnd(
-              extentBefore: scrollPosition.extentBefore,
-              viewportDimension: scrollPosition.viewportDimension,
-            );
-          });
+          _tryResumeVideo();
           break;
       }
     });
@@ -239,6 +227,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 _jumpToPlayVideoPage(index, controller);
               },
               onReplay: (VideoPlayerController controller) {
+                controller.seekTo(Duration.zero);
                 _jumpToPlayVideoPage(index, controller);
               },
               onLoseAttention: () {
@@ -275,21 +264,44 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     );
   }
 
-  void _pausePlayingVideos() {
-    final ScrollPosition position = _scrollController.position;
-    assert(position != null);
-    assert(position.hasViewportDimension);
-    final List<ViewportOffsetData> viewportOffsetDataList =
-        _list.getViewportOffsetData(
-            position.extentBefore, position.viewportDimension);
-    assert(viewportOffsetDataList != null);
-    for (ViewportOffsetData viewportOffsetData in viewportOffsetDataList) {
-      assert(viewportOffsetData.index != null);
-      assert(_list.states != null);
-      VideoStateMiXin state = _list.states[viewportOffsetData.index];
-      if (state is AdvertState && state.playState.isPlaying())
-        state.changeState(playState: PlayState.startAndPause);
-    }
+  void _pausePlayingVideos({PlayState playState = PlayState.pause}) {
+    assert(playState != null);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients)
+        return;
+
+      final ScrollPosition position = _scrollController.position;
+      assert(position != null);
+      assert(position.hasViewportDimension);
+      final List<ViewportOffsetData> viewportOffsetDataList =
+          _list.getViewportOffsetData(
+        position.extentBefore,
+        position.viewportDimension,
+      );
+      assert(viewportOffsetDataList != null);
+      for (ViewportOffsetData viewportOffsetData in viewportOffsetDataList) {
+        assert(viewportOffsetData.index != null);
+        assert(_list.states != null);
+        VideoStateMiXin state = _list.states[viewportOffsetData.index];
+        if (state is AdvertState && state.playState.isPlaying())
+          state.changeState(playState: playState);
+      }
+    });
+  }
+
+  void _tryResumeVideo() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients)
+        return;
+
+      final ScrollPosition position = _scrollController.position;
+      assert(position != null);
+      assert(position.hasViewportDimension);
+      _resumeStateWhenScrollEnd(
+        extentBefore: position.extentBefore,
+        viewportDimension: position.viewportDimension,
+      );
+    });
   }
 
   void _jumpToPlayVideoPage(int index, VideoPlayerController controller) {
@@ -338,20 +350,11 @@ class _ChoicenessPageState extends State<ChoicenessPage>
               },
               onReverse: () {
                 advertState.changeState(
-                  playState: PlayState.pause,
+                  playState: PlayState.startAndPause,
                 );
               },
               onDismissed: () {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  assert(_scrollController != null);
-                  assert(_scrollController.position != null);
-                  final ScrollPosition scrollPosition =
-                      _scrollController.position;
-                  _resumeStateWhenScrollEnd(
-                    extentBefore: scrollPosition.extentBefore,
-                    viewportDimension: scrollPosition.viewportDimension,
-                  );
-                });
+                _tryResumeVideo();
               },
             ),
           );

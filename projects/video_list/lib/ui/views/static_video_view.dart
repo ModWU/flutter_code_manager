@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_list/constants/error_code.dart';
 import 'package:video_list/utils/network_utils.dart';
+import 'package:video_list/utils/simple_utils.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_list/utils/view_utils.dart' as ViewUtils;
 import 'dart:async';
@@ -45,19 +46,24 @@ enum _InitState {
   just_already,
 }
 
-typedef ContentStackBuilder = List<Widget> Function(
+typedef ContentStackBuilder = dynamic Function(
     BuildContext context, VideoPlayerController controller);
 
-typedef ErrorListener = void Function(bool isHasError);
+typedef VideoErrorWidgetBuilder = Widget Function(
+  BuildContext context,
+  Object error,
+);
 
 class VideoView extends StatefulWidget {
   VideoView({
     this.videoUrl,
     this.controller,
     this.contentStackBuilder,
-    this.onError,
+    this.contentFit = StackFit.loose,
+    this.errorBuilder,
     this.playState,
-  }) : assert(videoUrl != null || controller != null);
+  })  : assert(videoUrl != null || controller != null),
+        assert(contentFit != null);
 
   @override
   State<StatefulWidget> createState() => _VideoViewState();
@@ -65,8 +71,9 @@ class VideoView extends StatefulWidget {
   final String videoUrl;
   final VideoPlayerController controller;
   final PlayState playState;
-  final ErrorListener onError;
   final ContentStackBuilder contentStackBuilder;
+  final StackFit contentFit;
+  final VideoErrorWidgetBuilder errorBuilder;
 }
 
 class _VideoViewState extends State<VideoView>
@@ -201,7 +208,7 @@ class _VideoViewState extends State<VideoView>
   }
 
   void _controllerEvent() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    addBuildAfterCallback(() {
       if (!mounted || !_videoController.value.initialized) return;
 
       if (_videoController.value.position != Duration.zero) {
@@ -356,33 +363,43 @@ class _VideoViewState extends State<VideoView>
   Widget _buildErrorWidget() {
     if (_isPlayError ||
         (!_videoController.value.initialized && _isNetworkConnectivityError)) {
-      widget.onError?.call(true);
-      return ViewUtils.buildNetworkErrorView(
-        width: double.infinity,
-        height: double.infinity,
-        errorCode:
-            "(${_isNetworkConnectivityError ? NetworkErrorCode.network_connectivity_error : NetworkErrorCode.video_play_error})",
-        onTap: () {
-          if (_isNetworkConnectivityError) {
-            checkConnectivity();
-          } else {
-            _initController();
-          }
-        },
-      );
+      final String errorCode = _isNetworkConnectivityError
+          ? NetworkErrorCode.network_connectivity_error
+          : NetworkErrorCode.video_play_error;
+      return widget.errorBuilder.call(context, errorCode) ??
+          ViewUtils.buildNetworkErrorView(
+            width: double.infinity,
+            height: double.infinity,
+            errorCode: "($errorCode)",
+            onTap: () {
+              if (_isNetworkConnectivityError) {
+                checkConnectivity();
+              } else {
+                _initController();
+              }
+            },
+          );
     }
 
     return null;
   }
 
   Widget _buildVideo() {
-    final List<Widget> stackList =
+    dynamic stackList =
         widget.contentStackBuilder?.call(context, _videoController);
-    widget.onError?.call(false);
+    assert(stackList is List || stackList is Widget);
+    if (stackList is List) {
+      final List contents = stackList;
+      stackList = contents.whereType<Widget>();
+    } else if (stackList != null) {
+      stackList = [stackList];
+    }
+
     return AspectRatio(
       aspectRatio: _videoController.value.aspectRatio,
       child: Stack(
         alignment: Alignment.center,
+        fit: widget.contentFit,
         children: [
           VideoPlayer(_videoController),
           if (stackList != null) ...stackList,

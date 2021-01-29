@@ -21,20 +21,20 @@ typedef DetailHighlightListener = void Function(bool highlight);
 typedef ClickListener = void Function(VideoPlayerController controller);
 
 class NormalAdvertView extends StatefulWidget {
-  NormalAdvertView(
-      {this.playState = PlayState.startAndPause,
-      this.titleHeight,
-      this.videoHeight,
-      this.popupDirection = PopupDirection.bottom,
-      this.detailHighlight = false,
-      this.onLoseAttention,
-      this.onDetailHighlight,
-      this.onClick,
-      this.onReplay,
-      this.width,
-      this.onEnd,
-      this.advertItem})
-      : assert(playState != null),
+  NormalAdvertView({
+    this.playState = PlayState.startAndPause,
+    this.titleHeight,
+    this.videoHeight,
+    this.popupDirection = PopupDirection.bottom,
+    this.detailHighlight = false,
+    this.onLoseAttention,
+    this.onDetailHighlight,
+    this.onClick,
+    this.onReplay,
+    this.width,
+    this.onEnd,
+    this.advertItem,
+  })  : assert(playState != null),
         assert(advertItem != null),
         assert(detailHighlight != null),
         assert(popupDirection != null),
@@ -106,8 +106,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
 
   void _onAdvertClick() async {
     print("点击了Advert body _isPlayError: $_isPlayError");
-    if (_isPlayError)
-      return;
+    if (_isPlayError) return;
     assert(_controller != null);
     widget.onClick?.call(_controller);
   }
@@ -135,13 +134,14 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     return VideoView(
       playState: widget.playState,
       controller: _controller,
-      onError: (bool isHasError) {
-        _isPlayError = isHasError;
+      errorBuilder: (context, _) {
+        _isPlayError = true;
+        return null;
       },
       contentStackBuilder:
           (BuildContext context, VideoPlayerController controller) {
         assert(controller.value != null);
-
+        _isPlayError = false;
         final List<Widget> children = [];
 
         bool isEnd = false;
