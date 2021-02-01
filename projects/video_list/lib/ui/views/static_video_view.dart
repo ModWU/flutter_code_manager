@@ -208,7 +208,7 @@ class _VideoViewState extends State<VideoView>
   }
 
   void _controllerEvent() {
-    addBuildAfterCallback(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_videoController.value.initialized) return;
 
       if (_videoController.value.position != Duration.zero) {

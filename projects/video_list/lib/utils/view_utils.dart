@@ -5,15 +5,23 @@ import 'package:video_list/constants/error_code.dart';
 import 'package:video_list/resources/res/strings.dart';
 import 'package:video_list/ui/animations/implicit_animations.dart';
 
-Widget buildText(Text text,
-    {BoxDecoration decoration,
-      Color backgroundColor,
-      EdgeInsetsGeometry padding,
-      EdgeInsetsGeometry margin,
-      Matrix4 transform,
-      GestureTapCallback onTap}) {
+Widget buildText(
+  Text text, {
+  double width,
+  double height,
+  AlignmentGeometry alignment,
+  BoxDecoration decoration,
+  Color backgroundColor,
+  EdgeInsetsGeometry padding,
+  EdgeInsetsGeometry margin,
+  Matrix4 transform,
+  GestureTapCallback onTap,
+}) {
   assert(text != null);
   return _buildIconAndText(
+    width: width,
+    height: height,
+    alignment: alignment,
     text: text,
     reserve: false,
     decoration: decoration,
@@ -25,15 +33,23 @@ Widget buildText(Text text,
   );
 }
 
-Widget buildIcon(Icon icon,
-    {BoxDecoration decoration,
-    Color backgroundColor,
-    EdgeInsetsGeometry padding,
-    EdgeInsetsGeometry margin,
-    Matrix4 transform,
-    GestureTapCallback onTap}) {
+Widget buildIcon(
+  Icon icon, {
+  double width,
+  double height,
+  AlignmentGeometry alignment,
+  BoxDecoration decoration,
+  Color backgroundColor,
+  EdgeInsetsGeometry padding,
+  EdgeInsetsGeometry margin,
+  Matrix4 transform,
+  GestureTapCallback onTap,
+}) {
   assert(icon != null);
   return _buildIconAndText(
+    width: width,
+    height: height,
+    alignment: alignment,
     icon: icon,
     reserve: false,
     decoration: decoration,
@@ -48,6 +64,9 @@ Widget buildIcon(Icon icon,
 Widget buildIconText(
         {Icon icon,
         Text text,
+        double width,
+        double height,
+        AlignmentGeometry alignment,
         double gap,
         BoxDecoration decoration,
         Color backgroundColor,
@@ -58,6 +77,9 @@ Widget buildIconText(
     _buildIconAndText(
       icon: icon,
       text: text,
+      width: width,
+      height: height,
+      alignment: alignment,
       gap: gap,
       reserve: false,
       decoration: decoration,
@@ -71,6 +93,9 @@ Widget buildIconText(
 Widget buildIconTextWithAnimation({
   Icon icon,
   Text text,
+  double width,
+  double height,
+  AlignmentGeometry alignment,
   double gap,
   BoxDecoration decoration,
   Duration duration = const Duration(milliseconds: 500),
@@ -89,6 +114,9 @@ Widget buildIconTextWithAnimation({
   return _buildIconAndText(
     icon: icon,
     text: text,
+    width: width,
+    height: height,
+    alignment: alignment,
     gap: gap,
     reserve: false,
     decoration: decoration,
@@ -108,6 +136,9 @@ Widget buildIconTextWithAnimation({
 Widget buildTextIcon(
         {Icon icon,
         Text text,
+        double width,
+        double height,
+        AlignmentGeometry alignment,
         double gap,
         BoxDecoration decoration,
         Color backgroundColor,
@@ -118,6 +149,9 @@ Widget buildTextIcon(
     _buildIconAndText(
       icon: icon,
       text: text,
+      width: width,
+      height: height,
+      alignment: alignment,
       gap: gap,
       reserve: true,
       decoration: decoration,
@@ -131,6 +165,9 @@ Widget buildTextIcon(
 Widget buildTextIconWithAnimation({
   Icon icon,
   Text text,
+  double width,
+  double height,
+  AlignmentGeometry alignment,
   double gap,
   BoxDecoration decoration,
   Duration duration = const Duration(milliseconds: 500),
@@ -149,6 +186,9 @@ Widget buildTextIconWithAnimation({
   return _buildIconAndText(
     icon: icon,
     text: text,
+    width: width,
+    height: height,
+    alignment: alignment,
     gap: gap,
     reserve: true,
     decoration: decoration,
@@ -201,6 +241,9 @@ Widget _buildIconAndText(
     {Icon icon,
     Text text,
     double gap,
+    double width,
+    double height,
+    AlignmentGeometry alignment,
     bool reserve = false,
     BoxDecoration decoration,
     Color backgroundColor,
@@ -251,6 +294,9 @@ Widget _buildIconAndText(
 
   return buildDecorationChild(
     child,
+    width: width,
+    height: height,
+    alignment: alignment,
     decoration: decoration,
     padding: padding,
     margin: margin,
@@ -269,6 +315,9 @@ Widget buildDecorationChild(Widget child,
     BoxDecoration decoration,
     Duration duration,
     Curve curve,
+    double width,
+    double height,
+    AlignmentGeometry alignment,
     VoidCallback onEnd,
     Matrix4 transform,
     Color backgroundColor,
@@ -286,6 +335,9 @@ Widget buildDecorationChild(Widget child,
       duration: duration ?? Duration.zero,
       curve: curve ?? Curves.linear,
       onEnd: onEnd,
+      width: width,
+      height: height,
+      alignment: alignment,
       decoration: decoration,
       color: backgroundColor,
       padding: padding,
@@ -297,6 +349,9 @@ Widget buildDecorationChild(Widget child,
       decoration: decoration,
       color: backgroundColor,
       padding: padding,
+      width: width,
+      height: height,
+      alignment: alignment,
       transform: transform,
       margin: margin,
       child: child,

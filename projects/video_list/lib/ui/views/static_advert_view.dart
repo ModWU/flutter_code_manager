@@ -255,6 +255,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
   }
 
   Widget _buildProgressIndicator(VideoPlayerController controller) {
+    assert(controller != null);
     return VideoProgressOwnerIndicator(
       controller,
       allowScrubbing: false,
@@ -724,9 +725,9 @@ class _PlayPauseOverlay extends StatelessWidget {
                   color: Colors.black26,
                   child: Center(
                     child: Icon(
-                      Icons.play_arrow,
+                      Icons.play_circle_outline_rounded,
                       color: Colors.white,
-                      size: 60.0,
+                      size: 48.0,
                     ),
                   ),
                 ),

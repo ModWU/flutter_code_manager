@@ -627,6 +627,10 @@ int _computerPlayIndexWhenScrollEnd(
     double bestDeviation;
     for (ViewportOffsetData viewportOffsetData in tmpViewportOffsetData) {
       if (_isPlayVideo(list, viewportOffsetData.index)) {
+        final AdvertState advertState = list.states[viewportOffsetData.index];
+        if (advertState.playState.isEnd())
+          continue;
+
         final double itemBaseLine =
             viewportOffsetData.position + viewportOffsetData.height * 0.5;
         final double standardBaseLine = viewportOffsetData.extentBefore +
@@ -655,24 +659,30 @@ int _computerPlayIndexWhenScrollEnd(
 
     //再找第一个
     if (_isPlayVideo(list, first.index)) {
-      final double videoHeight = HeightMeasurer.advertItemHeight;
-      final double viewportVideoHeight = first.visibleOffset -
-          HeightMeasurer.itemVideoTitleHeightWithVerticalList -
-          HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
-      final double boundaryValue = 2 / 3;
-      if (viewportVideoHeight / videoHeight >= boundaryValue) {
-        return first.index;
+      final AdvertState advertState = list.states[first.index];
+      if (!advertState.playState.isEnd()) {
+        final double videoHeight = HeightMeasurer.advertItemHeight;
+        final double viewportVideoHeight = first.visibleOffset -
+            HeightMeasurer.itemVideoTitleHeightWithVerticalList -
+            HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
+        final double boundaryValue = 2 / 3;
+        if (viewportVideoHeight / videoHeight >= boundaryValue) {
+          return first.index;
+        }
       }
     }
 
     //再找最后一个
     if (_isPlayVideo(list, last.index)) {
-      final double videoHeight = HeightMeasurer.advertItemHeight;
-      final double viewportVideoHeight = last.visibleOffset -
-          HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
-      final double boundaryValue = 0.5;
-      if (viewportVideoHeight / videoHeight >= boundaryValue) {
-        return last.index;
+      final AdvertState advertState = list.states[last.index];
+      if (!advertState.playState.isEnd()) {
+        final double videoHeight = HeightMeasurer.advertItemHeight;
+        final double viewportVideoHeight = last.visibleOffset -
+            HeightMeasurer.itemVideoMainAxisSpaceWithVerticalList;
+        final double boundaryValue = 0.5;
+        if (viewportVideoHeight / videoHeight >= boundaryValue) {
+          return last.index;
+        }
       }
     }
   }

@@ -26,4 +26,7 @@ class Strings {
 
   //error
   static const video_network_error = "视频加载失败，请稍后重试";
+
+  //toast
+  static const toast_video_pause = "已暂停";
 }

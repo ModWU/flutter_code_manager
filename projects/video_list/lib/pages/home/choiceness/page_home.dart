@@ -85,11 +85,14 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       print("ChoicenessPage -> AppLifecycleState.resumed()");
-      _tryResumeVideo();
+      //即使息屏了也在可能在不断回调，存在bug
+      //_tryResumeVideo();
     } else if (state == AppLifecycleState.paused) {
-      _pausePlayingVideos();
+      print("ChoicenessPage -> AppLifecycleState.paused()");
+      //_pausePlayingVideos();
     }
   }
+
 
   @override
   void initState() {
@@ -267,14 +270,12 @@ class _ChoicenessPageState extends State<ChoicenessPage>
   void _pausePlayingVideos({PlayState playState = PlayState.pause}) {
     assert(playState != null);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients)
-        return;
-
+      if (!_scrollController.hasClients) return;
       final ScrollPosition position = _scrollController.position;
       assert(position != null);
       assert(position.hasViewportDimension);
       final List<ViewportOffsetData> viewportOffsetDataList =
-          _list.getViewportOffsetData(
+      _list.getViewportOffsetData(
         position.extentBefore,
         position.viewportDimension,
       );
@@ -291,8 +292,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
 
   void _tryResumeVideo() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients)
-        return;
+      if (!_scrollController.hasClients) return;
 
       final ScrollPosition position = _scrollController.position;
       assert(position != null);

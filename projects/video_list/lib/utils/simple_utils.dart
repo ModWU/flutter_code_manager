@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 
 void addBuildAfterCallback(VoidCallback callback) {
   assert(callback != null);
@@ -13,4 +16,22 @@ void addBuildAfterCallback(VoidCallback callback) {
   } else {
     callback();
   }
+}
+
+double getStatusBarHeight() {
+  return MediaQueryData.fromWindow(window).padding.top;
+}
+
+void setLandscapeScreen() {
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight
+  ]);
+}
+
+void setPortraitScreen() {
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown
+  ]);
 }

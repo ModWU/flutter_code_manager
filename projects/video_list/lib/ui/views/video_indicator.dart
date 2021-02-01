@@ -65,13 +65,17 @@ class _ProgressNotify extends ChangeNotifier {
   void changeBufferingValue(double value) {
     if (bufferingValue == value) return;
     _bufferingValue = value;
-    notifyListeners();
+    addBuildAfterCallback(() {
+      notifyListeners();
+    });
   }
 
   void changePositionValue(double value) {
     if (_positionValue == value) return;
     _positionValue = value;
-    notifyListeners();
+    addBuildAfterCallback(() {
+      notifyListeners();
+    });
   }
 }
 
@@ -85,6 +89,20 @@ class _VideoProgressOwnerIndicatorState
     _listener = () {
       if (!mounted || controller.value.duration == null) {
         return;
+      }
+
+      //使用AnimationController不使用Timer的目的是和屏幕刷新保持一致
+      if (_progressDelayController == null) {
+        _progressDelayController = AnimationController(
+          duration: const Duration(milliseconds: _kBufferingMillisecond),
+          vsync: this,
+        )
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) {
+              _onProgressDelayAnimation();
+            }
+          })
+          ..forward();
       }
 
       final int duration = controller.value.duration.inMilliseconds;
@@ -202,18 +220,6 @@ class _VideoProgressOwnerIndicatorState
         CurvedAnimation(parent: _progressController, curve: Curves.easeIn);
     _progressController.addListener(_onProgressChange);
     controller.addListener(_listener);
-
-    //使用AnimationController不使用Timer的目的是和屏幕刷新保持一致
-    _progressDelayController = AnimationController(
-      duration: const Duration(milliseconds: _kBufferingMillisecond),
-      vsync: this,
-    )
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          _onProgressDelayAnimation();
-        }
-      })
-      ..forward();
   }
 
   @override
@@ -273,6 +279,7 @@ class _VideoProgressOwnerIndicatorState
     } else {
       progressIndicator = LinearProgressIndicator(
         value: null,
+        minHeight: 1.8,
         valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
         backgroundColor: colors.backgroundColor,
       );
