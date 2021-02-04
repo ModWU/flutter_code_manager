@@ -56,6 +56,7 @@ typedef VideoErrorWidgetBuilder = Widget Function(
 
 class VideoView extends StatefulWidget {
   VideoView({
+    Key key,
     this.videoUrl,
     this.controller,
     this.contentStackBuilder,
@@ -63,7 +64,8 @@ class VideoView extends StatefulWidget {
     this.errorBuilder,
     this.playState,
   })  : assert(videoUrl != null || controller != null),
-        assert(contentFit != null);
+        assert(contentFit != null),
+        super(key: key);
 
   @override
   State<StatefulWidget> createState() => _VideoViewState();

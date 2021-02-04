@@ -224,8 +224,11 @@ class _VideoProgressOwnerIndicatorState
 
   @override
   void dispose() {
+    if (_progressDelayController != null)
     _progressDelayController.dispose();
-    _progressController.dispose();
+
+    if (_progressController != null)
+      _progressController.dispose();
 
     super.dispose();
   }

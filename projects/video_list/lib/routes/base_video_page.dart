@@ -54,38 +54,29 @@ class _BaseVideoPageState extends State<BaseVideoPage> {
           MediaQuery.of(context).size.height
           ? Orientation.landscape
           : Orientation.portrait;
-      return WillPopScope(
-        onWillPop: () async {
-          if (orientation == Orientation.landscape) {
-            setPortraitScreen();
-            //返回false路由不会弹出
-            return false;
-          }
-          return true;
-        },
-        child: Scaffold(
-          appBar: orientation == Orientation.portrait
-              ? AppBar(
-            toolbarHeight: 0,
-            elevation: 0,
-            backgroundColor: statusColor.evaluate(widget.animation),
-            brightness: Brightness.dark,
-          )
-              : null,
-          body: Column(
-            children: [
-              _buildVideo(orientation),
-              if (orientation == Orientation.portrait)
-                Flexible(
-                  child: Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    //color: Colors.red,
-                    child: Text("哈哈哈哈哈哈哈"),
-                  ),
+
+      return Scaffold(
+        appBar: orientation == Orientation.portrait
+            ? AppBar(
+          toolbarHeight: 0,
+          elevation: 0,
+          backgroundColor: statusColor.evaluate(widget.animation),
+          brightness: Brightness.dark,
+        )
+            : null,
+        body: Column(
+          children: [
+            _buildVideo(orientation),
+            if (orientation == Orientation.portrait)
+              Flexible(
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  //color: Colors.red,
+                  child: Text("哈哈哈哈哈哈哈"),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       );
     });
