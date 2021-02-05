@@ -33,6 +33,14 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
   Timer _activeTimer;
   List<ActiveWidgetListener> _activeWidgetListeners;
 
+  void resetShowActiveWidget({bool showActiveWidget = true}) {
+    assert(showActiveWidget != null);
+    if (_showActiveWidget == showActiveWidget)
+      return;
+
+    _showActiveWidget = showActiveWidget;
+  }
+
   void addActiveWidgetListener(ActiveWidgetListener listener) {
     assert(listener != null);
     _activeWidgetListeners ??= [];
@@ -67,6 +75,8 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
   bool get playEnd => true;
 
   bool get isPlaying => false;
+
+  bool get initialized => false;
 
   VideoPlayerController get controller => null;
 
@@ -207,8 +217,9 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
 
     if (!_showActiveWidget) return;
 
+
     _activeTimer = Timer(_kPlayActiveDuration, () {
-      if (_showActiveWidget) {
+      if (_showActiveWidget && !pause) {
         setState(() {
           _showActiveWidget = false;
           _activeTimer = null;
@@ -477,7 +488,13 @@ class _SecondaryVideoViewState extends State<SecondaryVideoView>
               (BuildContext context, VideoPlayerController controller) {
             assert(controller != null);
             _totalDuration ??= controller.value.duration;
-            if (playEnd || !controller.value.initialized) {
+            if (!controller.value.initialized) {
+              resetShowActiveWidget(showActiveWidget: true);
+              handlePlayState(
+                pause: true,
+                isSetState: false,
+              );
+            } else if (playEnd) {
               handlePlayState(
                 pause: true,
                 isSetState: false,
@@ -568,6 +585,12 @@ class _SecondaryVideoViewState extends State<SecondaryVideoView>
   Duration get duration {
     assert(_controller != null);
     return _totalDuration ?? _controller.value?.duration ?? Duration.zero;
+  }
+
+  @override
+  bool get initialized {
+    assert(_controller != null);
+    return _controller.value.initialized;
   }
 
   @override

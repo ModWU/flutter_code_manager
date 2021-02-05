@@ -190,7 +190,9 @@ class AdvertState with ChangeNotifier, VideoStateMiXin {
     PlayState playState,
     PopupDirection popupDirection,
     DetailHighlightInfo detailHighlightInfo,
+    bool notify = true,
   }) {
+    assert(notify != null);
     if (playState == _playState &&
         popupDirection == _popupDirection &&
         detailHighlightInfo == _detailHighlightInfo) return;
@@ -210,7 +212,8 @@ class AdvertState with ChangeNotifier, VideoStateMiXin {
     print(
         "changeState => _playState: $_playState, popupDirection: $popupDirection, detailHighlightInfo: $detailHighlightInfo");
 
-    notifyListeners();
+    if (notify)
+      notifyListeners();
   }
 
   AdvertState({

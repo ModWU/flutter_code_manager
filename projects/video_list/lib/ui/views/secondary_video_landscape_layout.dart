@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:video_list/examples/video_indicator.dart';
+import 'package:video_list/ui/views/video_indicator.dart';
 import 'package:video_list/resources/export.dart';
 import 'package:video_list/utils/simple_utils.dart';
 import 'package:video_player/video_player.dart';
@@ -375,6 +375,7 @@ class _SecondaryLandscapeVideoLayoutState
     return VideoProgressOwnerIndicator(
       _playController.controller,
       allowScrubbing: false,
+      minHeight: 2.2,
       padding: EdgeInsets.zero,
       colors: VideoProgressColors(
         playedColor: Color(0xFFFF6633),

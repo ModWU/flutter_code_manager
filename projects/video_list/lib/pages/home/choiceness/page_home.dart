@@ -93,7 +93,6 @@ class _ChoicenessPageState extends State<ChoicenessPage>
     }
   }
 
-
   @override
   void initState() {
     print("ChoicenessPage -> initState()");
@@ -210,6 +209,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                   detailHighlightInfo: detailHighlightInfo.copyWith(
                     finishDetailHighlight: highlight,
                   ),
+                  notify: false,
                 );
               },
               onEnd: () {
@@ -218,8 +218,10 @@ class _ChoicenessPageState extends State<ChoicenessPage>
                 assert(state is AdvertState);
                 final AdvertState advertState = state;
                 assert(advertState != null);
+                //这里必须要设置不通知否则release模式会有问题
                 advertState.changeState(
                   playState: PlayState.end,
+                  notify: false,
                 );
               },
               onClick: (VideoPlayerController controller) {
@@ -275,7 +277,7 @@ class _ChoicenessPageState extends State<ChoicenessPage>
       assert(position != null);
       assert(position.hasViewportDimension);
       final List<ViewportOffsetData> viewportOffsetDataList =
-      _list.getViewportOffsetData(
+          _list.getViewportOffsetData(
         position.extentBefore,
         position.viewportDimension,
       );

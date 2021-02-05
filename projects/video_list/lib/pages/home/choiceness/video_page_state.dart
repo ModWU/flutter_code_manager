@@ -71,6 +71,8 @@ mixin ItemStateManager on ChangeNotifier {
 
         notifyListeners();
       });*/
+      print(
+          "_stateListener => 通知");
       notifyListeners();
 
     });

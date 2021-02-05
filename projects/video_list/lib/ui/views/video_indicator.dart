@@ -19,9 +19,11 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
   VideoProgressOwnerIndicator(
     this.controller, {
     VideoProgressColors colors,
+    this.minHeight = 1.8,
     this.allowScrubbing,
     this.padding = const EdgeInsets.only(top: 5.0),
-  }) : colors = colors ?? VideoProgressColors();
+  })  : assert(minHeight != null),
+        colors = colors ?? VideoProgressColors();
 
   /// The [VideoPlayerController] that actually associates a video with this
   /// widget.
@@ -43,6 +45,8 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
   ///
   /// Defaults to `top: 5.0`.
   final EdgeInsets padding;
+
+  final double minHeight;
 
   @override
   _VideoProgressOwnerIndicatorState createState() =>
@@ -148,8 +152,7 @@ class _VideoProgressOwnerIndicatorState
   void _onProgressDelayAnimation() {
     print("_lastPosition - _lastPosition333: $_lastPosition");
     //final double overflowValue = _kBufferingMillisecond * 0.5;
-    if (controller.value.duration == null)
-      return;
+    if (controller.value.duration == null) return;
 
     final int duration = controller.value.duration.inMilliseconds;
     final int position = controller.value.position.inMilliseconds;
@@ -224,11 +227,9 @@ class _VideoProgressOwnerIndicatorState
 
   @override
   void dispose() {
-    if (_progressDelayController != null)
-    _progressDelayController.dispose();
+    if (_progressDelayController != null) _progressDelayController.dispose();
 
-    if (_progressController != null)
-      _progressController.dispose();
+    if (_progressController != null) _progressController.dispose();
 
     super.dispose();
   }
@@ -252,7 +253,7 @@ class _VideoProgressOwnerIndicatorState
               return LinearProgressIndicator(
                 value: bufferingValue,
                 valueColor: AlwaysStoppedAnimation<Color>(colors.bufferedColor),
-                minHeight: 1.8,
+                minHeight: widget.minHeight,
                 backgroundColor: colors.backgroundColor,
                 //backgroundColor: Colors.blue,
               );
@@ -268,7 +269,7 @@ class _VideoProgressOwnerIndicatorState
               return LinearProgressIndicator(
                 value: positionValue,
                 valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
-                minHeight: 1.8,
+                minHeight: widget.minHeight,
                 backgroundColor: Colors.transparent,
               );
             },
@@ -282,7 +283,7 @@ class _VideoProgressOwnerIndicatorState
     } else {
       progressIndicator = LinearProgressIndicator(
         value: null,
-        minHeight: 1.8,
+        minHeight: widget.minHeight,
         valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
         backgroundColor: colors.backgroundColor,
       );

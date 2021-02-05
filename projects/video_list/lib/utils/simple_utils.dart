@@ -23,15 +23,11 @@ double getStatusBarHeight() {
 }
 
 void setLandscapeScreen() {
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight
-  ]);
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
 }
 
 void setPortraitScreen() {
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown
-  ]);
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 }

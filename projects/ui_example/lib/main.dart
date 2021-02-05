@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'draw/example.dart';
 import 'list/export.dart';
 import 'stepper/export.dart';
 
@@ -38,27 +39,23 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          Text('0' * 10000),
-          Center(
-            child: ClipRect(  // <-- clips to the 200x200 [Container] below
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: 3.0,
-                  sigmaY: 3.0,
-                ),
-                child: Container(
-                  alignment: Alignment.center,
-                  width: 200.0,
-                  height: 200.0,
-                  child: Text('Hello World'),
-                ),
+      body: Container(
+        color: Colors.blue,
+        width: 300,
+        height: 400,
+        child: CustomPaint(
+          painter: Sky(),
+          child: Center(
+            child: Text(
+              'Once upon a time...',
+              style: const TextStyle(
+                fontSize: 40.0,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFFFFFFF),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
