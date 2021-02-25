@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:video_list/pages/page_controller.dart';
+import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/controller/play_controller.dart';
 import 'package:video_list/ui/views/video_indicator.dart';
-import 'package:video_list/utils/simple_utils.dart';
+import 'package:video_list/utils/view_utils.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'secondary_video_view.dart';
@@ -34,6 +36,8 @@ class _SecondaryPortraitVideoLayoutState
   @override
   void initState() {
     super.initState();
+    print("portrait init hashcode: $hashCode");
+    SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
     _playController = widget.playController;
     _playController.resetActiveTimer();
   }
@@ -42,7 +46,6 @@ class _SecondaryPortraitVideoLayoutState
   void dispose() {
     super.dispose();
   }
-
 
   Widget _buildActiveWidget() {
     return Offstage(
@@ -183,10 +186,11 @@ class _SecondaryPortraitVideoLayoutState
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _playController.buildPlayButton(
-              size: 64.sp,
-              onTap: () {
-                _playController.handlePlayState();
-              }),
+            size: 64.sp,
+            onTap: () {
+              _playController.handlePlayState();
+            },
+          ),
           Padding(
             padding: EdgeInsets.only(
               left: 18.w,
@@ -223,7 +227,7 @@ class _SecondaryPortraitVideoLayoutState
               size: 40.sp,
               onTap: () {
                 _playController.hidePauseToast();
-                setLandscapeScreen();
+                _playController.setLandscapeScreen();
               },
             ),
           ),

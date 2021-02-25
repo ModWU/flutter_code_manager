@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/pages/page_controller.dart';
 import 'package:video_list/resources/export.dart';
+import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/controller/play_controller.dart';
 import 'package:video_list/ui/views/secondary_video_view.dart';
 import 'package:video_list/ui/views/static_video_view.dart';
 import 'package:video_list/utils/simple_utils.dart';
@@ -42,21 +43,77 @@ class BaseVideoPage extends StatefulWidget {
   final VoidCallback onForward;
 }
 
-class _BaseVideoPageState extends State<BaseVideoPage> {
+class _BaseVideoPageState extends State<BaseVideoPage>
+    with PlayControllerMixin {
   VideoPlayerController _controller;
+
+  @override
+  bool get playEnd {
+    assert(_controller != null);
+    return _controller.value.duration == null ||
+        _controller.value.position == _controller.value.duration;
+  }
+
+  @override
+  VideoPlayerController get controller => _controller;
+
+  @override
+  Duration get position {
+    assert(_controller != null);
+    return _controller.value.position;
+  }
+
+  @override
+  Duration get duration {
+    assert(_controller != null);
+    return _controller.value?.duration ?? Duration.zero;
+  }
+
+  @override
+  bool get initialized {
+    assert(_controller != null);
+    return _controller.value.initialized;
+  }
+
+  @override
+  bool get isPlaying {
+    assert(_controller != null);
+    return _controller.value.initialized && _controller.value.isPlaying;
+  }
+
+  void handlePlayState({bool pause, bool isSetState = true}) {
+    assert(isSetState != null);
+    assert(_controller != null);
+    if (playEnd) {
+      pause = true;
+    }
+
+    final bool oldPause = this.pause;
+
+    changePlayState(pause: pause, isSetState: isSetState);
+
+    if (oldPause == this.pause) return;
+
+    if (this.pause) {
+      _controller.pause();
+    } else {
+      _controller.play();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final ColorTween statusColor =
         ColorTween(begin: Colors.transparent, end: Colors.black);
+   // final Orientation orientation = isPortrait ? ;
+   /* MediaQuery.of(context).size.width > MediaQuery.of(context).size.height
+        ? Orientation.landscape
+        : Orientation.portrait;*/
+   // print("base video page build orientaion: $orientation");
+    print("base video build isPortrait: $isPortrait");
     return OrientationBuilder(builder: (_, Orientation orientation) {
-      orientation = MediaQuery.of(context).size.width >
-          MediaQuery.of(context).size.height
-          ? Orientation.landscape
-          : Orientation.portrait;
-
       return Scaffold(
-        appBar: orientation == Orientation.portrait
+        appBar: isPortrait
             ? AppBar(
           toolbarHeight: 0,
           elevation: 0,
@@ -66,8 +123,8 @@ class _BaseVideoPageState extends State<BaseVideoPage> {
             : null,
         body: Column(
           children: [
-            _buildVideo(orientation),
-            if (orientation == Orientation.portrait)
+            _buildVideo(),
+            if (isPortrait)
               Flexible(
                 child: Container(
                   width: double.infinity,
@@ -79,24 +136,56 @@ class _BaseVideoPageState extends State<BaseVideoPage> {
           ],
         ),
       );
+
     });
+
+    /*return OrientationBuilder(builder: (_, Orientation orientation) {
+      print("base video page build orientation: $orientation");
+      orientation = MediaQuery.of(context).size.width >
+          MediaQuery.of(context).size.height
+          ? Orientation.landscape
+          : Orientation.portrait;
+      print("base video page build orientation2: $orientation");
+
+    });*/
   }
 
-  Widget _buildVideo(Orientation orientation) {
-    assert(orientation != null);
+  Widget _buildVideo() {
+    print("base video build isPortrait2: $isPortrait");
     return Container(
-      height: orientation == Orientation.portrait
+      height: isPortrait
           ? Dimens.design_screen_width.w * 0.5
-          : (Dimens.design_screen_height.h),
+          : Dimens.design_screen_height.h,
       width: double.infinity,
       child: SecondaryVideoView(
-        url: widget.videoUrl,
-        controller: _controller,
+        controller: this,
         onBack: () {
           Navigator.pop(context);
         },
       ),
     );
+  }
+
+  void _videoPlayListener() {
+    //handlePlayState(pause: false);
+    if (!initialized) {
+      resetShowActiveWidget(showActiveWidget: true);
+      resetActiveTimer();
+      handlePlayState(
+        pause: true,
+        isSetState: false,
+      );
+    } else if (playEnd) {
+      handlePlayState(
+        pause: true,
+        isSetState: false,
+      );
+    } else {
+      handlePlayState(
+        pause: !isPlaying,
+        isSetState: false,
+      );
+    }
   }
 
   @override
@@ -111,11 +200,12 @@ class _BaseVideoPageState extends State<BaseVideoPage> {
     } else {
       _controller = widget.controller;
     }
+
     widget.animation.addStatusListener((status) {
       switch (status) {
         case AnimationStatus.completed:
           widget.onCompleted?.call();
-          _controller.play();
+          _controller.addListener(_videoPlayListener);
           break;
         case AnimationStatus.dismissed:
           widget.onDismissed?.call();
@@ -140,6 +230,7 @@ class _BaseVideoPageState extends State<BaseVideoPage> {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown
     ]);*/
+    _controller.removeListener(_videoPlayListener);
     if (widget.controller != _controller) {
       _controller.dispose();
     }

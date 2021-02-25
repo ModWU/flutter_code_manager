@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/controller/play_controller.dart';
 import 'package:video_list/ui/views/video_indicator.dart';
 import 'package:video_list/resources/export.dart';
-import 'package:video_list/utils/simple_utils.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_screenutil/size_extension.dart';
 import 'secondary_video_view.dart';
@@ -44,9 +44,8 @@ class _SecondaryLandscapeVideoLayoutState
 
   void _initPlayState() {
     assert(_playController != null);
-    print("111111111111${_playController.showActiveWidget}");
+    print("landscape init hashcode: $hashCode");
     _playController.resetActiveTimer();
-    print("22222222222${_playController.showActiveWidget}");
     if (_playController.pause) _playController.handlePlayState(pause: false);
   }
 
@@ -184,7 +183,7 @@ class _SecondaryLandscapeVideoLayoutState
           size: 20.sp,
           onTap: () {
             _playController.hidePauseToast();
-            setPortraitScreen();
+            _playController.setPortraitScreen();
           },
         ),
         Padding(
