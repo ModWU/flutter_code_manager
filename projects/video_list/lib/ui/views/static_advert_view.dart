@@ -259,6 +259,7 @@ class _NormalAdvertViewState extends State<NormalAdvertView>
     return VideoProgressOwnerIndicator(
       controller,
       allowScrubbing: false,
+      smooth: true,
       padding: EdgeInsets.zero,
       colors: VideoProgressColors(
         playedColor: Color(0xFFFF6633),

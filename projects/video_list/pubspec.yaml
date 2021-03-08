@@ -36,6 +36,7 @@ dependencies:
   shimmer: ^1.1.2
   connectivity: ^2.0.2
   fluttertoast: ^7.1.6
+  #flutter_xlider: ^3.4.0
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/controller/play_controller.dart';
+import 'package:video_list/ui/controller/play_controller.dart';
 import 'package:video_list/ui/views/video_indicator.dart';
 import 'package:video_list/resources/export.dart';
 import 'package:video_player/video_player.dart';
@@ -373,7 +373,7 @@ class _SecondaryLandscapeVideoLayoutState
   Widget _buildProgressIndicator() {
     return VideoProgressOwnerIndicator(
       _playController.controller,
-      allowScrubbing: false,
+      allowScrubbing: true,
       minHeight: 2.2,
       padding: EdgeInsets.zero,
       colors: VideoProgressColors(

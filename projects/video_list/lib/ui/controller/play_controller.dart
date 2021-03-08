@@ -12,6 +12,92 @@ const Duration _kPlayButtonAnimationDuration = Duration(milliseconds: 300);
 const Duration _kPlayActiveDuration = Duration(seconds: 5);
 typedef ActiveWidgetListener = void Function(bool showActiveWidget);
 
+enum ProgressControllerState {
+  down,
+  up,
+  startDrag,
+  endDrag,
+  dragging,
+  nothing,
+}
+
+class ProgressControllerNotify with ChangeNotifier {
+  ProgressControllerState _state = ProgressControllerState.nothing;
+  double _currentValue;
+  double _maxValue;
+  int _stateSign = 0;
+
+  ProgressControllerNotify({
+    double currentValue = 0,
+    double maxValue,
+  })  : assert(maxValue != null),
+        assert(maxValue >= 0),
+        assert(currentValue != null),
+        assert(currentValue >= 0 && currentValue <= maxValue),
+        _maxValue = maxValue,
+        _currentValue = currentValue;
+
+  ProgressControllerState get state {
+    assert(_state != null);
+    return _state;
+  }
+
+  double get currentValue {
+    assert(_currentValue >= 0 && _currentValue <= _maxValue);
+    return _currentValue;
+  }
+
+  double get maxValue => _maxValue;
+
+  bool isHasState(ProgressControllerState state) {
+    assert(state != null);
+    final int stateValue = 1 << state.index;
+    return (_stateSign & stateValue) == stateValue;
+  }
+
+  void addState(ProgressControllerState state) {
+    assert(state != null);
+    _stateSign |= (1 << state.index);
+  }
+
+  void change(
+      {ProgressControllerState state, double currentValue, double maxValue}) {
+    assert(state != null || currentValue != null);
+    bool isNotify = false;
+    if (state != null && state != _state) {
+      _state = state;
+      _stateSign |= (1 << state.index);
+      if (state == ProgressControllerState.endDrag ||
+          state == ProgressControllerState.up) {
+        _stateSign = 0;
+      }
+      isNotify = true;
+    }
+
+    if (maxValue != null && maxValue != _maxValue) {
+      assert(maxValue >= 0);
+      _maxValue = maxValue;
+      isNotify = true;
+    }
+
+    if (currentValue < 0)
+      currentValue = 0;
+    else if (currentValue > _maxValue)
+      currentValue = _maxValue;
+
+    if (currentValue != null && currentValue != _currentValue) {
+      print("currentValue: $currentValue");
+      assert(currentValue >= 0 && currentValue <= _maxValue);
+      _currentValue = currentValue;
+      isNotify = true;
+    }
+
+    assert(_currentValue <= _maxValue);
+
+    if (isNotify) notifyListeners();
+  }
+}
+
 mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
   FToast _fToast;
 
@@ -21,10 +107,16 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
   bool _isPortrait = true;
   bool get isPortrait => _isPortrait;
 
+  ProgressControllerNotify get progressControllerNotify =>
+      _progressControllerNotify;
+
+  ProgressControllerNotify _progressControllerNotify =
+      ProgressControllerNotify(maxValue: 1.0);
+
   void setLandscapeScreen() {
     _isPortrait = false;
     SimpleUtils.setLandscapeScreen();
-   /* SimpleUtils.addBuildAfterCallback(() {
+    /* SimpleUtils.addBuildAfterCallback(() {
       setState(() {});
     });*/
   }
@@ -48,6 +140,18 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
     if (_showActiveWidget == showActiveWidget) return;
 
     _showActiveWidget = showActiveWidget;
+  }
+
+  void cancelActiveTimer({bool showActiveWidget}) {
+    if (_activeTimer != null) {
+      _activeTimer.cancel();
+      _activeTimer = null;
+    }
+
+    if (showActiveWidget != null && showActiveWidget != _showActiveWidget) {
+      _showActiveWidget = showActiveWidget;
+      _setState();
+    }
   }
 
   void addActiveWidgetListener(ActiveWidgetListener listener) {
@@ -191,6 +295,25 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
+  void blockActiveTimer() {
+    if (_activeTimer != null) {
+      _activeTimer.cancel();
+      _activeTimer = null;
+    }
+
+    if (!showActiveWidget) {
+      _showActiveWidget = true;
+      _setState();
+      _notifyActiveWidget(true);
+    }
+  }
+
+  void unblockActiveTimer() {
+    if (_activeTimer != null)
+      return;
+    resetActiveTimer();
+  }
+
   void resetActiveTimer() {
     if (_activeTimer != null) {
       _activeTimer.cancel();
@@ -272,42 +395,46 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
 
   Widget buildPlayButton({VoidCallback onTap, double size}) {
     assert(size != null);
-    return StatefulBuilder(
-      builder: (_, StateSetter setState) {
-        return GestureDetector(
-          onTap: () {
-            onTap?.call();
-          },
-          child: AnimatedSwitcher(
-            duration: _kPlayButtonAnimationDuration,
-            child: Text(
-              pause
-                  ? String.fromCharCode(Icons.play_arrow_rounded.codePoint)
-                  : String.fromCharCode(Icons.pause_rounded.codePoint),
-              style: TextStyle(
-                fontFamily: pause
-                    ? Icons.play_arrow_rounded.fontFamily
-                    : Icons.pause.fontFamily,
-                fontSize: size,
-              ),
-              key: pause ? const ValueKey("pause") : const ValueKey("play"),
-            ),
-            switchInCurve: Curves.easeIn,
-            switchOutCurve: Curves.easeOut,
-            transitionBuilder: (Widget child, Animation<double> value) {
-              final double begin = pause ? .75 : .25;
-              final double end = pause ? 1.0 : .0;
+    Widget child = AnimatedSwitcher(
+      duration: _kPlayButtonAnimationDuration,
+      child: Text(
+        pause
+            ? String.fromCharCode(Icons.play_arrow_rounded.codePoint)
+            : String.fromCharCode(Icons.pause_rounded.codePoint),
+        style: TextStyle(
+          fontFamily: pause
+              ? Icons.play_arrow_rounded.fontFamily
+              : Icons.pause.fontFamily,
+          fontSize: size,
+        ),
+        key: pause ? const ValueKey("pause") : const ValueKey("play"),
+      ),
+      switchInCurve: Curves.easeIn,
+      switchOutCurve: Curves.easeOut,
+      transitionBuilder: (Widget child, Animation<double> value) {
+        final double begin = pause ? .75 : .25;
+        final double end = pause ? 1.0 : .0;
 
-              return _Reverse2ForwardRotationTransition(
-                animation: Tween(begin: begin, end: end).animate(value),
-                child: FadeTransition(
-                  opacity: value,
-                  child: child,
-                ),
-              );
-            },
+        return _Reverse2ForwardRotationTransition(
+          animation: Tween(begin: begin, end: end).animate(value),
+          child: FadeTransition(
+            opacity: value,
+            child: child,
           ),
         );
+      },
+    );
+    return StatefulBuilder(
+      builder: (_, StateSetter setState) {
+        return onTap != null
+            ? GestureDetector(
+                onTap: () {
+                  assert(onTap != null);
+                  onTap.call();
+                },
+                child: child,
+              )
+            : child;
       },
     );
   }

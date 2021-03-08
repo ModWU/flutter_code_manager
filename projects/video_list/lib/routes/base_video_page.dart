@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/pages/page_controller.dart';
 import 'package:video_list/resources/export.dart';
-import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/controller/play_controller.dart';
+import 'package:video_list/ui/controller/play_controller.dart';
 import 'package:video_list/ui/views/secondary_video_view.dart';
 import 'package:video_list/ui/views/static_video_view.dart';
 import 'package:video_list/utils/simple_utils.dart';
@@ -105,21 +105,21 @@ class _BaseVideoPageState extends State<BaseVideoPage>
   Widget build(BuildContext context) {
     final ColorTween statusColor =
         ColorTween(begin: Colors.transparent, end: Colors.black);
-   // final Orientation orientation = isPortrait ? ;
-   /* MediaQuery.of(context).size.width > MediaQuery.of(context).size.height
+    // final Orientation orientation = isPortrait ? ;
+    /* MediaQuery.of(context).size.width > MediaQuery.of(context).size.height
         ? Orientation.landscape
         : Orientation.portrait;*/
-   // print("base video page build orientaion: $orientation");
+    // print("base video page build orientaion: $orientation");
     print("base video build isPortrait: $isPortrait");
     return OrientationBuilder(builder: (_, Orientation orientation) {
       return Scaffold(
         appBar: isPortrait
             ? AppBar(
-          toolbarHeight: 0,
-          elevation: 0,
-          backgroundColor: statusColor.evaluate(widget.animation),
-          brightness: Brightness.dark,
-        )
+                toolbarHeight: 0,
+                elevation: 0,
+                backgroundColor: statusColor.evaluate(widget.animation),
+                brightness: Brightness.dark,
+              )
             : null,
         body: Column(
           children: [
@@ -136,7 +136,6 @@ class _BaseVideoPageState extends State<BaseVideoPage>
           ],
         ),
       );
-
     });
 
     /*return OrientationBuilder(builder: (_, Orientation orientation) {
@@ -152,16 +151,19 @@ class _BaseVideoPageState extends State<BaseVideoPage>
 
   Widget _buildVideo() {
     print("base video build isPortrait2: $isPortrait");
-    return Container(
-      height: isPortrait
-          ? Dimens.design_screen_width.w * 0.5
-          : Dimens.design_screen_height.h,
-      width: double.infinity,
-      child: SecondaryVideoView(
-        controller: this,
-        onBack: () {
-          Navigator.pop(context);
-        },
+    return ChangeNotifierProvider.value(
+      value: progressControllerNotify,
+      child: Container(
+        height: isPortrait
+            ? Dimens.design_screen_width.w * 0.5
+            : Dimens.design_screen_height.h,
+        width: double.infinity,
+        child: SecondaryVideoView(
+          controller: this,
+          onBack: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
     );
   }

@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:video_list/pages/page_controller.dart';
 import 'package:video_list/resources/export.dart';
 import 'package:video_list/ui/animations/impliclit_transition.dart';
-import 'file:///C:/wuchaochao/project/flutter_code_manager/projects/video_list/lib/ui/controller/play_controller.dart';
+import 'package:video_list/ui/controller/play_controller.dart';
 import 'package:video_list/ui/views/secondary_video_portrait_layout.dart';
 import 'package:video_list/ui/views/video_indicator.dart';
 import 'package:video_player/video_player.dart';
@@ -36,6 +36,17 @@ mixin VideoUtilsMiXin<T extends StatefulWidget> on State<T> {
       fontSize: 14.sp,
       shadows: getStandardShadows(),
     );
+  }
+
+  double getPositionPercent(GlobalKey boxKey, Offset globalPosition) {
+    assert(boxKey?.currentContext != null);
+    assert(globalPosition != null);
+    final RenderBox box = boxKey.currentContext.findRenderObject();
+    final Offset tapPos = box.globalToLocal(globalPosition);
+    final double relative = tapPos.dx / box.size.width;
+    /*final Duration position = controller.value.duration * relative;
+    controller.seekTo(position);*/
+    return relative;
   }
 
   String getFormatDuration(Duration duration) {
@@ -102,6 +113,7 @@ mixin VideoUtilsMiXin<T extends StatefulWidget> on State<T> {
               _showHoverState[stateId] = !_showHoverState[stateId];
             });
           },
+
           //highlightColor: Colors.black26,
           /*onHighlightChanged: (bool isHighlight) {
             setState(() {

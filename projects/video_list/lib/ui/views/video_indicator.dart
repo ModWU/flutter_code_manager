@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:video_list/ui/views/video_indicator_impl.dart';
 import 'package:video_list/utils/simple_utils.dart';
 import 'package:video_player/video_player.dart';
-import 'dart:async';
-import 'dart:math' as Math;
+//import 'package:flutter_xlider/flutter_xlider.dart';
 
 const int _kBufferingMillisecond = 1200;
 const int _kBufferingSpeedMillisecond = 200;
@@ -19,15 +19,33 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
   VideoProgressOwnerIndicator(
     this.controller, {
     VideoProgressColors colors,
+    this.progressKey,
     this.minHeight = 1.8,
-    this.allowScrubbing,
+    this.bufferingSpeedMillisecond = _kBufferingSpeedMillisecond,
+    this.bufferingMillisecond = _kBufferingMillisecond,
+    this.positionPercent,
+    this.smooth = false,
+    this.stop = false,
+    this.allowScrubbing = false,
     this.padding = const EdgeInsets.only(top: 5.0),
   })  : assert(minHeight != null),
+        assert(allowScrubbing != null),
+        assert(controller != null),
+        assert(smooth != null),
+        assert(stop != null),
+        assert(bufferingSpeedMillisecond != null),
+        assert(bufferingMillisecond != null),
         colors = colors ?? VideoProgressColors();
 
   /// The [VideoPlayerController] that actually associates a video with this
   /// widget.
   final VideoPlayerController controller;
+
+  final GlobalKey progressKey;
+
+  final int bufferingSpeedMillisecond;
+
+  final int bufferingMillisecond;
 
   /// The default colors used throughout the indicator.
   ///
@@ -48,6 +66,12 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
 
   final double minHeight;
 
+  final bool smooth;
+
+  final bool stop;
+
+  final double positionPercent;
+
   @override
   _VideoProgressOwnerIndicatorState createState() =>
       _VideoProgressOwnerIndicatorState();
@@ -67,6 +91,7 @@ class _ProgressNotify extends ChangeNotifier {
         _positionValue = positionValue;
 
   void changeBufferingValue(double value) {
+    assert(value != null);
     if (bufferingValue == value) return;
     _bufferingValue = value;
     addBuildAfterCallback(() {
@@ -74,12 +99,16 @@ class _ProgressNotify extends ChangeNotifier {
     });
   }
 
-  void changePositionValue(double value) {
+  void changePositionValue(double value, {bool notify = true}) {
+    assert(value != null);
     if (_positionValue == value) return;
     _positionValue = value;
-    addBuildAfterCallback(() {
-      notifyListeners();
-    });
+
+    if (notify) {
+      addBuildAfterCallback(() {
+        notifyListeners();
+      });
+    }
   }
 }
 
@@ -89,6 +118,8 @@ class _VideoProgressOwnerIndicatorState
   Duration _oldPosition;
   Tween<double> _progressTween;
 
+  double _oldPositionPercent;
+
   _VideoProgressOwnerIndicatorState() {
     _listener = () {
       if (!mounted || controller.value.duration == null) {
@@ -96,9 +127,9 @@ class _VideoProgressOwnerIndicatorState
       }
 
       //使用AnimationController不使用Timer的目的是和屏幕刷新保持一致
-      if (_progressDelayController == null) {
+      if (widget.smooth && _progressDelayController == null) {
         _progressDelayController = AnimationController(
-          duration: const Duration(milliseconds: _kBufferingMillisecond),
+          duration: Duration(milliseconds: widget.bufferingMillisecond),
           vsync: this,
         )
           ..addStatusListener((status) {
@@ -118,6 +149,18 @@ class _VideoProgressOwnerIndicatorState
         if (end > maxBuffering) {
           maxBuffering = end;
         }
+      }
+
+      if (!widget.smooth) {
+        final int lastSecond = _oldPosition.inSeconds;
+        final int currentSecond = controller.value.position.inSeconds;
+        if (lastSecond != currentSecond) {
+          _progressNotify.changePositionValue(
+              currentSecond / controller.value.duration.inSeconds);
+        }
+
+        _oldPosition = controller.value.position;
+        _lastPosition = position;
       }
 
       _progressNotify.changeBufferingValue(maxBuffering / duration);
@@ -150,14 +193,14 @@ class _VideoProgressOwnerIndicatorState
   }
 
   void _onProgressDelayAnimation() {
-    print("_lastPosition - _lastPosition333: $_lastPosition");
     //final double overflowValue = _kBufferingMillisecond * 0.5;
     if (controller.value.duration == null) return;
 
     final int duration = controller.value.duration.inMilliseconds;
     final int position = controller.value.position.inMilliseconds;
-    int _endPosition =
-        _lastPosition + _kBufferingMillisecond + _kBufferingSpeedMillisecond;
+    int _endPosition = _lastPosition +
+        widget.bufferingMillisecond +
+        widget.bufferingSpeedMillisecond;
     if (controller.value.duration == null ||
         controller.value.position <= Duration.zero ||
         position == _lastPosition) {
@@ -193,10 +236,32 @@ class _VideoProgressOwnerIndicatorState
     }
 
     _oldPosition = controller.value.position;
+  }
 
-    /*if ((_lastPosition - _oldPosition.inMilliseconds).abs() > overflowValue) {
-      _lastPosition = _oldPosition.inMilliseconds;
-    }*/
+  @override
+  void didUpdateWidget(covariant VideoProgressOwnerIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.stop) {
+      _oldPositionPercent = widget.positionPercent;
+    }
+
+    if (oldWidget.stop != widget.stop) {
+      if (widget.stop) {
+        controller.removeListener(_listener);
+      } else {
+        final double oldPositionPercent = _oldPositionPercent;
+        _oldPositionPercent = null;
+        if (oldPositionPercent != null) {
+          _progressNotify.changePositionValue(
+            oldPositionPercent,
+            notify: false,
+          );
+        }
+
+        controller.removeListener(_listener);
+        controller.addListener(_listener);
+      }
+    }
   }
 
   @override
@@ -215,7 +280,7 @@ class _VideoProgressOwnerIndicatorState
     }
 
     _progressController = AnimationController(
-      duration: const Duration(milliseconds: _kBufferingSpeedMillisecond),
+      duration: Duration(milliseconds: widget.bufferingSpeedMillisecond),
       vsync: this,
     );
 
@@ -266,8 +331,11 @@ class _VideoProgressOwnerIndicatorState
           Selector(
             builder:
                 (BuildContext context, double positionValue, Widget child) {
-              return LinearProgressIndicator(
-                value: positionValue,
+              return LinearVideoProgressIndicator(
+                key: widget.progressKey,
+                value: widget.stop && widget.positionPercent != null
+                    ? widget.positionPercent
+                    : _progressNotify.positionValue,
                 valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
                 minHeight: widget.minHeight,
                 backgroundColor: Colors.transparent,
@@ -278,6 +346,104 @@ class _VideoProgressOwnerIndicatorState
               return progressNotify.positionValue;
             },
           ),
+          /*Selector(
+            builder:
+                (BuildContext context, double positionValue, Widget child) {
+              */ /*return LinearProgressIndicator(
+                value: positionValue,
+                valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
+                minHeight: widget.minHeight,
+                backgroundColor: Colors.transparent,
+              );*/ /*
+              return FlutterSlider(
+                values: [positionValue],
+                max: 1.0,
+                min: 0,
+                //maximumDistance: 300,
+                //rangeSlider: true,
+                //rtl: true,
+                // handlerWidth: 10,
+                handlerHeight: 12,
+                trackBar: FlutterSliderTrackBar(
+                  inactiveTrackBar: BoxDecoration(
+                    //borderRadius: BorderRadius.circular(20),
+                    color: Colors.black,
+                    //border: Border.all(width: 3, color: Colors.blue),
+                  ),
+                  activeTrackBar: BoxDecoration(
+                    //borderRadius: BorderRadius.circular(4),
+                    color: colors.playedColor,
+                  ),
+                ),
+                hatchMark: FlutterSliderHatchMark(
+                  labelBox: FlutterSliderSizedBox(
+                    width: double.maxFinite,
+                    height: 10,
+                  ),
+                  labels: [
+                    FlutterSliderHatchMarkLabel(
+                      percent: 0,
+                      label: Selector(
+                        builder:
+                            (BuildContext context, double bufferingValue, Widget child) {
+                          return Container(
+                            width: 200,
+                            height: 5,
+                            child: LinearProgressIndicator(
+                              value: bufferingValue,
+                              valueColor: AlwaysStoppedAnimation<Color>(colors.bufferedColor),
+                              minHeight: widget.minHeight,
+                              backgroundColor: colors.backgroundColor,
+                              //backgroundColor: Colors.blue,
+                            ),
+                          );
+                        },
+                        selector: (BuildContext context, _ProgressNotify progressNotify) {
+                          //这个地方返回具体的值，对应builder中的data
+                          return progressNotify.bufferingValue;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                handler: FlutterSliderHandler(
+                  decoration: BoxDecoration(),
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: colors.playedColor.withAlpha(120),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 6.8,
+                          height: 6.8,
+                          decoration: BoxDecoration(
+                            color: colors.playedColor,
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                handlerAnimation: FlutterSliderHandlerAnimation(
+                  curve: Curves.elasticOut,
+                  reverseCurve: null,
+                  duration: Duration(milliseconds: 700),
+                  scale: 1.2,
+                ),
+                onDragging: (handlerIndex, lowerValue, upperValue) {},
+              );
+            },
+            selector: (BuildContext context, _ProgressNotify progressNotify) {
+              //这个地方返回具体的值，对应builder中的data
+              return progressNotify.positionValue;
+            },
+          ),*/
         ],
       );
     } else {
@@ -293,81 +459,11 @@ class _VideoProgressOwnerIndicatorState
       child: progressIndicator,
     );
 
-    Widget child;
-
-    if (widget.allowScrubbing) {
-      child = _VideoScrubber(
-        child: paddedProgressIndicator,
-        controller: controller,
-      );
-    } else {
-      child = paddedProgressIndicator;
-    }
+    Widget child = paddedProgressIndicator;
 
     return ChangeNotifierProvider<_ProgressNotify>.value(
       value: _progressNotify,
       child: child,
-    );
-  }
-}
-
-class _VideoScrubber extends StatefulWidget {
-  _VideoScrubber({
-    @required this.child,
-    @required this.controller,
-  });
-
-  final Widget child;
-  final VideoPlayerController controller;
-
-  @override
-  _VideoScrubberState createState() => _VideoScrubberState();
-}
-
-class _VideoScrubberState extends State<_VideoScrubber> {
-  bool _controllerWasPlaying = false;
-
-  VideoPlayerController get controller => widget.controller;
-
-  @override
-  Widget build(BuildContext context) {
-    void seekToRelativePosition(Offset globalPosition) {
-      final RenderBox box = context.findRenderObject();
-      final Offset tapPos = box.globalToLocal(globalPosition);
-      final double relative = tapPos.dx / box.size.width;
-      final Duration position = controller.value.duration * relative;
-      controller.seekTo(position);
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      child: widget.child,
-      onHorizontalDragStart: (DragStartDetails details) {
-        if (!controller.value.initialized) {
-          return;
-        }
-        _controllerWasPlaying = controller.value.isPlaying;
-        if (_controllerWasPlaying) {
-          controller.pause();
-        }
-      },
-      onHorizontalDragUpdate: (DragUpdateDetails details) {
-        if (!controller.value.initialized) {
-          return;
-        }
-        seekToRelativePosition(details.globalPosition);
-      },
-      onHorizontalDragEnd: (DragEndDetails details) {
-        if (_controllerWasPlaying) {
-          controller.play();
-        }
-      },
-      onTapDown: (TapDownDetails details) {
-        if (!controller.value.initialized) {
-          return;
-        }
-        seekToRelativePosition(details.globalPosition);
-      },
     );
   }
 }
