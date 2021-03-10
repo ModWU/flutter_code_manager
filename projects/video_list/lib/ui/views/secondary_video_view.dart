@@ -38,7 +38,7 @@ mixin VideoUtilsMiXin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  double getPositionPercent(GlobalKey boxKey, Offset globalPosition) {
+  double getBoxPositionPercent(GlobalKey boxKey, Offset globalPosition) {
     assert(boxKey?.currentContext != null);
     assert(globalPosition != null);
     final RenderBox box = boxKey.currentContext.findRenderObject();
@@ -47,6 +47,12 @@ mixin VideoUtilsMiXin<T extends StatefulWidget> on State<T> {
     /*final Duration position = controller.value.duration * relative;
     controller.seekTo(position);*/
     return relative;
+  }
+
+  double getProgressPositionPercent(Duration position, Duration duration) {
+    assert(position != null);
+    assert(duration != null);
+    return position.inMilliseconds / duration.inMilliseconds;
   }
 
   String getFormatDuration(Duration duration) {

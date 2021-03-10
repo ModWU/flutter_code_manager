@@ -26,6 +26,10 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
     this.positionPercent,
     this.smooth = false,
     this.stop = false,
+    this.showSign = false,
+    this.showSignHalo = false,
+    this.showSignShade = false,
+    this.signHaloAnimationDuration = const Duration(milliseconds: 200),
     this.allowScrubbing = false,
     this.padding = const EdgeInsets.only(top: 5.0),
   })  : assert(minHeight != null),
@@ -33,8 +37,12 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
         assert(controller != null),
         assert(smooth != null),
         assert(stop != null),
+        assert(showSign != null),
+        assert(showSignHalo != null),
+        assert(showSignShade != null),
         assert(bufferingSpeedMillisecond != null),
         assert(bufferingMillisecond != null),
+        assert(signHaloAnimationDuration != null),
         colors = colors ?? VideoProgressColors();
 
   /// The [VideoPlayerController] that actually associates a video with this
@@ -71,6 +79,14 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
   final bool stop;
 
   final double positionPercent;
+
+  final bool showSign;
+
+  final bool showSignHalo;
+
+  final bool showSignShade;
+
+  final Duration signHaloAnimationDuration;
 
   @override
   _VideoProgressOwnerIndicatorState createState() =>
@@ -315,10 +331,12 @@ class _VideoProgressOwnerIndicatorState
           Selector(
             builder:
                 (BuildContext context, double bufferingValue, Widget child) {
-              return LinearProgressIndicator(
+              return LinearVideoProgressIndicator(
                 value: bufferingValue,
                 valueColor: AlwaysStoppedAnimation<Color>(colors.bufferedColor),
                 minHeight: widget.minHeight,
+                showSign: widget.showSign,
+                signColor: Colors.transparent,
                 backgroundColor: colors.backgroundColor,
                 //backgroundColor: Colors.blue,
               );
@@ -337,6 +355,10 @@ class _VideoProgressOwnerIndicatorState
                     ? widget.positionPercent
                     : _progressNotify.positionValue,
                 valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
+                showSign: widget.showSign,
+                showSignHalo: widget.showSignHalo,
+                showSignShade: widget.showSignShade,
+                signHaloAnimationDuration: widget.signHaloAnimationDuration,
                 minHeight: widget.minHeight,
                 backgroundColor: Colors.transparent,
               );
