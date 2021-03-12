@@ -15,6 +15,9 @@ class LinearVideoProgressIndicator extends ProgressIndicator {
     Animation<Color> valueColor,
     this.showSign = false,
     this.showSignHalo = false,
+    this.signRadius,
+    this.signOutRadius,
+    this.signHaloRadius,
     this.showSignShade = false,
     this.signHaloAnimationDuration =
         const Duration(milliseconds: _kIndeterminateSignHaloDuration),
@@ -26,6 +29,9 @@ class LinearVideoProgressIndicator extends ProgressIndicator {
   })  : assert(minHeight == null || minHeight > 0),
         assert(showSign != null),
         assert(signHaloAnimationDuration != null),
+        assert(signRadius == null || signRadius > 0),
+        assert(signOutRadius == null || signOutRadius > 0),
+        assert(signHaloRadius == null || signHaloRadius > 0),
         assert(showSignHalo != null),
         assert(showSignShade != null),
         super(
@@ -53,6 +59,12 @@ class LinearVideoProgressIndicator extends ProgressIndicator {
   final Color signColor;
 
   final bool showSignShade;
+
+  final double signRadius;
+
+  final double signOutRadius;
+
+  final double signHaloRadius;
 
   Color _getBackgroundColor(BuildContext context) =>
       backgroundColor ?? Theme.of(context).backgroundColor;
@@ -152,6 +164,9 @@ class _LinearVideoProgressIndicatorState
         showSign: widget.showSign,
         showSignHalo: widget.showSignHalo,
         showSignShade: widget.showSignShade,
+        signRadius: widget.signRadius,
+        signOutRadius: widget.signOutRadius,
+        signHaloRadius: widget.signHaloRadius,
         signColor: widget.signColor,
         animationValue: animationValue, // ignored if widget.value is not null
         animationSignHaloValue: _signHaloController
@@ -207,10 +222,16 @@ class _LinearVideoProgressIndicatorPainter extends CustomPainter {
     this.showSignHalo = false,
     this.signColor,
     this.showSignShade = false,
+    this.signRadius,
+    this.signOutRadius,
+    this.signHaloRadius,
   })  : assert(textDirection != null),
         assert(showSign != null),
         assert(showSignShade != null),
-        assert(showSignHalo != null);
+        assert(showSignHalo != null),
+        assert(signRadius == null || signRadius > 0),
+        assert(signOutRadius == null || signOutRadius > 0),
+        assert(signHaloRadius == null || signHaloRadius > 0);
 
   final Radius radius;
   final Color backgroundColor;
@@ -223,6 +244,9 @@ class _LinearVideoProgressIndicatorPainter extends CustomPainter {
   final bool showSignHalo;
   final Color signColor;
   final bool showSignShade;
+  final double signRadius;
+  final double signOutRadius;
+  final double signHaloRadius;
 
   // The indeterminate progress animation displays two lines whose leading (head)
   // and trailing (tail) endpoints are defined by the following four curves.
@@ -253,9 +277,12 @@ class _LinearVideoProgressIndicatorPainter extends CustomPainter {
       ..color = backgroundColor
       ..style = PaintingStyle.fill;
 
-    final double signRadius = !showSign ? 0 : size.height * 1.8;
-    final double signOutRadius = !showSign ? 0 : size.height * 3.2;
-    final double signHaloRadius = !showSign ? 0 : size.height * 14.0;
+    final double signRadius =
+        !showSign ? 0 : (this.signRadius ?? size.height * 1.8);
+    final double signOutRadius =
+        !showSign ? 0 : (this.signOutRadius ?? size.height * 3.2);
+    final double signHaloRadius =
+        !showSign ? 0 : (this.signHaloRadius ?? size.height * 14.0);
     final Offset startOffset = Offset(signRadius, 0);
     final Size startSize = size - Offset(signRadius * 2, 0);
 
@@ -342,6 +369,9 @@ class _LinearVideoProgressIndicatorPainter extends CustomPainter {
         oldPainter.radius != radius ||
         oldPainter.showSign != showSign ||
         oldPainter.showSignShade != showSignShade ||
+        oldPainter.signRadius != signRadius ||
+        oldPainter.signOutRadius != signOutRadius ||
+        oldPainter.signHaloRadius != signHaloRadius ||
         oldPainter.animationSignHaloValue != animationSignHaloValue ||
         oldPainter.animationValue != animationValue ||
         oldPainter.textDirection != textDirection;

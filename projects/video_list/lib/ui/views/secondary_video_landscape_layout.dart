@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:video_list/ui/animations/impliclit_transition.dart';
 import 'package:video_list/ui/controller/play_controller.dart';
 import 'package:video_list/ui/views/video_indicator.dart';
 import 'package:video_list/resources/export.dart';
@@ -39,12 +41,15 @@ class _SecondaryLandscapeVideoLayoutState
     _initAnimation();
 
     _playController.addActiveWidgetListener(_onActiveWidgetListener);
+    _promptVideoPlayerController = VideoPlayerController.network(
+      _playController.controller.dataSource,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    )..initialize();
     _initPlayState();
   }
 
   void _initPlayState() {
     assert(_playController != null);
-    print("landscape init hashcode: $hashCode");
     _playController.resetActiveTimer();
     if (_playController.pause) _playController.handlePlayState(pause: false);
   }
@@ -52,7 +57,6 @@ class _SecondaryLandscapeVideoLayoutState
   void _onActiveWidgetListener(bool showActiveWidget) {
     assert(showActiveWidget != null);
     assert(_slideController != null);
-    print("11showActiveWidget: $showActiveWidget");
     if (showActiveWidget) {
       _slideController.forward();
     } else {
@@ -79,6 +83,7 @@ class _SecondaryLandscapeVideoLayoutState
   void dispose() {
     _disposeAnimation();
     _playController.removeActiveWidgetListener(_onActiveWidgetListener);
+    _promptVideoPlayerController.dispose();
     super.dispose();
   }
 
@@ -93,16 +98,229 @@ class _SecondaryLandscapeVideoLayoutState
           fit: StackFit.expand,
           children: [
             _buildBulletScreen(),
-            _buildVideoInnerWidget(),
-            _buildVideoOuterWidget(),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 40.w),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildVideoInnerWidget(),
+                  _buildVideoOuterWidget(),
+                ],
+              ),
+            ),
+            _buildProgressPrompt(),
           ],
         ),
       ),
     );
   }
 
+  ProgressValueState _oldValueState = ProgressValueState.nothing;
+
+  Offset _computerPromptPosition(
+      ProgressControllerNotify progressControllerNotify) {
+    assert(progressControllerNotify != null);
+    Offset position;
+    if (progressControllerNotify.state == ProgressControllerState.down ||
+        progressControllerNotify.state == ProgressControllerState.startDrag) {
+      _oldValueState = ProgressValueState.nothing;
+      position = progressControllerNotify.isTouchBar
+          ? Offset.zero
+          : (progressControllerNotify.increasing()
+              ? Offset(-0.06, 0)
+              : (progressControllerNotify.reducing()
+                  ? Offset(0.06, 0)
+                  : Offset.zero));
+    } else if (progressControllerNotify.state == ProgressControllerState.up ||
+        progressControllerNotify.state == ProgressControllerState.endDrag) {
+      position = Offset.zero;
+    } else {
+      if (progressControllerNotify.increasing()) {
+        position = Offset(0.06, 0);
+        _oldValueState = ProgressValueState.increase;
+      } else if (progressControllerNotify.reducing()) {
+        position = Offset(-0.06, 0);
+        _oldValueState = ProgressValueState.reduce;
+      } else {
+        if (_oldValueState == null ||
+            _oldValueState == ProgressValueState.nothing) {
+          position = Offset.zero;
+        } else {
+          if (_oldValueState == ProgressValueState.increase) {
+            position = Offset(0.06, 0);
+          } else {
+            position = Offset(-0.06, 0);
+          }
+        }
+      }
+    }
+
+    assert(position != null);
+    return position;
+  }
+
+  VideoPlayerController _promptVideoPlayerController;
+
+  Widget _buildProgressPrompt() {
+    return Consumer(builder: (BuildContext context,
+        ProgressControllerNotify progressControllerNotify, Widget child) {
+      final bool showProgressController =
+          progressControllerNotify.isHasState(ProgressControllerState.down) ||
+              progressControllerNotify
+                  .isHasState(ProgressControllerState.startDrag);
+
+      if (_promptVideoPlayerController.value.initialized) {
+        _promptVideoPlayerController.value =
+            _playController.controller.value.copyWith();
+        _promptVideoPlayerController.seekTo(_playController.duration * progressControllerNotify.currentValue);
+      }
+
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Offstage(
+            offstage: !showProgressController,
+            child: Container(
+              color: Colors.black26,
+            ),
+          ),
+          Positioned(
+            top: 240.h,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: AnimatedTranslation(
+                position: _computerPromptPosition(progressControllerNotify),
+                duration: const Duration(milliseconds: 500),
+                opacity: showProgressController ? 1.0 : 0.0,
+                hideOpacityAnimation: showProgressController,
+                curve: Curves.easeIn,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      //shadowColor: Colors.transparent,
+                      //elevation: 0.2,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          height: 300.h,
+                          width: 480.h,
+                          color: Colors.grey,
+                          child: AspectRatio(
+                            aspectRatio:
+                            _promptVideoPlayerController.value.aspectRatio,
+                            child: VideoPlayer(_promptVideoPlayerController),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: 36.h,
+                      ),
+                      child: Text(
+                        getFormatDuration(_playController.duration *
+                            progressControllerNotify.currentValue),
+                        style: TextStyle(
+                          fontSize: 42.sp,
+                          fontWeight: FontWeight.w300,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+
+      /*return Offstage(
+        offstage: !(progressControllerNotify
+                .isHasState(ProgressControllerState.down) ||
+            progressControllerNotify
+                .isHasState(ProgressControllerState.startDrag)),
+        child: Container(
+          color: Color(0x55000000),
+          padding: EdgeInsets.only(
+            top: 240.h,
+          ),
+          alignment: Alignment.topCenter,
+          child: AnimatedTranslation(
+            position: position,
+            duration: const Duration(milliseconds: 500),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Material(
+                  color: Colors.transparent,
+                  //shadowColor: Colors.transparent,
+                  //elevation: 0.2,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      height: 300.h,
+                      width: 480.h,
+                      color: Colors.grey,
+                      child: AspectRatio(
+                        aspectRatio:
+                            _playController.controller.value.aspectRatio,
+                        child: VideoPlayer(_playController.controller),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 36.h,
+                  ),
+                  child: Text(
+                    getFormatDuration(_playController.duration *
+                        progressControllerNotify.currentValue),
+                    style: TextStyle(
+                      fontSize: 42.sp,
+                      fontWeight: FontWeight.w300,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );*/
+    });
+  }
+
   Widget _buildBulletScreen() {
-    return Text("弹幕..");
+    return Column(
+      children: [
+        Text(
+          "我是弹幕..",
+        ),
+        Padding(
+          padding: EdgeInsets.only(left: 40),
+          child: Text(
+            "我是弹幕..2222..",
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(left: 40, top: 50),
+          child: Text(
+            "我是弹幕..f454.5555555555555.",
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(right: 360, top: 50),
+          child: Text(
+            "我是弹幕..我是弹幕..我是弹幕66666666666666666..",
+          ),
+        )
+      ],
+    );
     //return Visibility(child: child)
   }
 
@@ -128,7 +346,7 @@ class _SecondaryLandscapeVideoLayoutState
           ),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 62.w),
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -164,12 +382,27 @@ class _SecondaryLandscapeVideoLayoutState
     );
   }
 
+  GlobalKey _centerProgressControllerKey = GlobalKey();
+
   Widget _buildVideoInnerWidget() {
     return Column(
       children: [
         _buildVideoTitle(),
-        Spacer(),
-        _buildVideoController(),
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _playController
+                  .buildProgressControllerWidget(_centerProgressControllerKey),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _buildVideoController(),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -248,7 +481,7 @@ class _SecondaryLandscapeVideoLayoutState
             .animate(_slideAnimation),
         child: _buildShadowMask(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 66.w, vertical: 100.h),
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 100.h),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -268,26 +501,38 @@ class _SecondaryLandscapeVideoLayoutState
       child: SlideTransition(
         position: Tween(begin: Offset(0, 1), end: Offset.zero)
             .animate(_slideAnimation),
-        child: _buildShadowMask(
-          reverse: true,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 48.w, vertical: 62.h),
-            child: Column(
-              children: [
-                _buildProgressTimer(),
-                _buildProgressIndicator(),
-                _buildProgressController(),
-              ],
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: _buildShadowMask(
+                  reverse: true,
+                ),
+              ),
             ),
-          ),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 0.h),
+              child: Column(
+                children: [
+                  _buildProgressTimer(),
+                  _buildProgressIndicator(),
+                  _buildProgressController(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildProgressController() {
-    return Padding(
-      padding: EdgeInsets.only(left: 14.w, right: 14.w, top: 52.h),
+    /*return Padding(
+      padding: EdgeInsets.only(bottom: 56.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -295,101 +540,217 @@ class _SecondaryLandscapeVideoLayoutState
           _buildRightControllerButton(),
         ],
       ),
-    );
-  }
-
-  Widget _buildLeftControllerButton() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    );*/
+    final int leftFlex = 3;
+    final int centerFlex = 10;
+    final int rightFlex = 6;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _playController.buildPlayButton(
-          size: 28.sp,
-          onTap: () {
-            print("ddddddd");
-            _playController.handlePlayState();
-          },
+        IntrinsicHeight(
+          child: Row(
+            //crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _buildLeftControllerButton(),
+                flex: leftFlex,
+              ),
+              Spacer(
+                flex: centerFlex,
+              ),
+              Expanded(
+                child: _buildRightControllerButton(),
+                flex: rightFlex,
+              ),
+            ],
+          ),
         ),
-        Padding(
-          padding: EdgeInsets.only(left: 12.w),
-          child: buildStandardButton(
-            iconData: Icons.fast_forward_rounded,
-            size: 28.sp,
-            onTap: () {},
+        SizedBox(
+          height: 56.h,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Container(
+                  color: Colors.transparent,
+                ),
+                flex: leftFlex,
+              ),
+              Spacer(
+                flex: centerFlex,
+              ),
+              Expanded(
+                child: Container(
+                  color: Colors.transparent,
+                ),
+                flex: rightFlex,
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildRightControllerButton() {
-    return SizedBox(
-      width: 200.w,
+  /* Widget Loading() {
+    //宽度是确定的，高度是由最大孩子的高度决定
+    return Row(
+      children: [
+        Text("child1", style: TextStyle(fontSize: 36),),
+        //child2
+        Text("child3", style: TextStyle(fontSize: 24),),
+      ],
+    );
+  }*/
+
+  Widget _buildLeftControllerButton() {
+    return IntrinsicHeight(
       child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          buildStandardButton(
-            iconData: Icons.edit,
-            size: 23.sp,
-            onTap: () {},
+          GestureDetector(
+            onTap: () {
+              _playController.handlePlayState();
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: EdgeInsets.only(left: 12.w),
+              child: _playController.buildPlayButton(
+                size: 36.sp,
+                onTap: () {
+                  _playController.handlePlayState();
+                },
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              color: Colors.transparent,
+            ),
           ),
           buildStandardButton(
-            text: "倍速",
-            size: 16.sp,
-            onTap: () {},
-          ),
-          buildStandardButton(
-            iconData: Icons.hdr_enhanced_select,
-            size: 23.sp,
-            onTap: () {},
-          ),
-          buildStandardButton(
-            text: "选集",
-            size: 16.sp,
+            iconData: Icons.fast_forward_rounded,
+            size: 36.sp,
             onTap: () {},
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRightControllerButton() {
+    return Stack(
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: AbsorbPointer(
+            absorbing: true,
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(
+            right: 14.w,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              buildStandardButton(
+                iconData: Icons.edit,
+                size: 22.sp,
+                onTap: () {},
+              ),
+              buildStandardButton(
+                text: "倍速",
+                size: 15.sp,
+                onTap: () {},
+              ),
+              buildStandardButton(
+                iconData: Icons.hdr_enhanced_select,
+                size: 22.sp,
+                onTap: () {},
+              ),
+              buildStandardButton(
+                text: "选集",
+                size: 15.sp,
+                onTap: () {},
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildProgressTimer() {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: 20.h,
-        left: 14.w,
-        right: 14.w,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(getFormatDuration(_playController.position)),
-          Text(getFormatDuration(_playController.duration)),
-        ],
+    return IgnorePointer(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 14.w,
+          right: 14.w,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(getFormatDuration(_playController.position)),
+            Text(getFormatDuration(_playController.duration)),
+          ],
+        ),
       ),
     );
   }
 
+  GlobalKey _progressKey = GlobalKey();
+
   Widget _buildProgressIndicator() {
-    return VideoProgressOwnerIndicator(
-      _playController.controller,
-      allowScrubbing: true,
-      minHeight: 2.2,
-      padding: EdgeInsets.zero,
-      colors: VideoProgressColors(
-        playedColor: Color(0xFFFF6633),
-        backgroundColor: Colors.black26,
-        bufferedColor: Colors.blueGrey,
+    return _playController.buildProgressIndicator(
+      progressKey: _progressKey,
+      child: Consumer(
+        builder: (BuildContext context,
+            ProgressControllerNotify progressControllerNotify, Widget child) {
+          return Padding(
+            padding: EdgeInsets.only(top: 24.h, bottom: 56.h),
+            child: VideoProgressOwnerIndicator(
+              _playController.controller,
+              progressKey: _progressKey,
+              showSign: true,
+              allowScrubbing: true,
+              showSignHalo: progressControllerNotify
+                  .isHasState(ProgressControllerState.startDrag),
+              stop: progressControllerNotify
+                      .isHasState(ProgressControllerState.down) ||
+                  progressControllerNotify
+                      .isHasState(ProgressControllerState.startDrag),
+              positionPercent:
+                  progressControllerNotify.state == ProgressControllerState.down
+                      ? null
+                      : progressControllerNotify.currentValue,
+              bufferingMillisecond: 1000,
+              bufferingSpeedMillisecond: 0,
+              signHaloAnimationDuration: const Duration(milliseconds: 400),
+              minHeight: 2.8,
+              signHaloRadius: 86.h,
+              padding: EdgeInsets.zero,
+              colors: VideoProgressColors(
+                playedColor: Color(0xFFFF6633),
+                backgroundColor: Colors.black26,
+                bufferedColor: Colors.blueGrey,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildShadowMask(
       {Widget child, Color color = Colors.black54, bool reverse = false}) {
-    assert(child != null);
     assert(color != null);
     assert(reverse != null);
-    return Container(
+    final Widget childWidget = Container(
       width: double.infinity,
       decoration: BoxDecoration(
         //borderRadius: BorderRadius.all(Radius.circular(28)),
@@ -411,13 +772,16 @@ class _SecondaryLandscapeVideoLayoutState
       ),
       child: child,
     );
+    return child == null
+        ? Center(
+            child: childWidget,
+          )
+        : childWidget;
   }
 
   Widget _buildStatusBar() {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: 62.w,
-      ),
+      padding: EdgeInsets.only(left: 18.w),
       child: SizedBox(
         width: double.infinity,
         height: 100.h,

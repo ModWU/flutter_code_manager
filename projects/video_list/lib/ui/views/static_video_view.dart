@@ -62,9 +62,12 @@ class VideoView extends StatefulWidget {
     this.contentStackBuilder,
     this.contentFit = StackFit.loose,
     this.errorBuilder,
+    this.padding,
+    this.paddingColor = Colors.black,
     this.playState,
   })  : assert(videoUrl != null || controller != null),
         assert(contentFit != null),
+        assert(paddingColor != null),
         super(key: key);
 
   @override
@@ -76,6 +79,8 @@ class VideoView extends StatefulWidget {
   final ContentStackBuilder contentStackBuilder;
   final StackFit contentFit;
   final VideoErrorWidgetBuilder errorBuilder;
+  final EdgeInsetsGeometry padding;
+  final Color paddingColor;
 }
 
 class _VideoViewState extends State<VideoView>
@@ -403,7 +408,13 @@ class _VideoViewState extends State<VideoView>
         alignment: Alignment.center,
         fit: widget.contentFit,
         children: [
-          VideoPlayer(_videoController),
+          widget.padding == null
+              ? VideoPlayer(_videoController)
+              : Container(
+                  padding: widget.padding,
+                  color: widget.paddingColor,
+                  child: VideoPlayer(_videoController),
+                ),
           if (stackList != null) ...stackList,
         ],
       ),

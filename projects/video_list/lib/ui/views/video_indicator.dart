@@ -29,6 +29,9 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
     this.showSign = false,
     this.showSignHalo = false,
     this.showSignShade = false,
+    this.signRadius,
+    this.signOutRadius,
+    this.signHaloRadius,
     this.signHaloAnimationDuration = const Duration(milliseconds: 200),
     this.allowScrubbing = false,
     this.padding = const EdgeInsets.only(top: 5.0),
@@ -43,6 +46,9 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
         assert(bufferingSpeedMillisecond != null),
         assert(bufferingMillisecond != null),
         assert(signHaloAnimationDuration != null),
+        assert(signRadius == null || signRadius > 0),
+        assert(signOutRadius == null || signOutRadius > 0),
+        assert(signHaloRadius == null || signHaloRadius > 0),
         colors = colors ?? VideoProgressColors();
 
   /// The [VideoPlayerController] that actually associates a video with this
@@ -87,6 +93,12 @@ class VideoProgressOwnerIndicator extends StatefulWidget {
   final bool showSignShade;
 
   final Duration signHaloAnimationDuration;
+
+  final double signRadius;
+
+  final double signOutRadius;
+
+  final double signHaloRadius;
 
   @override
   _VideoProgressOwnerIndicatorState createState() =>
@@ -358,6 +370,9 @@ class _VideoProgressOwnerIndicatorState
                 showSign: widget.showSign,
                 showSignHalo: widget.showSignHalo,
                 showSignShade: widget.showSignShade,
+                signRadius: widget.signRadius,
+                signOutRadius: widget.signOutRadius,
+                signHaloRadius: widget.signHaloRadius,
                 signHaloAnimationDuration: widget.signHaloAnimationDuration,
                 minHeight: widget.minHeight,
                 backgroundColor: Colors.transparent,

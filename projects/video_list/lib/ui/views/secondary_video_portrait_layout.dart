@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:video_list/pages/page_controller.dart';
+import 'package:video_list/ui/animations/impliclit_transition.dart';
 import 'package:video_list/ui/controller/play_controller.dart';
 import 'package:video_list/ui/views/video_indicator.dart';
 import 'package:video_list/ui/views/video_indicator_impl.dart';
@@ -38,12 +39,11 @@ class _SecondaryPortraitVideoLayoutState
 
   GlobalKey _progressKey = GlobalKey();
 
-  Duration _downingTime;
+  final double _bottomHeight = 80.h;
 
   @override
   void initState() {
     super.initState();
-    print("portrait init hashcode: $hashCode");
     SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
     _playController = widget.playController;
     _playController.resetActiveTimer();
@@ -182,7 +182,7 @@ class _SecondaryPortraitVideoLayoutState
     });
   }
 
-  Widget _buildProgressIndicator(VideoPlayerController controller) {
+  /*Widget _buildProgressIndicator(VideoPlayerController controller) {
     assert(controller != null);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -191,8 +191,8 @@ class _SecondaryPortraitVideoLayoutState
           return;
         }
         _playController.progressControllerNotify.change(
-          currentValue:
-              getBoxPositionPercent(_progressKey, details.globalPosition),
+          currentValue: _playController.getBoxPositionPercent(
+              _progressKey, details.globalPosition),
           state: ProgressControllerState.startDrag,
         );
         _playController.blockActiveTimer();
@@ -202,8 +202,8 @@ class _SecondaryPortraitVideoLayoutState
           return;
         }
         _playController.progressControllerNotify.change(
-          currentValue:
-              getBoxPositionPercent(_progressKey, details.globalPosition),
+          currentValue: _playController.getBoxPositionPercent(
+              _progressKey, details.globalPosition),
           state: ProgressControllerState.dragging,
         );
       },
@@ -213,7 +213,8 @@ class _SecondaryPortraitVideoLayoutState
           return;
         }
         _downingTime = null;
-        _setDragPositionAndNotify(ProgressControllerState.endDrag);
+        _playController
+            .setDragPositionAndNotify(ProgressControllerState.endDrag);
         controller.play();
         _playController.unblockActiveTimer();
       },
@@ -223,8 +224,8 @@ class _SecondaryPortraitVideoLayoutState
         }
         _downingTime = _playController.position;
         _playController.progressControllerNotify.change(
-          currentValue:
-              getBoxPositionPercent(_progressKey, details.globalPosition),
+          currentValue: _playController.getBoxPositionPercent(
+              _progressKey, details.globalPosition),
           state: ProgressControllerState.down,
         );
         _playController.blockActiveTimer();
@@ -235,7 +236,7 @@ class _SecondaryPortraitVideoLayoutState
         }
         _downingTime = null;
         //忽略抬起的位置
-        _setDragPositionAndNotify(ProgressControllerState.up);
+        _playController.setDragPositionAndNotify(ProgressControllerState.up);
         controller.play();
         _playController.unblockActiveTimer();
       },
@@ -243,8 +244,6 @@ class _SecondaryPortraitVideoLayoutState
         child: Consumer(
           builder: (BuildContext context,
               ProgressControllerNotify progressControllerNotify, Widget child) {
-            print(
-                "wcc001=>${progressControllerNotify.state} ${progressControllerNotify.currentValue}");
             return VideoProgressOwnerIndicator(
               controller,
               allowScrubbing: true,
@@ -275,7 +274,7 @@ class _SecondaryPortraitVideoLayoutState
         ),
       ),
     );
-  }
+  }*/
 
   Widget _buildMoreButton() {
     return buildStandardButton(
@@ -283,23 +282,6 @@ class _SecondaryPortraitVideoLayoutState
       size: 48.sp,
       onTap: () {},
     );
-  }
-
-  void _setDragPositionAndNotify(ProgressControllerState state,
-      {Offset globalPosition}) {
-    assert(state != null);
-    if (!_playController.initialized) {
-      return;
-    }
-    final double positionPercent = globalPosition != null
-        ? getBoxPositionPercent(_progressKey, globalPosition)
-        : _playController.progressControllerNotify.currentValue;
-    _playController.progressControllerNotify.change(
-      currentValue: positionPercent,
-      state: state,
-    );
-    final Duration position = _playController.duration * positionPercent;
-    _playController.controller.seekTo(position);
   }
 
   Widget _buildMusicButton() {
@@ -368,9 +350,46 @@ class _SecondaryPortraitVideoLayoutState
     );*/
   }
 
+  Widget _buildProgressIndicator() {
+    assert(_playController.controller != null);
+    return Center(
+      child: Consumer(
+        builder: (BuildContext context,
+            ProgressControllerNotify progressControllerNotify, Widget child) {
+          return VideoProgressOwnerIndicator(
+            _playController.controller,
+            allowScrubbing: true,
+            showSign: true,
+            showSignShade: true,
+            showSignHalo: progressControllerNotify
+                .isHasState(ProgressControllerState.startDrag),
+            progressKey: _progressKey,
+            stop: progressControllerNotify
+                .isHasState(ProgressControllerState.down) ||
+                progressControllerNotify
+                    .isHasState(ProgressControllerState.startDrag),
+            //minHeight: 50.h,
+            positionPercent:
+            progressControllerNotify.state == ProgressControllerState.down
+                ? null
+                : progressControllerNotify.currentValue,
+            bufferingMillisecond: 1000,
+            bufferingSpeedMillisecond: 0,
+            padding: EdgeInsets.zero,
+            colors: VideoProgressColors(
+              playedColor: Color(0xFFFF6633),
+              backgroundColor: Colors.black26,
+              bufferedColor: Colors.blueGrey,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildBottomActiveWidget() {
     return Container(
-      height: 80.h,
+      height: _bottomHeight,
       decoration: BoxDecoration(
         //borderRadius: BorderRadius.all(Radius.circular(28)),
         // border: Border.all(color: Color(0xFFFF0000), width: 0),
@@ -407,11 +426,13 @@ class _SecondaryPortraitVideoLayoutState
                         .isHasState(ProgressControllerState.startDrag);
                 final bool downing = progressControllerNotify.state ==
                     ProgressControllerState.down;
-                assert(!downing || _downingTime != null);
+                assert(!downing ||
+                    progressControllerNotify.downPositionDuration != null);
                 return Text(
                   hasDrag
                       ? (downing
-                          ? getFormatDuration(_downingTime)
+                          ? getFormatDuration(
+                              progressControllerNotify.downPositionDuration)
                           : getFormatDuration(_playController.duration *
                               progressControllerNotify.currentValue))
                       : getFormatDuration(_playController.position),
@@ -423,7 +444,10 @@ class _SecondaryPortraitVideoLayoutState
             ),
           ),
           Expanded(
-            child: _buildProgressIndicator(_playController.controller),
+            child: _playController.buildProgressIndicator(
+              progressKey: _progressKey,
+              child: _buildProgressIndicator(),
+            ),
           ),
           Padding(
             padding: EdgeInsets.only(
@@ -447,98 +471,19 @@ class _SecondaryPortraitVideoLayoutState
     );
   }
 
-  DateTime _lastPressedAdt;
-  bool _allowDragController = false;
-  Offset _lastPosition;
-  GlobalKey _centerControllerWidgetKey = GlobalKey();
-
-  Widget _buildCenterControllerWidget() {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: 100.h,
-      ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (DragStartDetails details) {
-          _allowDragController = true;
-          if (!_playController.initialized ||
-              (_lastPressedAdt != null &&
-                  DateTime.now().difference(_lastPressedAdt).inMilliseconds >=
-                      500)) {
-            _allowDragController = false;
-            return;
-          }
-          _playController.cancelActiveTimer(showActiveWidget: false);
-          _playController.progressControllerNotify.change(
-            currentValue: getProgressPositionPercent(
-                _playController.position, _playController.duration),
-            state: ProgressControllerState.startDrag,
-          );
-          _lastPosition = details.globalPosition;
-        },
-        onHorizontalDragUpdate: (DragUpdateDetails details) {
-          if (!_allowDragController) return;
-          assert(_lastPosition != null);
-          assert(_centerControllerWidgetKey.currentContext != null);
-          final RenderBox parentBox =
-              _centerControllerWidgetKey.currentContext.findRenderObject();
-          assert(parentBox != null);
-          assert(parentBox.size != null);
-          assert(parentBox.size.width > 0);
-          //最多只能滑动十分钟
-          final double totalTime =
-              ((details.globalPosition - _lastPosition).dx /
-                      parentBox.size.width) *
-                  1000 *
-                  60 *
-                  10;
-
-          final double newCurrentValue = (totalTime +
-                  _playController.progressControllerNotify.currentValue *
-                      _playController.duration.inMilliseconds) /
-              _playController.duration.inMilliseconds;
-          _playController.progressControllerNotify.change(
-            currentValue: newCurrentValue,
-            state: ProgressControllerState.dragging,
-          );
-
-          _lastPosition = details.globalPosition;
-        },
-        onHorizontalDragEnd: (DragEndDetails details) {
-          _lastPressedAdt = null;
-          if (!_allowDragController) return;
-          //end 和 down不会同时执行
-          _downingTime = null;
-          _lastPosition = null;
-          _setDragPositionAndNotify(ProgressControllerState.endDrag);
-          _playController.controller.play();
-        },
-        onTapDown: (TapDownDetails details) {
-          _allowDragController = false;
-          _lastPressedAdt = DateTime.now();
-        },
-        onTapUp: (TapUpDetails details) {
-          _lastPressedAdt = null;
-          if (!_allowDragController) return;
-          _downingTime = null;
-          _lastPosition = null;
-          _setDragPositionAndNotify(ProgressControllerState.up);
-          _playController.controller.play();
-        },
-        onTap: () {
-          _playController.handleActiveTimer(force: true);
-        },
-        child: Center(
-          key: _centerControllerWidgetKey,
-          child: Container(),
-        ),
-      ),
-    );
-  }
-
   @override
   void didUpdateWidget(covariant SecondaryPortraitVideoLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
+  }
+
+  GlobalKey _centerProgressControllerKey = GlobalKey();
+
+  Widget _buildProgressControllerWidget() {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: _bottomHeight),
+      child: _playController
+          .buildProgressControllerWidget(_centerProgressControllerKey),
+    );
   }
 
   @override
@@ -550,7 +495,7 @@ class _SecondaryPortraitVideoLayoutState
         children: [
           _buildActiveWidget(),
           _buildTopWidget(),
-          _buildCenterControllerWidget(),
+          _buildProgressControllerWidget(),
           _buildProgressPrompt(),
         ],
       ),

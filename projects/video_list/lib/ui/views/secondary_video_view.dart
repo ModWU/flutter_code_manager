@@ -38,23 +38,6 @@ mixin VideoUtilsMiXin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  double getBoxPositionPercent(GlobalKey boxKey, Offset globalPosition) {
-    assert(boxKey?.currentContext != null);
-    assert(globalPosition != null);
-    final RenderBox box = boxKey.currentContext.findRenderObject();
-    final Offset tapPos = box.globalToLocal(globalPosition);
-    final double relative = tapPos.dx / box.size.width;
-    /*final Duration position = controller.value.duration * relative;
-    controller.seekTo(position);*/
-    return relative;
-  }
-
-  double getProgressPositionPercent(Duration position, Duration duration) {
-    assert(position != null);
-    assert(duration != null);
-    return position.inMilliseconds / duration.inMilliseconds;
-  }
-
   String getFormatDuration(Duration duration) {
     if (duration == null) return '00:00';
     int hours = duration.inHours;
@@ -181,12 +164,12 @@ class _SecondaryVideoViewState extends State<SecondaryVideoView>
         builder: (BuildContext context, StateSetter setState) {
       return GestureDetector(
         onTap: () {
-          print("fdjaljfdklajfkd");
+          print("fdjaljfdklajfkd....12121212.......");
           _controller.handleActiveTimer(force: true);
         },
         onDoubleTap: () {
           assert(_controller != null);
-          print("fdjaljfdklajfkd...........");
+          print("fdjaljfdklajfkd....12.......");
           _controller.handlePlayState();
 
           if (!_controller.playEnd) {
@@ -201,6 +184,9 @@ class _SecondaryVideoViewState extends State<SecondaryVideoView>
         child: VideoView(
           controller: _controller.controller,
           contentFit: StackFit.expand,
+          padding: _controller.isPortrait
+              ? null
+              : EdgeInsets.symmetric(horizontal: 48.w),
           errorBuilder: (context, _) {
             return Container(
               alignment: Alignment.center,
