@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:video_list/resources/res/strings.dart';
@@ -30,15 +31,16 @@ enum ProgressValueState {
 class ProgressControllerNotify with ChangeNotifier {
   ProgressControllerState _state = ProgressControllerState.nothing;
   ProgressValueState _valueState = ProgressValueState.nothing;
-  double _currentValue;
-  double _maxValue;
-  Duration _downPositionDuration;
+  int _currentValue; //以秒为单位进行
+  int _maxValue; //以秒为单位进行
+  int _downPositionValue; //以秒为单位进行
   int _stateSign = 0;
   bool _isTouchBar = false;
+  double _velocity = 0;
 
   ProgressControllerNotify({
-    double currentValue = 0,
-    double maxValue,
+    int currentValue = 0,
+    int maxValue = 0,
   })  : assert(maxValue != null),
         assert(maxValue >= 0),
         assert(currentValue != null),
@@ -51,19 +53,29 @@ class ProgressControllerNotify with ChangeNotifier {
     return _state;
   }
 
+  double get percent {
+    assert(maxValue != null);
+    assert(maxValue >= 0);
+    assert(currentValue != null);
+    assert(currentValue >= 0 && currentValue <= maxValue);
+    return maxValue == 0 ? 0 : currentValue / maxValue;
+  }
+
   ProgressValueState get currentState {
     assert(_valueState != null);
     return _valueState;
   }
 
-  double get currentValue {
+  int get currentValue {
     assert(_currentValue >= 0 && _currentValue <= _maxValue);
     return _currentValue;
   }
 
-  double get maxValue => _maxValue;
+  int get maxValue => _maxValue;
 
-  Duration get downPositionDuration => _downPositionDuration;
+  double get velocity => _velocity;
+
+  int get downPositionValue => _downPositionValue;
 
   bool get isTouchBar => _isTouchBar;
 
@@ -88,12 +100,14 @@ class ProgressControllerNotify with ChangeNotifier {
 
   void change(
       {ProgressControllerState state,
-      double currentValue,
-      double maxValue,
-      Duration downPositionDuration,
+      int currentValue,
+      int maxValue,
+      int downPositionValue,
+      double velocity = 0,
       bool isTouchBar = false}) {
     assert(state != null || currentValue != null);
     assert(isTouchBar != null);
+    assert(velocity != null);
     bool isNotify = false;
     if (state != null && state != _state) {
       _state = state;
@@ -116,7 +130,6 @@ class ProgressControllerNotify with ChangeNotifier {
     else if (currentValue > _maxValue) currentValue = _maxValue;
 
     _valueState = ProgressValueState.nothing;
-
     if (currentValue != null && currentValue != _currentValue) {
       assert(currentValue >= 0 && currentValue <= _maxValue);
       if (currentValue > _currentValue) {
@@ -131,14 +144,19 @@ class ProgressControllerNotify with ChangeNotifier {
 
     assert(_currentValue <= _maxValue);
 
-    if (downPositionDuration != null &&
-        downPositionDuration != _downPositionDuration) {
-      _downPositionDuration = downPositionDuration;
+    if (downPositionValue != null && downPositionValue != _downPositionValue) {
+      _downPositionValue = downPositionValue;
       isNotify = true;
     }
 
     if (isTouchBar != _isTouchBar) {
       _isTouchBar = isTouchBar;
+      isNotify = true;
+    }
+
+    if (velocity != _velocity) {
+      _velocity = velocity;
+      isNotify = true;
     }
 
     if (isNotify) notifyListeners();
@@ -158,7 +176,7 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
       _progressControllerNotify;
 
   ProgressControllerNotify _progressControllerNotify =
-      ProgressControllerNotify(maxValue: 1.0);
+      ProgressControllerNotify();
 
   void setLandscapeScreen() {
     _isPortrait = false;
@@ -175,15 +193,15 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
     if (!initialized) {
       return;
     }
-    final double positionPercent = boxPositionPercent != null
-        ? boxPositionPercent
-        : progressControllerNotify.currentValue;
+    final Duration position = boxPositionPercent == null
+        ? Duration(seconds: progressControllerNotify.currentValue)
+        : duration * boxPositionPercent;
     progressControllerNotify.change(
-      currentValue: positionPercent,
+      currentValue: position.inSeconds,
+      maxValue: duration.inSeconds,
       state: state,
       isTouchBar: isTouchBar,
     );
-    final Duration position = duration * positionPercent;
     controller.seekTo(position);
   }
 
@@ -198,12 +216,6 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
     return relative;
   }
 
-  double getProgressPositionPercent(Duration position, Duration duration) {
-    assert(position != null);
-    assert(duration != null);
-    return position.inMilliseconds / duration.inMilliseconds;
-  }
-
   DateTime _lastPressedAdt;
   bool _allowDragController = false;
   Offset _lastPosition;
@@ -215,45 +227,52 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
       behavior: HitTestBehavior.opaque,
       onHorizontalDragStart: (DragStartDetails details) {
         _allowDragController = true;
+        final DateTime nowTime = DateTime.now();
         if (!initialized ||
             (_lastPressedAdt != null &&
-                DateTime.now().difference(_lastPressedAdt).inMilliseconds >=
-                    500)) {
+                nowTime.difference(_lastPressedAdt).inMilliseconds >= 500)) {
           _allowDragController = false;
           return;
         }
         cancelActiveTimer(showActiveWidget: false);
         progressControllerNotify.change(
-          currentValue: getProgressPositionPercent(position, duration),
+          currentValue: position.inSeconds,
+          maxValue: duration.inSeconds,
           state: ProgressControllerState.startDrag,
         );
+        _lastPressedAdt = nowTime;
         _lastPosition = details.globalPosition;
       },
       onHorizontalDragUpdate: (DragUpdateDetails details) {
         if (!_allowDragController) return;
         assert(_lastPosition != null);
         assert(centerControllerKey.currentContext != null);
+        final DateTime nowTime = DateTime.now();
         final RenderBox parentBox =
             centerControllerKey.currentContext.findRenderObject();
         assert(parentBox != null);
         assert(parentBox.size != null);
         assert(parentBox.size.width > 0);
         //最多只能滑动十分钟
-        final double totalTime = ((details.globalPosition - _lastPosition).dx /
-                parentBox.size.width) *
-            1000 *
-            60 *
-            10;
+        final int totalTime = (((details.globalPosition - _lastPosition).dx /
+                    parentBox.size.width) *
+                60 *
+                10)
+            .round();
 
-        final double newCurrentValue = (totalTime +
-                progressControllerNotify.currentValue *
-                    duration.inMilliseconds) /
-            duration.inMilliseconds;
-        progressControllerNotify.change(
-          currentValue: newCurrentValue,
-          state: ProgressControllerState.dragging,
-        );
+        final int newCurrentValue =
+            totalTime + progressControllerNotify.currentValue;
 
+        if (newCurrentValue != progressControllerNotify.currentValue) {
+          progressControllerNotify.change(
+            currentValue: newCurrentValue,
+            maxValue: duration.inSeconds,
+            state: ProgressControllerState.dragging,
+            velocity: 0,
+          );
+        }
+
+        _lastPressedAdt = nowTime;
         _lastPosition = details.globalPosition;
       },
       onHorizontalDragEnd: (DragEndDetails details) {
@@ -291,35 +310,49 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onHorizontalDragStart: (DragStartDetails details) {
-        print("哈哈哈哈哈onHorizontalDragStart");
         if (!initialized) {
           return;
         }
         progressControllerNotify.change(
-          currentValue:
-              getBoxPositionPercent(progressKey, details.globalPosition),
+          currentValue: (duration.inSeconds *
+                  getBoxPositionPercent(progressKey, details.globalPosition))
+              .round(),
+          maxValue: duration.inSeconds,
           state: ProgressControllerState.startDrag,
           isTouchBar: true,
         );
         blockActiveTimer();
+
+        _lastPressedAdt = DateTime.now();
       },
       onHorizontalDragUpdate: (DragUpdateDetails details) {
         if (!initialized) {
           return;
         }
-        progressControllerNotify.change(
-          currentValue:
-              getBoxPositionPercent(progressKey, details.globalPosition),
-          state: ProgressControllerState.dragging,
-          isTouchBar: true,
-        );
+        final DateTime nowTime = DateTime.now();
+
+        final int currentValue = (duration *
+            getBoxPositionPercent(progressKey, details.globalPosition)).inSeconds;
+
+        if (currentValue != progressControllerNotify.currentValue) {
+          progressControllerNotify.change(
+            currentValue: currentValue,
+            maxValue: duration.inSeconds,
+            state: ProgressControllerState.dragging,
+            velocity: 0,
+            isTouchBar: true,
+          );
+          print("drag=> currentValue: ${progressControllerNotify.currentValue} [reducing:${progressControllerNotify.reducing()} increasing:${progressControllerNotify.increasing()}]");
+        }
+
+        _lastPressedAdt = nowTime;
       },
       onHorizontalDragEnd: (DragEndDetails details) {
         //end 和 down不会同时执行
         if (!initialized) {
           return;
         }
-
+        _lastPressedAdt = null;
         setDragPositionAndNotify(
           ProgressControllerState.endDrag,
           isTouchBar: true,
@@ -331,10 +364,13 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
         if (!initialized) {
           return;
         }
+        _lastPressedAdt = DateTime.now();
         progressControllerNotify.change(
-          currentValue:
-              getBoxPositionPercent(progressKey, details.globalPosition),
-          downPositionDuration: position,
+          currentValue: (duration *
+                  getBoxPositionPercent(progressKey, details.globalPosition))
+              .inSeconds,
+          maxValue: duration.inSeconds,
+          downPositionValue: position.inSeconds,
           state: ProgressControllerState.down,
           isTouchBar: true,
         );
@@ -344,6 +380,7 @@ mixin PlayControllerMixin<T extends StatefulWidget> on State<T> {
         if (!initialized) {
           return;
         }
+        _lastPressedAdt = null;
         //忽略抬起的位置
         setDragPositionAndNotify(
           ProgressControllerState.up,

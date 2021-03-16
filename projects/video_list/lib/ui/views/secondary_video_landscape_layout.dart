@@ -41,10 +41,10 @@ class _SecondaryLandscapeVideoLayoutState
     _initAnimation();
 
     _playController.addActiveWidgetListener(_onActiveWidgetListener);
-    _promptVideoPlayerController = VideoPlayerController.network(
+    /*_promptVideoPlayerController = VideoPlayerController.network(
       _playController.controller.dataSource,
       videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-    )..initialize();
+    )..initialize();*/
     _initPlayState();
   }
 
@@ -83,7 +83,7 @@ class _SecondaryLandscapeVideoLayoutState
   void dispose() {
     _disposeAnimation();
     _playController.removeActiveWidgetListener(_onActiveWidgetListener);
-    _promptVideoPlayerController.dispose();
+    //_promptVideoPlayerController.dispose();
     super.dispose();
   }
 
@@ -120,6 +120,9 @@ class _SecondaryLandscapeVideoLayoutState
   Offset _computerPromptPosition(
       ProgressControllerNotify progressControllerNotify) {
     assert(progressControllerNotify != null);
+
+    print("_computerPromptPosition======>value:${progressControllerNotify.currentValue}  state:${progressControllerNotify.state}  newValueState:[reducing:${progressControllerNotify.reducing()} increasing:${progressControllerNotify.increasing()}] oldValueState: $_oldValueState");
+
     Offset position;
     if (progressControllerNotify.state == ProgressControllerState.down ||
         progressControllerNotify.state == ProgressControllerState.startDrag) {
@@ -159,27 +162,31 @@ class _SecondaryLandscapeVideoLayoutState
     return position;
   }
 
-  VideoPlayerController _promptVideoPlayerController;
+  //VideoPlayerController _promptVideoPlayerController;
 
   Widget _buildProgressPrompt() {
     return Consumer(builder: (BuildContext context,
         ProgressControllerNotify progressControllerNotify, Widget child) {
-      final bool showProgressController =
-          progressControllerNotify.isHasState(ProgressControllerState.down) ||
+      final bool isShow = progressControllerNotify.isTouchBar
+          ? (progressControllerNotify
+                  .isHasState(ProgressControllerState.down) ||
               progressControllerNotify
-                  .isHasState(ProgressControllerState.startDrag);
+                  .isHasState(ProgressControllerState.startDrag))
+          : progressControllerNotify
+              .isHasState(ProgressControllerState.startDrag);
 
-      if (_promptVideoPlayerController.value.initialized) {
+      /*if (_promptVideoPlayerController.value.initialized) {
         _promptVideoPlayerController.value =
             _playController.controller.value.copyWith();
-        _promptVideoPlayerController.seekTo(_playController.duration * progressControllerNotify.currentValue);
-      }
+        _promptVideoPlayerController.seekTo(
+            _playController.duration * progressControllerNotify.currentValue);
+      }*/
 
       return Stack(
         fit: StackFit.expand,
         children: [
           Offstage(
-            offstage: !showProgressController,
+            offstage: !isShow,
             child: Container(
               color: Colors.black26,
             ),
@@ -191,9 +198,9 @@ class _SecondaryLandscapeVideoLayoutState
             child: Center(
               child: AnimatedTranslation(
                 position: _computerPromptPosition(progressControllerNotify),
-                duration: const Duration(milliseconds: 500),
-                opacity: showProgressController ? 1.0 : 0.0,
-                hideOpacityAnimation: showProgressController,
+                duration: const Duration(milliseconds: 300),
+                opacity: isShow ? 1.0 : 0.0,
+                hideOpacityAnimation: isShow,
                 curve: Curves.easeIn,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -208,11 +215,11 @@ class _SecondaryLandscapeVideoLayoutState
                           height: 300.h,
                           width: 480.h,
                           color: Colors.grey,
-                          child: AspectRatio(
+                          /*child: AspectRatio(
                             aspectRatio:
-                            _promptVideoPlayerController.value.aspectRatio,
+                                _promptVideoPlayerController.value.aspectRatio,
                             child: VideoPlayer(_promptVideoPlayerController),
-                          ),
+                          ),*/
                         ),
                       ),
                     ),
@@ -221,8 +228,8 @@ class _SecondaryLandscapeVideoLayoutState
                         top: 36.h,
                       ),
                       child: Text(
-                        getFormatDuration(_playController.duration *
-                            progressControllerNotify.currentValue),
+                        getFormatDuration(
+                            Duration(seconds: progressControllerNotify.currentValue)),
                         style: TextStyle(
                           fontSize: 42.sp,
                           fontWeight: FontWeight.w300,
@@ -727,7 +734,7 @@ class _SecondaryLandscapeVideoLayoutState
               positionPercent:
                   progressControllerNotify.state == ProgressControllerState.down
                       ? null
-                      : progressControllerNotify.currentValue,
+                      : progressControllerNotify.percent,
               bufferingMillisecond: 1000,
               bufferingSpeedMillisecond: 0,
               signHaloAnimationDuration: const Duration(milliseconds: 400),

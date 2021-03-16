@@ -138,11 +138,15 @@ class _SecondaryPortraitVideoLayoutState
   Widget _buildProgressPrompt() {
     return Consumer(builder: (BuildContext context,
         ProgressControllerNotify progressControllerNotify, Widget child) {
+      final bool isShow = progressControllerNotify.isTouchBar
+          ? (progressControllerNotify
+                  .isHasState(ProgressControllerState.down) ||
+              progressControllerNotify
+                  .isHasState(ProgressControllerState.startDrag))
+          : progressControllerNotify
+              .isHasState(ProgressControllerState.startDrag);
       return Offstage(
-        offstage: !(progressControllerNotify
-                .isHasState(ProgressControllerState.down) ||
-            progressControllerNotify
-                .isHasState(ProgressControllerState.startDrag)),
+        offstage: !isShow,
         child: Container(
           color: Color(0x55000000),
           padding: EdgeInsets.only(
@@ -153,8 +157,7 @@ class _SecondaryPortraitVideoLayoutState
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                getFormatDuration(_playController.duration *
-                    progressControllerNotify.currentValue),
+                getFormatDuration(Duration(seconds: progressControllerNotify.currentValue)),
                 style: TextStyle(
                   fontSize: 62.sp,
                   fontWeight: FontWeight.w300,
@@ -166,7 +169,7 @@ class _SecondaryPortraitVideoLayoutState
                 child: SizedBox(
                   width: 240.w,
                   child: LinearVideoProgressIndicator(
-                    value: progressControllerNotify.currentValue,
+                    value: progressControllerNotify.percent,
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     minHeight: 1.8,
                     radius: Radius.circular(1.8),
@@ -365,14 +368,14 @@ class _SecondaryPortraitVideoLayoutState
                 .isHasState(ProgressControllerState.startDrag),
             progressKey: _progressKey,
             stop: progressControllerNotify
-                .isHasState(ProgressControllerState.down) ||
+                    .isHasState(ProgressControllerState.down) ||
                 progressControllerNotify
                     .isHasState(ProgressControllerState.startDrag),
             //minHeight: 50.h,
             positionPercent:
-            progressControllerNotify.state == ProgressControllerState.down
-                ? null
-                : progressControllerNotify.currentValue,
+                progressControllerNotify.state == ProgressControllerState.down
+                    ? null
+                    : progressControllerNotify.percent,
             bufferingMillisecond: 1000,
             bufferingSpeedMillisecond: 0,
             padding: EdgeInsets.zero,
@@ -427,14 +430,15 @@ class _SecondaryPortraitVideoLayoutState
                 final bool downing = progressControllerNotify.state ==
                     ProgressControllerState.down;
                 assert(!downing ||
-                    progressControllerNotify.downPositionDuration != null);
+                    progressControllerNotify.downPositionValue != null);
                 return Text(
                   hasDrag
                       ? (downing
-                          ? getFormatDuration(
-                              progressControllerNotify.downPositionDuration)
-                          : getFormatDuration(_playController.duration *
-                              progressControllerNotify.currentValue))
+                          ? getFormatDuration(Duration(
+                              seconds:
+                                  progressControllerNotify.downPositionValue))
+                          : getFormatDuration(Duration(
+                              seconds: progressControllerNotify.currentValue)))
                       : getFormatDuration(_playController.position),
                   style: TextStyle(
                     fontSize: 24.sp,
